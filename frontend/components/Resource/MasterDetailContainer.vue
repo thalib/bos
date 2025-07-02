@@ -31,7 +31,7 @@
       >
         <div class="card h-100 ms-md-2 mt-2 mt-md-0 border-0 shadow-sm">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
+            <h5 class="mb-0 flex-grow-1">
               <slot 
                 name="panel-title"
                 :selected-item="selectedItem"
@@ -40,11 +40,86 @@
                 {{ computedPanelTitle }}
               </slot>
             </h5>
+            
+            <!-- Action Buttons -->
+            <div class="d-flex align-items-center gap-2 me-2">
+              <!-- Edit Button -->
+              <button 
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                @click="handleEdit"
+                :title="computedEditLabel"
+                :aria-label="computedEditLabel"
+              >
+                <i class="bi bi-pencil"></i>
+                <span class="d-none d-md-inline ms-1">Edit</span>
+              </button>
+              
+              <!-- PDF/Print Dropdown -->
+              <div class="dropdown">
+                <button 
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                  data-bs-toggle="dropdown"
+                  :title="computedExportLabel"
+                  :aria-label="computedExportLabel"
+                  aria-expanded="false"
+                >
+                  <i class="bi bi-download"></i>
+                  <span class="d-none d-md-inline ms-1">Export</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li>
+                    <button 
+                      class="dropdown-item" 
+                      @click="handleExportPdf"
+                      aria-label="Export as PDF"
+                      title="Export as PDF"
+                    >
+                      <i class="bi bi-file-earmark-pdf me-2"></i>PDF
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      class="dropdown-item" 
+                      @click="handleExportJpg"
+                      aria-label="Export as JPG image"
+                      title="Export as JPG image"
+                    >
+                      <i class="bi bi-image me-2"></i>JPG
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      class="dropdown-item" 
+                      @click="handlePrint"
+                      aria-label="Print document"
+                      title="Print document"
+                    >
+                      <i class="bi bi-printer me-2"></i>Print
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      class="dropdown-item" 
+                      @click="handleCopy"
+                      aria-label="Copy to clipboard"
+                      title="Copy to clipboard"
+                    >
+                      <i class="bi bi-clipboard me-2"></i>Copy
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            
+            <!-- Close Button -->
             <button 
               type="button"
               class="btn btn-outline-secondary btn-sm" 
               @click="closePanel"
-              title="Close"
+              :title="computedCloseLabel"
+              :aria-label="computedCloseLabel"
             >
               <i class="bi bi-x-lg"></i>
             </button>
@@ -65,6 +140,10 @@
 
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { useDocumentExport } from '~/composables/useDocumentExport'
+
+// Get composable functions
+const { exportAsJpg, copyToClipboard, printDocument } = useDocumentExport()
 
 interface Props {
   selectedItem?: any | null
@@ -79,6 +158,11 @@ interface Emits {
   (e: 'closePanel'): void
   (e: 'update:selectedItem', value: any | null): void
   (e: 'update:showDetailPanel', value: boolean): void
+  (e: 'edit'): void
+  (e: 'export:pdf'): void
+  (e: 'export:jpg'): void
+  (e: 'print'): void
+  (e: 'copy'): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -100,6 +184,22 @@ const computedPanelTitle = computed(() => {
   }
   
   return props.resourceTitle || 'Details'
+})
+
+// Computed Accessibility Labels
+const computedEditLabel = computed(() => {
+  const resourceName = props.resourceTitle || 'record'
+  return `Edit ${resourceName.toLowerCase()}`
+})
+
+const computedExportLabel = computed(() => {
+  const resourceName = props.resourceTitle || 'content'
+  return `Export and print ${resourceName.toLowerCase()} options`
+})
+
+const computedCloseLabel = computed(() => {
+  const panelType = props.resourceTitle || 'detail'
+  return `Close ${panelType.toLowerCase()} panel`
 })
 
 // Methods
@@ -128,6 +228,67 @@ const selectItem = (item: any) => {
 
 const getSelectedItem = () => {
   return props.selectedItem
+}
+
+// Action Button Handlers
+const handleEdit = () => {
+  emit('edit')
+  alert('Feature not implemented')
+}
+
+const handleExportPdf = () => {
+  emit('export:pdf')
+  alert('Feature not implemented')
+}
+
+const handleExportJpg = async () => {
+  emit('export:jpg')
+  try {
+    const documentElement = document.querySelector('.document-viewer') as HTMLElement
+    if (!documentElement) {
+      throw new Error('Document viewer not found. Please ensure the document is displayed.')
+    }
+    
+    await exportAsJpg(documentElement)
+    // Success feedback will be handled by the composable
+  } catch (error) {
+    console.error('Failed to export as JPG:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to export document as JPG'
+    alert(`Export Error: ${errorMessage}`)
+  }
+}
+
+const handlePrint = () => {
+  emit('print')
+  try {
+    const documentElement = document.querySelector('.document-viewer') as HTMLElement
+    if (!documentElement) {
+      throw new Error('Document viewer not found. Please ensure the document is displayed.')
+    }
+    
+    printDocument(documentElement)
+  } catch (error) {
+    console.error('Failed to print document:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to open print dialog'
+    alert(`Print Error: ${errorMessage}`)
+  }
+}
+
+const handleCopy = async () => {
+  emit('copy')
+  try {
+    const documentElement = document.querySelector('.document-viewer') as HTMLElement
+    if (!documentElement) {
+      throw new Error('Document viewer not found. Please ensure the document is displayed.')
+    }
+    
+    await copyToClipboard(documentElement)
+    alert('Document copied to clipboard successfully!')
+  } catch (error) {
+    console.error('Failed to copy to clipboard:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to copy document to clipboard'
+    alert(`Copy Error: ${errorMessage}`)
+  }
 }
 
 // Watch for external changes to selectedItem
