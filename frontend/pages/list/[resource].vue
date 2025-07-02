@@ -110,11 +110,14 @@ const {
 
 // State management
 const items = ref<ResourceItem[]>([]);
-const loading = ref(false); // Start as false to avoid SSR hydration mismatch
+const loading = ref(true); // Start as true to prevent content flash
 const error = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
 const searchComponent = ref<InstanceType<typeof ResourceSearch>>();
 const masterDetailRef = ref<InstanceType<typeof ResourceMasterDetail>>();
+
+// Track if this is the initial load to prevent flash
+const isInitialLoad = ref(true);
 
 // Initialize API service for authenticated requests
 const apiService = useApiService();
@@ -476,9 +479,18 @@ const handleUpdateError = (errorValue: string | null) => {
 };
 
 // Fetch data on component mount and add keyboard shortcuts
-onMounted(() => {
+onMounted(async () => {
+  // Wait for authentication check to complete before showing content
+  await nextTick();
+  
+  // Initialize from URL state
   initializeFromURL();
-  fetchData(currentPage.value, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, currentFilter.value);
+  
+  // Fetch initial data
+  await fetchData(currentPage.value, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, currentFilter.value);
+  
+  // Mark initial load as complete
+  isInitialLoad.value = false;
 
   // Add keyboard shortcuts
   document.addEventListener('keydown', handleGlobalKeydown);
@@ -508,19 +520,33 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="container-fluid pt-3">
-    <!-- Global Loading Overlay for Actions -->
-    <div v-if="isSearching || isSorting"
-      class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-black bg-opacity-10"
-      style="z-index: 1050;">
-      <div class="bg-white rounded shadow p-3 d-flex align-items-center">
-        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-        <span v-if="isSearching">Searching...</span>
-        <span v-else-if="isSorting">Sorting...</span>
+    <!-- Initial Loading State - Show spinner during authentication and initial data load -->
+    <div v-if="isInitialLoad" class="d-flex justify-content-center align-items-center py-5" style="min-height: 400px;">
+      <div class="text-center">
+        <div class="spinner-border text-primary mb-3" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="text-muted">Loading {{ resourceTitle.toLowerCase() }}...</p>
       </div>
-    </div>    <!-- Resource Header Component -->
-    <ResourceHeader :resource-name="resourceName" :title="resourceTitle" :loading="loading"
-      :total-results="pagination.total" :has-filters="hasActiveFilters" :from="pagination.from" :to="pagination.to"
-      @create="handleCreate" @export="handleExport" @import="handleImport">
+    </div>
+
+    <!-- Main Content - Only show after initial load is complete -->
+    <template v-else>
+      <!-- Global Loading Overlay for Actions -->
+      <div v-if="isSearching || isSorting"
+        class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-black bg-opacity-10"
+        style="z-index: 1050;">
+        <div class="bg-white rounded shadow p-3 d-flex align-items-center">
+          <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+          <span v-if="isSearching">Searching...</span>
+          <span v-else-if="isSorting">Sorting...</span>
+        </div>
+      </div>
+      
+      <!-- Resource Header Component -->
+      <ResourceHeader :resource-name="resourceName" :title="resourceTitle" :loading="loading"
+        :total-results="pagination.total" :has-filters="hasActiveFilters" :from="pagination.from" :to="pagination.to"
+        @create="handleCreate" @export="handleExport" @import="handleImport">
       
       <!-- Filter Component in Header -->
       <template #filter>
@@ -571,18 +597,8 @@ onBeforeUnmount(() => {
           Make sure the API endpoint <code>{{ apiEndpoint }}</code> exists and is accessible.
         </small>
       </p>
-    </div> <!-- Enhanced Loading State -->
-    <div v-if="loading && !isSearching && !isSorting" class="d-flex justify-content-center align-items-center py-5">
-      <div class="text-center">
-        <div class="spinner-border text-primary mb-3" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-        <p class="text-muted">Loading {{ resourceTitle.toLowerCase() }}...</p>
-      </div>
-    </div>
-
-    <!-- Enhanced Error State -->
-    <div v-else-if="error && !error.includes('not found')" class="alert alert-danger d-flex align-items-start"
+    </div>    <!-- Enhanced Error State -->
+    <div v-if="error && !error.includes('not found')" class="alert alert-danger d-flex align-items-start"
       role="alert">
       <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
       <div class="flex-grow-1">
@@ -596,7 +612,7 @@ onBeforeUnmount(() => {
         </button>
       </div>
     </div>    <!-- Master-Detail View -->
-    <ResourceMasterDetail ref="masterDetailRef" v-else-if="!loading || items.length > 0" :resource="resourceName"
+    <ResourceMasterDetail ref="masterDetailRef" v-if="!loading || items.length > 0" :resource="resourceName"
       :items="items" :loading="loading" :error="error" :columns="processedColumns" :pagination="pagination"
       :show-pagination="false" :resource-title="resourceTitle" :search-query="searchQuery"
       :has-search-results="hasSearchResults" :has-no-search-results="hasNoSearchResults" :sort-field="sortField"
@@ -663,8 +679,10 @@ onBeforeUnmount(() => {
       :from="pagination.from" :to="pagination.to" :has-next-page="pagination.hasNextPage"
       :has-prev-page="pagination.hasPrevPage" :loading="loading || isSearching || isSorting"
       :per-page-options="[10, 20, 50, 100]" @page-change="handlePageChange" @per-page-change="handlePerPageChange" />
+      
     <!-- Toast Notifications -->
     <Toast />
+    </template>
   </div>
 </template>
 

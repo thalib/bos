@@ -1,5 +1,6 @@
 import { useAuth } from '~/composables/useAuth';
 import { navigateTo } from '#app';
+import { nextTick } from 'vue';
 
 /**
  * Authentication middleware for Thanzil project
@@ -15,14 +16,31 @@ export default defineNuxtRouteMiddleware((to, from) => {
   }
   
   // Get auth state
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isInitialized } = useAuth();
   
-  // If not authenticated and not already on the home page, redirect to home
-  if (!isAuthenticated.value && to.path !== '/') {
-    // Redirect to home page, preserving the intended destination
-    return navigateTo({
-      path: '/',
-      query: { redirect: to.fullPath }
+  // Wait for both hydration and auth initialization to complete before checking auth
+  // This prevents the flash of content before auth check
+  return new Promise((resolve) => {
+    const checkAuth = () => {
+      if (isInitialized.value) {
+        // If not authenticated and not already on the home page, redirect to home
+        if (!isAuthenticated.value && to.path !== '/') {
+          // Redirect to home page, preserving the intended destination
+          resolve(navigateTo({
+            path: '/',
+            query: { redirect: to.fullPath }
+          }));
+        } else {
+          resolve();
+        }
+      } else {
+        // Auth not initialized yet, wait a bit and try again
+        setTimeout(checkAuth, 10);
+      }
+    };
+    
+    nextTick(() => {
+      checkAuth();
     });
-  }
+  });
 });

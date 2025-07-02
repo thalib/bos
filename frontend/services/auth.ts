@@ -65,6 +65,7 @@ const createAuthService = () => {
   const user = ref<User | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const isInitialized = ref(false)
     // Get base API service
   const api = useApiService()
     /**
@@ -103,6 +104,7 @@ const createAuthService = () => {
       }
       
       // Also check tokens      const tokens = getTokens()
+      isInitialized.value = true
     }
   }
   
@@ -144,7 +146,7 @@ const createAuthService = () => {
    * Check if user is authenticated
    */
   const isAuthenticated = computed((): boolean => {
-    if (!process.client) {
+    if (!process.client || !isInitialized.value) {
       return false
     }
     
@@ -264,6 +266,7 @@ const createAuthService = () => {
     loading,
     error,
     isAuthenticated,
+    isInitialized,
     login,
     logout,
     refreshToken,

@@ -20,6 +20,7 @@ export function useAuth() {
     // Expose user and authentication state
     user: auth.user,
     isAuthenticated: auth.isAuthenticated,
+    isInitialized: auth.isInitialized,
     
     // Expose login and logout functions
     login,
