@@ -34,8 +34,7 @@ const containerClass = computed(() => {
 
 </script>
 
-<template>
-  <div :class="containerClass" style="min-height: 100vh;">
+<template>  <div :class="containerClass" style="min-height: 100vh;">
     <!-- Navbar Component wrapped in client-only to prevent hydration mismatch -->
     <client-only>
       <Navbar @toggle-dark-mode="toggleDarkMode" :is-dark-mode="isDarkMode" />
@@ -44,6 +43,11 @@ const containerClass = computed(() => {
     <div id="app" class="pt-3 pb-5">
       <NuxtPage />
     </div>
+    
+    <!-- Global Toast component for API error notifications -->
+    <client-only>
+      <Toast />
+    </client-only>
   </div>
 </template>
 
@@ -64,6 +68,6 @@ body {
 
 /* Basic styling adjustments if needed */
 #app {
-  /* Add any global app styling here */
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
 }
 </style>

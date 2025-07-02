@@ -32,11 +32,14 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuth } from '~/composables/useAuth';
+import { useRoute, useRouter } from 'vue-router';
 
 const username = ref('');
 const password = ref('');
 const error = ref('');
 const { login } = useAuth();
+const route = useRoute();
+const router = useRouter();
 
 async function onSubmit() {
   error.value = '';
@@ -44,8 +47,13 @@ async function onSubmit() {
   if (!success) {
     error.value = 'Invalid username or password';
   } else {
-    // Redirect to home page after successful login
-    window.location.href = '/';
+    // Check if there's a redirect parameter in the URL
+    const redirectTo = route.query.redirect as string;
+    if (redirectTo) {
+      // Navigate to the originally intended page
+      await router.push(redirectTo);
+    }
+    // If no redirect, the parent component will handle showing authenticated content
   }
 }
 </script>

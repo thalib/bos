@@ -1,0 +1,130 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "password": "admin",
+      "name": "Administrator",
+      "role": "admin"
+    },
+    {
+      "username": "user",
+      "password": "userpass",
+      "name": "Regular User",
+      "role": "user"
+    }
+  ],
+  "companies": [
+    {
+      "name": "Deltaware.in",
+      "prefix": "DE",
+      "address": "(Unit of ASENSAR AUTOMATION PVT. LTD.)\nChennai, Tamil Nadu, India, PIN - 600125.\nTEL: 9940 198 130, Email: support@deltaware.in\nWebsite: www.deltaware.in, GSTIN: 33AAPCA0028C1ZA"
+    }
+  ],
+  "banks": [
+    {
+      "name": "IDBI BANK",
+      "details": "ACCOUNT HOLDER: ASENSAR AUTOMATION PRIVATE LIMITED\nACCOUNT NO: 0630102000021599\nACCOUNT TYPE: CURRENT\nIFSC CODE: IBKL0000630\nBANK NAME: IDBI BANK\nBRANCH: ASHOK NAGAR CHENNAI"
+    }
+  ],  "products": [
+    {
+      "id": "prod_001",
+      "name": "TATA Wiron Knotted Fence - 4ft H x 100ft",
+      "description": "Material: TATA Wiron Aayush Wire, 12G (2.50mm), 60GSM, High Tensile Wire",
+      "cost": 5870,
+      "price": 6210,
+      "mrp": 0,
+      "unit": "rolls",
+      "taxPercentage": 18
+    },    {
+      "id": "prod_002",
+      "name": "TATA Wiron Knotted Fence - 5ft H x 100ft",
+      "description": "Material: TATA Wiron Aayush Wire, 12G (2.50mm), 60GSM, High Tensile Wire",
+      "cost": 6850,
+      "price": 7260,
+      "mrp": 0,
+      "unit": "rolls",
+      "taxPercentage": 18
+    },    {
+      "id": "prod_003",
+      "name": "TATA Wiron Knotted Fence - 6ft H x 100ft",
+      "description": "Material: TATA Wiron Aayush Wire, 12G (2.50mm), 60GSM, High Tensile Wire",
+      "cost": 7870,
+      "price": 8330,
+      "mrp": 0,
+      "unit": "rolls",
+      "taxPercentage": 18
+    },    {
+      "id": "prod_004",
+      "name": "TATA Wiron Knotted Fence - 8ft H x 100ft",
+      "description": "Material: TATA Wiron Aayush Wire, 12G (2.50mm), 60GSM, High Tensile Wire",
+      "cost": 10270,
+      "price": 10870,
+      "mrp": 0,
+      "unit": "rolls",
+      "taxPercentage": 18
+    },    {
+      "id": "prod_005",
+      "name": "MS Wire 18G (1.21)",
+      "description": "Material: Bestwire",
+      "cost": 83.33,
+      "price": 85.00,
+      "mrp": 0,
+      "unit": "kg",
+      "taxPercentage": 18
+    },    {
+      "id": "prod_006",
+      "name": "MS Wire 20G (0.91)",
+      "description": "Material: Bestwire",
+      "cost": 146.00,
+      "price": 148.00,
+      "mrp": 0,
+      "unit": "kg",
+      "taxPercentage": 18
+    },    {
+      "id": "prod_007",
+      "name": "MS Wire TW20 (0.81)",
+      "description": "Material: TATA Wiron",
+      "cost": 78,
+      "price": 82,
+      "mrp": 0,
+      "unit": "kg",
+      "taxPercentage": 18
+    },    {
+      "id": "prod_008",
+      "name": "Chain Link Fence - 2.5x2.5 / 5ft H x 100ft / 12G (2.50mm)",
+      "description": "Material: TATA Wiron Aayush Wire, 60GSM",
+      "cost": 6000,
+      "price": 8500,
+      "mrp": 0,
+      "unit": "rolls",
+      "taxPercentage": 18
+    },    {
+      "id": "prod_009",
+      "name": "TATA Stambh Post - 7ft",
+      "description": "Bituminous coated, Y Shaped, Ready to install",
+      "cost": 605,
+      "price": 640,
+      "mrp": 0,
+      "unit": "nos",
+      "taxPercentage": 18
+    },    {
+      "id": "prod_010",
+      "name": "TATA Stambh Side Post - 6.2ft",
+      "description": "Bituminous coated, Y Shaped, Ready to install",
+      "cost": 535,
+      "price": 570,
+      "mrp": 0,
+      "unit": "nos",
+      "taxPercentage": 18
+    },    {
+      "id": "prod_011",
+      "name": "Thalib",
+      "description": "Test product",
+      "cost": 535,
+      "price": 570,
+      "mrp": 0,
+      "unit": "nos",
+      "taxPercentage": 18
+    }
+  ]
+}
