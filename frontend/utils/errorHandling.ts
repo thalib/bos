@@ -128,6 +128,16 @@ export const useToast = () => {
   }
   
   /**
+   * Show a warning toast
+   * @param message - Warning message
+   * @param timeout - Time in ms before toast disappears
+   * @returns Toast ID
+   */
+  const showWarningToast = (message: string, timeout = defaultToastTimeout): string => {
+    return showToast(message, 'warning', timeout)
+  }
+  
+  /**
    * Dismiss a specific toast
    * @param id - The toast ID
    */
@@ -151,6 +161,7 @@ export const useToast = () => {
     showToast,
     showErrorToast,
     showSuccessToast,
+    showWarningToast,
     dismissToast,
     dismissAllToasts,
     activeToasts

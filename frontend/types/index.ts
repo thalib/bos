@@ -2,6 +2,9 @@
  * Common TypeScript types and interfaces for the Thanzil project
  */
 
+// Re-export document types
+export * from './document';
+
 /**
  * Column Interface
  * Represents a table column configuration for resource listings

@@ -1,7 +1,20 @@
 <template>
   <div class="h-100" style="min-height: 600px;">
-    <!-- Results Summary Slot -->
-    <slot name="results-summary"></slot>
+    <!-- Results Summary Sl                    <button 
+                      class="dropdown-item" 
+                      @click="handleExportJpg"
+                      :disabled="jpgExportLoading"
+                      aria-label="Export as JPG image"
+                      title="Export as JPG image"
+                    >
+                      <div class="d-flex align-items-center">
+                        <div v-if="jpgExportLoading" class="spinner-border spinner-border-sm me-2" role="status">
+                          <span class="visually-hidden">Generating JPG...</span>
+                        </div>
+                        <i v-else class="bi bi-file-earmark-image me-2"></i>
+                        {{ jpgExportLoading ? 'Generating...' : 'JPG' }}
+                      </div>
+                    </button>    <slot name="results-summary"></slot>
     
     <!-- Master-Detail Layout -->
     <div class="row g-0 h-100">
@@ -73,10 +86,17 @@
                     <button 
                       class="dropdown-item" 
                       @click="handleExportPdf"
+                      :disabled="pdfExportLoading"
                       aria-label="Export as PDF"
                       title="Export as PDF"
                     >
-                      <i class="bi bi-file-earmark-pdf me-2"></i>PDF
+                      <div class="d-flex align-items-center">
+                        <div v-if="pdfExportLoading" class="spinner-border spinner-border-sm me-2" role="status">
+                          <span class="visually-hidden">Generating PDF...</span>
+                        </div>
+                        <i v-else class="bi bi-file-earmark-pdf me-2"></i>
+                        {{ pdfExportLoading ? 'Generating...' : 'PDF' }}
+                      </div>
                     </button>
                   </li>
                   <li>
@@ -141,9 +161,22 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import { useDocumentExport } from '~/composables/useDocumentExport'
+import { useToast } from '~/utils/errorHandling'
+import { checkTemplateAvailability } from '~/services/api'
 
 // Get composable functions
-const { exportAsJpg, copyToClipboard, printDocument } = useDocumentExport()
+const { 
+  exportAsPdf, 
+  exportElementAsPdf, 
+  exportAsJpg, 
+  copyToClipboard, 
+  printDocument,
+  pdfExportLoading,
+  jpgExportLoading 
+} = useDocumentExport()
+
+// Get toast notification functions
+const { showSuccessToast, showErrorToast, showWarningToast } = useToast()
 
 interface Props {
   selectedItem?: any | null
@@ -236,9 +269,72 @@ const handleEdit = () => {
   alert('Feature not implemented')
 }
 
-const handleExportPdf = () => {
+const handleExportPdf = async () => {
   emit('export:pdf')
-  alert('Feature not implemented')
+  
+  try {
+    // Check if template service is available first
+    const isTemplateServiceAvailable = await checkTemplateAvailability()
+    
+    if (!isTemplateServiceAvailable) {
+      showWarningToast('PDF template service is currently unavailable. Using fallback export method.')
+      
+      // Fallback to element-based PDF export
+      const documentElement = document.querySelector('.document-viewer') as HTMLElement
+      if (!documentElement) {
+        throw new Error('Document viewer not found. Please ensure the document is displayed.')
+      }
+      await exportElementAsPdf(documentElement)
+      return
+    }
+    
+    // Get the document element
+    const documentElement = document.querySelector('.document-viewer') as HTMLElement
+    if (!documentElement) {
+      throw new Error('Document viewer not found. Please ensure the document is displayed.')
+    }
+    
+    // Map frontend context to backend template names
+    // This mapping can be customized based on your specific needs
+    const templateMapping: Record<string, string> = {
+      'invoice-basic': 'invoice',
+      'invoice-detailed': 'invoice',
+      'report-summary': 'report',
+      'report-detailed': 'report',
+      'receipt-simple': 'receipt',
+      'default': 'invoice' // fallback template
+    }
+    
+    // Determine template name from selected item or default to 'invoice'
+    let templateName = 'invoice' // default
+    
+    if (props.selectedItem) {
+      // Try to get template from selected item properties
+      const itemTemplate = props.selectedItem.template || 
+                          props.selectedItem.type || 
+                          props.selectedItem.document_type
+      
+      if (itemTemplate && templateMapping[itemTemplate]) {
+        templateName = templateMapping[itemTemplate]
+      } else if (itemTemplate && typeof itemTemplate === 'string') {
+        // Direct template name match
+        templateName = itemTemplate
+      }
+    }
+    
+    // Use the updated exportAsPdf method with backend integration
+    await exportAsPdf(templateName, documentElement)
+    
+    // Show success toast notification
+    showSuccessToast('PDF exported successfully and download started!')
+    
+  } catch (error) {
+    console.error('Failed to export as PDF:', error)
+    
+    // Show error toast notification with proper error handling
+    const errorMessage = error instanceof Error ? error.message : 'Failed to export document as PDF'
+    showErrorToast(`PDF Export Error: ${errorMessage}`)
+  }
 }
 
 const handleExportJpg = async () => {

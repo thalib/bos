@@ -72,7 +72,7 @@ export interface ApiService {
 }
 
 /**
- * Options for API requests
+ * Request options for API requests
  */
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -83,6 +83,7 @@ export interface RequestOptions {
   signal?: AbortSignal
   skipInterceptors?: boolean
   showGlobalLoading?: boolean
+  responseType?: 'json' | 'text' | 'blob' | 'arraybuffer'
 }
 
 /**
@@ -448,12 +449,31 @@ const createApiService = (): ApiService => {
       
       // Check if the response is a Response object (from interceptor) or already processed data
       if (fetchResponse instanceof Response) {
-        // Check if response is empty
-        const contentType = fetchResponse.headers.get('content-type')
-        if (contentType && contentType.includes('application/json')) {
-          data = await fetchResponse.json()
-        } else {
+        // Handle response based on the responseType option
+        const responseType = options.responseType || 'json'
+        const contentType = fetchResponse.headers.get('content-type') || ''
+        
+        if (responseType === 'blob') {
+          // For PDF and other binary data
+          data = await fetchResponse.blob()
+          // Store the original response for additional processing if needed
+          Object.defineProperty(data, '_response', { value: fetchResponse })
+        } else if (responseType === 'arraybuffer') {
+          // For binary data as ArrayBuffer
+          data = await fetchResponse.arrayBuffer()
+          Object.defineProperty(data, '_response', { value: fetchResponse })
+        } else if (responseType === 'text' || 
+                  (!contentType.includes('application/json') && responseType === 'json')) {
+          // Text response or when content is not JSON but responseType is 'json'
           data = await fetchResponse.text()
+        } else {
+          // Default JSON parsing
+          try {
+            data = await fetchResponse.json()
+          } catch (e) {
+            // Fallback to text if JSON parsing fails
+            data = await fetchResponse.text()
+          }
         }
       } else {
         // Response already processed by an interceptor
@@ -551,6 +571,9 @@ export const useApiService = (): ApiService => {
   if (!apiServiceInstance) {
     apiInstanceCreationCount++;
     apiServiceInstance = createApiService()
+    
+    // Initialize the API service to set up interceptors
+    apiServiceInstance.initialize()
   }
   return apiServiceInstance
 }
@@ -601,3 +624,245 @@ export const createLoadingInterceptor = () => {
 export { useApiCrud } from './apiCrud'
 // Export the Auth service for convenient imports  
 export { useAuthService } from './auth'
+
+/**
+ * Document PDF Generation API Functions
+ * These functions integrate with the Laravel PDF generation backend
+ */
+
+/**
+ * Generate PDF document using backend template
+ * @param templateName - Backend template name (e.g., 'invoice', 'report', 'receipt')
+ * @param data - Document data to populate the template
+ * @param options - PDF generation options (format, orientation, etc.)
+ * @returns Promise<Blob> - PDF file as blob for download
+ * @throws Error if generation fails
+ */
+export const generateDocumentPdf = async (
+  templateName: string, 
+  data: any, 
+  options?: any
+): Promise<Blob> => {
+  try {
+    // Create payload
+    const payload = {
+      template: templateName,
+      data: data,
+      options: options || {},
+      filename: `${templateName}_${Date.now()}.pdf`
+    }
+
+    // Use the authenticated API service instead of direct $fetch
+    const apiService = useApiService()
+    
+    // Ensure API service is initialized (sets up auth interceptors)
+    apiService.initialize()
+    
+    // Custom headers for blob response
+    const headers = {
+      'Accept': 'application/pdf',
+      'Content-Type': 'application/json'
+    }
+
+    // Use the request method with proper authentication
+    const response = await apiService.request<Blob>('documents/generate-pdf', {
+      method: 'POST',
+      body: payload,
+      headers,
+      responseType: 'blob',
+      // Only skip response interceptors that might try to parse JSON, but keep auth interceptors
+      skipInterceptors: false
+    })
+
+    // Handle the raw response to get the blob
+    if (response.error) {
+      throw new Error(`PDF generation failed: ${response.error.message || 'Unknown error'}`)
+    }
+
+    if (!response.data) {
+      throw new Error('Failed to get PDF data from response')
+    }
+    
+    const blob = response.data as Blob
+    if (blob.size === 0) {
+      throw new Error('Generated PDF is empty')
+    }
+
+    return blob
+  } catch (error: any) {
+    console.error('PDF generation error:', error)
+    
+    // Handle different error types
+    if (error.statusCode === 422) {
+      throw new Error(`PDF generation failed: Invalid data for template "${templateName}"`)
+    } else if (error.statusCode === 404) {
+      throw new Error(`PDF generation failed: Template "${templateName}" not found`)
+    } else if (error.statusCode === 500) {
+      throw new Error('PDF generation failed: Server error')
+    }
+    
+    throw new Error(`Failed to generate PDF: ${error.message || 'Unknown error'}`)
+  }
+}
+
+/**
+ * Get available PDF templates from backend
+ * @returns Promise<string[]> - Array of available template names
+ * @throws Error if request fails
+ */
+export const getAvailableTemplates = async (): Promise<string[]> => {
+  const apiService = useApiService()
+  
+  try {
+    const response = await apiService.request<any>('documents/templates', {
+      method: 'GET'
+    })
+    
+    if (response.error || !response.data) {
+      throw new Error(`Failed to fetch templates: ${response.error?.message || 'Invalid response'}`)
+    }
+
+    // Extract template names from the response data
+    const templates = Object.keys(response.data)
+    
+    return templates
+
+  } catch (error: any) {
+    console.error('Template fetch error:', error)
+    throw new Error(`Failed to get available templates: ${error.message || 'Unknown error'}`)
+  }
+}
+
+/**
+ * Generate HTML preview of document template
+ * @param templateName - Backend template name
+ * @param data - Document data to populate the template
+ * @returns Promise<string> - HTML preview content
+ * @throws Error if preview generation fails
+ */
+export const previewDocument = async (
+  templateName: string, 
+  data: any
+): Promise<string> => {
+  const apiService = useApiService()
+  
+  try {
+    const payload = {
+      template: templateName,
+      data: data
+    }
+
+    const response = await apiService.request<any>('documents/preview', {
+      method: 'POST',
+      body: payload
+    })
+    
+    if (response.error || !response.data?.preview) {
+      throw new Error(`Failed to generate preview: ${response.error?.message || 'Invalid response'}`)
+    }
+
+    return response.data.preview
+
+  } catch (error: any) {
+    console.error('Preview generation error:', error)
+    throw new Error(`Failed to generate preview: ${error.message || 'Unknown error'}`)
+  }
+}
+
+/**
+ * Validate template data against backend template requirements
+ * @param templateName - Backend template name
+ * @param data - Document data to validate
+ * @returns Promise<boolean> - True if valid, throws error if invalid
+ * @throws Error if validation fails
+ */
+export const validateTemplateData = async (
+  templateName: string, 
+  data: any
+): Promise<boolean> => {
+  const apiService = useApiService()
+  
+  try {
+    const payload = {
+      template: templateName,
+      data: data
+    }
+
+    const response = await apiService.request<any>('documents/validate', {
+      method: 'POST',
+      body: payload
+    })
+    
+    if (response.error) {
+      throw new Error(`Validation failed: ${response.error.message || 'Unknown validation error'}`)
+    }
+
+    return response.data?.valid === true
+
+  } catch (error: any) {
+    console.error('Template validation error:', error)
+    throw new Error(`Template validation failed: ${error.message || 'Unknown error'}`)
+  }
+}
+
+/**
+ * Get template information and metadata
+ * @param templateName - Backend template name
+ * @returns Promise<any> - Template information object
+ * @throws Error if template not found
+ */
+export const getTemplateInfo = async (templateName: string): Promise<any> => {
+  const apiService = useApiService()
+  
+  try {
+    const response = await apiService.request<any>(`documents/templates/${templateName}`, {
+      method: 'GET'
+    })
+    
+    if (response.error) {
+      throw new Error(`Failed to get template info: ${response.error.message}`)
+    }
+
+    return response.data
+
+  } catch (error: any) {
+    console.error('Template info fetch error:', error)
+    throw new Error(`Failed to get template information: ${error.message || 'Unknown error'}`)
+  }
+}
+
+/**
+ * Check if templates are available from backend
+ * @returns Promise<boolean> - True if templates service is available
+ */
+export const checkTemplateAvailability = async (): Promise<boolean> => {
+  try {
+    // Use the api service directly to check for auth issues
+    const apiService = useApiService()
+    const response = await apiService.request('documents/templates', {
+      method: 'GET'
+    })
+    
+    if (response.error) {
+      // Check specifically for auth errors
+      const apiError = response.error as any
+      if (apiError.statusCode === 401) {
+        console.warn('Template service authentication failed:', response.error)
+        // Emit an event that can be caught by the auth system
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth:unauthorized', { 
+            detail: { source: 'template-service', error: response.error } 
+          }))
+        }
+      } else {
+        console.warn('Template service error:', response.error)
+      }
+      return false
+    }
+    
+    return true
+  } catch (error) {
+    console.warn('Template service unavailable:', error)
+    return false
+  }
+}

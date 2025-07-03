@@ -32,4 +32,13 @@ Route::prefix('v1')->group(function () {    // Authentication routes
     // Menu routes
     Route::middleware('auth:sanctum')->get('menu', [\App\Http\Controllers\Api\MenuController::class, 'index']);
 
+    // Document routes
+    Route::prefix('documents')->middleware('auth:sanctum')->group(function () {
+        Route::post('generate-pdf', [\App\Http\Controllers\DocumentController::class, 'generatePdf']);
+        Route::get('templates', [\App\Http\Controllers\DocumentController::class, 'getTemplates']);
+        Route::post('preview', [\App\Http\Controllers\DocumentController::class, 'previewDocument']);
+        Route::get('templates/{template}', [\App\Http\Controllers\DocumentController::class, 'getTemplateInfo']);
+        Route::post('validate', [\App\Http\Controllers\DocumentController::class, 'validateTemplateData']);
+    });
+
 });

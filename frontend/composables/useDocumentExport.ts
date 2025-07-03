@@ -1,9 +1,185 @@
 /**
  * Document Export Composable
- * Provides reusable functions for exporting documents as images, copying to clipboard, and printing
+ * Provides reusable functions for exporting documents as PDF, images, copying to clipboard, and printing
  */
+import { ref, computed } from 'vue'
+import type { DocumentData } from '~/types/document'
+import { generateDocumentPdf, previewDocument, getAvailableTemplates } from '~/services/api'
 
 export const useDocumentExport = () => {
+  // Loading states
+  const pdfExportLoading = ref(false)
+  const jpgExportLoading = ref(false)
+  const previewLoading = ref(false)
+
+  /**
+   * Export document as PDF using backend service
+   * @param templateName - Backend template name
+   * @param element - HTML element containing document data (optional, used for fallback data extraction)
+   * @param filename - Optional filename (defaults to auto-generated)
+   * @throws Error if export fails
+   */
+  const exportAsPdf = async (
+    templateName: string, 
+    element: HTMLElement,
+    filename?: string
+  ): Promise<void> => {
+    try {
+      pdfExportLoading.value = true
+      
+      // Check authentication first (import from auth service)
+      const { useAuthService } = await import('~/services/auth')
+      const auth = useAuthService()
+      
+      if (!auth.isAuthenticated.value) {
+        throw new Error('You must be logged in to export documents as PDF')
+      }
+      
+      // Extract document data from the element
+      const documentData = extractDocumentData(element)
+      
+      // Generate PDF using backend service
+      const pdfBlob = await generateDocumentPdf(templateName, documentData)
+      
+      if (!pdfBlob) {
+        throw new Error('Failed to generate PDF - empty response')
+      }
+      
+      // Create download link
+      const url = URL.createObjectURL(pdfBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename || `document-${templateName}-${new Date().toISOString().slice(0, 10)}.pdf`
+      link.style.display = 'none'
+      
+      // Trigger download
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // Clean up
+      URL.revokeObjectURL(url)
+      
+    } catch (error) {
+      throw new Error(`PDF export failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      pdfExportLoading.value = false
+    }
+  }
+
+  /**
+   * Generate template preview using backend service
+   * @param templateName - Backend template name
+   * @param data - Document data to populate the template
+   * @returns Promise<string> - HTML preview content
+   * @throws Error if preview generation fails
+   */
+  const previewTemplate = async (
+    templateName: string, 
+    data: any
+  ): Promise<string> => {
+    try {
+      previewLoading.value = true
+      
+      const preview = await previewDocument(templateName, data)
+      
+      if (!preview) {
+        throw new Error('Failed to generate preview - empty response')
+      }
+      
+      return preview
+      
+    } catch (error) {
+      throw new Error(`Preview generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      previewLoading.value = false
+    }
+  }
+
+  /**
+   * Extract document data from DOM element
+   * @param element - HTML element containing document data
+   * @returns Extracted document data object
+   */
+  const extractDocumentData = (element: HTMLElement): any => {
+    try {
+      // Look for data attributes first
+      const dataElement = element.querySelector('[data-document-data]')
+      if (dataElement) {
+        const dataAttr = dataElement.getAttribute('data-document-data')
+        if (dataAttr) {
+          return JSON.parse(dataAttr)
+        }
+      }
+
+      // Fallback: Extract structured data from the DOM
+      const extractedData: any = {}
+
+      // Extract text content from common elements
+      const titleElement = element.querySelector('h1, h2, .document-title, .title')
+      if (titleElement) {
+        extractedData.title = titleElement.textContent?.trim()
+      }
+
+      // Extract table data
+      const tables = element.querySelectorAll('table')
+      if (tables.length > 0) {
+        extractedData.tables = Array.from(tables).map((table, index) => {
+          const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent?.trim())
+          const rows = Array.from(table.querySelectorAll('tbody tr')).map(tr => 
+            Array.from(tr.querySelectorAll('td')).map(td => td.textContent?.trim())
+          )
+          return {
+            id: `table_${index}`,
+            headers,
+            rows
+          }
+        })
+      }
+
+      // Extract meta information
+      const metaElements = element.querySelectorAll('[data-field]')
+      metaElements.forEach(el => {
+        const field = el.getAttribute('data-field')
+        const value = el.textContent?.trim()
+        if (field && value) {
+          extractedData[field] = value
+        }
+      })
+
+      return extractedData
+
+    } catch (error) {
+      console.warn('Failed to extract document data from element:', error)
+      return {
+        title: 'Exported Document',
+        content: element.textContent?.trim() || '',
+        timestamp: new Date().toISOString()
+      }
+    }
+  }
+
+  /**
+   * Export document element as PDF using client-side generation (fallback)
+   * @param element - HTML element to export
+   * @param filename - Optional filename
+   * @throws Error if export fails
+   */
+  const exportElementAsPdf = async (element: HTMLElement, filename?: string): Promise<void> => {
+    try {
+      pdfExportLoading.value = true
+      
+      // For now, fallback to print dialog
+      // In the future, this could use jsPDF or other client-side PDF libraries
+      console.warn('Client-side PDF generation not available, opening print dialog instead')
+      printDocument(element)
+      
+    } catch (error) {
+      throw new Error(`Client-side PDF export failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      pdfExportLoading.value = false
+    }
+  }
   /**
    * Export document element as JPG image
    * @param element - HTML element to export (should have .document-viewer class)
@@ -15,6 +191,8 @@ export const useDocumentExport = () => {
     }
 
     try {
+      jpgExportLoading.value = true
+      
       // Dynamic import for better bundle splitting
       const html2canvas = await import('html2canvas')
       
@@ -58,6 +236,8 @@ export const useDocumentExport = () => {
       })
     } catch (error) {
       throw new Error(`JPG export failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      jpgExportLoading.value = false
     }
   }
 
@@ -255,8 +435,24 @@ export const useDocumentExport = () => {
   }
 
   return {
+    // State
+    pdfExportLoading: computed(() => pdfExportLoading.value),
+    jpgExportLoading: computed(() => jpgExportLoading.value),
+    previewLoading: computed(() => previewLoading.value),
+    
+    // PDF Export methods
+    exportAsPdf,
+    exportElementAsPdf,
+    
+    // Template methods
+    previewTemplate,
+    extractDocumentData,
+    
+    // Image Export methods
     exportAsJpg,
     copyToClipboard,
+    
+    // Print method
     printDocument
   }
 }

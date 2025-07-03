@@ -42,9 +42,15 @@
       />
     </template>
 
-    <!-- Detail Content Slot - Document Placeholder -->
+    <!-- Detail Content Slot - Document with Selected Item -->
     <template #detail-content="{ closePanel }">
-      <DocumentViewer />
+      <DocumentViewer 
+        ref="documentViewerRef"
+        :selected-item="selectedItem"
+        @template-changed="handleTemplateChanged"
+        @data-updated="handleDataUpdated"
+        @error="handleDocumentError"
+      />
     </template>
   </MasterDetailContainer>
 </template>
@@ -78,6 +84,9 @@ interface Emits {
   (e: 'update:error', value: string | null): void
   (e: 'refresh'): void
   (e: 'sort', column: Column): void
+  (e: 'template-changed', templateId: string): void
+  (e: 'data-updated', data: any): void
+  (e: 'error', error: any): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -110,6 +119,7 @@ const emit = defineEmits<Emits>()
 // State
 const selectedItem = ref<any | null>(null)
 const containerRef = ref<InstanceType<typeof MasterDetailContainer> | null>(null)
+const documentViewerRef = ref<InstanceType<typeof DocumentViewer> | null>(null)
 
 // Computed properties
 const resourceTitle = computed(() => 
@@ -174,12 +184,43 @@ const selectItem = (item: any) => {
   selectedItem.value = item 
 }
 
+// Document viewer event handlers
+const handleTemplateChanged = (templateId: string) => {
+  console.log('Template changed to:', templateId)
+  // Emit to parent if needed for export functionality
+  emit('template-changed', templateId)
+}
+
+const handleDataUpdated = (data: any) => {
+  console.log('Document data updated:', data)
+  // Emit to parent if needed
+  emit('data-updated', data)
+}
+
+const handleDocumentError = (error: any) => {
+  console.error('Document viewer error:', error)
+  // Emit error to parent for global error handling
+  emit('error', error)
+}
+
+// Get current template information for export functionality
+const getCurrentTemplateInfo = () => {
+  return documentViewerRef.value?.getCurrentTemplateInfo() || null
+}
+
+// Refresh the document viewer
+const refreshDocument = async () => {
+  await documentViewerRef.value?.refreshTemplate()
+}
+
 // Expose methods for compatibility
 defineExpose({
   closeDetail: closePanel,
   closeCreate: closePanel,
   handleCreate,
   getSelectedItemId,
-  selectItem
+  selectItem,
+  getCurrentTemplateInfo,
+  refreshDocument
 })
 </script>

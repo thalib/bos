@@ -11,6 +11,7 @@
 - Clearly define input, output, and constraints for each coding agent workflow.
 - Ensure prompts are concise, focused, and avoid introducing breaking changes.
 - If needed, break down into multiple steps/prompts. Write actionable, self-contained prompts using Laravel 12 and Nuxt 3 terminology.
+- Do not generate documentation, examples, or explanatory content unless explicitly requested.
 
 ## PROMOT to cleanup and optimize FRONTEND
 

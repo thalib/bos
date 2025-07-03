@@ -80,7 +80,6 @@ class MenuController extends Controller
                         'name' => 'Users',
                         'path' => '/list/users',
                         'icon' => 'bi-people',
-                        'template' => 'list'
                     ],
                     [
                         'id' => 61,
