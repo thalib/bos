@@ -23,18 +23,6 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
     updatedAt: new Date()
   },
   {
-    id: 'template-estimate',
-    name: 'Estimate Template',
-    description: 'Professional estimate/quote template for client proposals',
-    category: TemplateCategory.INVOICE,
-    component: 'InvoiceTemplate',
-    thumbnail: '/images/templates/estimate-thumb.png',
-    isActive: true,
-    version: '1.0.0',
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date()
-  },
-  {
     id: 'template-receipt',
     name: 'Receipt Template',
     description: 'Simple receipt template for transactions and payments',
@@ -54,8 +42,8 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 export const TEMPLATE_CATEGORIES = [
   {
     id: TemplateCategory.INVOICE,
-    name: 'Invoices & Estimates',
-    description: 'Professional invoices and estimates for billing clients',
+    name: 'Invoices',
+    description: 'Professional invoices for billing clients',
     icon: 'bi-receipt',
     color: 'primary'
   },

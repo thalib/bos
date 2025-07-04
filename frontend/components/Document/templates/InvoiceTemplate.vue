@@ -1,5 +1,5 @@
 <template>
-  <BaseTemplate :document-data="documentData" :template-config="templateConfig">
+  <BaseTemplate :document-data="documentData">
     <!-- Invoice Header -->
     <template #header="{ documentData: data }">
       <div class="row">
@@ -249,18 +249,16 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import BaseTemplate from './BaseTemplate.vue'
-import type { DocumentData, TemplateConfig } from '~/types/document'
+import type { DocumentData } from '~/types/document'
 
 // Props
 interface Props {
   documentData?: DocumentData
-  templateConfig?: TemplateConfig
   selectedItem?: any
 }
 
 const props = withDefaults(defineProps<Props>(), {
   documentData: () => ({}),
-  templateConfig: undefined,
   selectedItem: null
 })
 

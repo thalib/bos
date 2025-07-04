@@ -4,7 +4,6 @@
       class="document-viewer bg-white border border-secondary-subtle shadow rounded-2 d-flex flex-column"
       style="width: 595px; height: 842px; max-width: 90vw; max-height: 80vh;"
     >
-      <!-- Document Content Area -->
       <div class="flex-grow-1 overflow-auto position-relative">
         <!-- Loading State -->
         <div
@@ -53,7 +52,7 @@
                 :is="templateComponent"
                 :document-data="processedDocumentData"
                 :selected-item="selectedItem"
-                @data-updated="handleDataUpdated"
+                @data-updated="emit('data-updated', $event)"
                 @error="handleTemplateError"
               />
             </template>
@@ -90,7 +89,7 @@
 import { ref, computed, watch, onMounted, type Component, shallowRef } from 'vue'
 import { useDocumentTemplate } from '~/composables/useDocumentTemplate'
 import { useDocumentRenderer } from '~/composables/useDocumentRenderer'
-import type { DocumentData, DocumentError, TemplateCategory } from '~/types/document'
+import type { DocumentData, DocumentError } from '~/types/document'
 
 // Props
 interface Props {
@@ -116,19 +115,12 @@ const emit = defineEmits<Emits>()
 
 // Composables
 const {
-  loading: templatesLoading,
-  error: templatesError,
-  availableTemplates,
   activeTemplates,
   getAvailableTemplates,
-  loadTemplate,
-  getTemplateById,
-  validateTemplateData
+  getTemplateById
 } = useDocumentTemplate()
 
 const {
-  loading: rendererLoading,
-  error: rendererError,
   renderTemplate,
   extractDocumentData,
   validateTemplateData: validateData
@@ -136,7 +128,6 @@ const {
 
 // Local state
 const currentTemplateId = ref<string | undefined>(props.templateId)
-// Use shallowRef for components to prevent Vue from making them reactive
 const templateComponent = shallowRef<Component | null>(null)
 const templateLoading = ref(false)
 const error = ref<DocumentError | null>(null)
@@ -147,19 +138,16 @@ const currentTemplate = computed(() => {
 })
 
 const processedDocumentData = computed((): DocumentData => {
-  // If explicit documentData is provided, use it
-  if (props.documentData) {
-    return props.documentData
-  }
-  
-  // If selectedItem is provided, extract document data using the renderer
-  if (props.selectedItem) {
-    return extractDocumentData(props.selectedItem)
-  }
-  
-  // Use default data from template or empty object (since data comes from backend)
+  if (props.documentData) return props.documentData
+  if (props.selectedItem) return extractDocumentData(props.selectedItem)
   return currentTemplate.value?.defaultData || {}
 })
+
+// Template type mapping
+const TEMPLATE_TYPE_MAP: Record<string, string> = {
+  'INVOICE': 'template-invoice',
+  'RECEIPT': 'template-receipt'
+}
 
 // Methods
 const selectTemplate = async (templateId: string): Promise<void> => {
@@ -169,22 +157,20 @@ const selectTemplate = async (templateId: string): Promise<void> => {
     error.value = null
     templateLoading.value = true
     
-    // Validate that template exists
     const template = getTemplateById(templateId)
     if (!template) {
       throw new Error(`Template not found: ${templateId}`)
     }
     
-    // Use the renderer to load and render the template
     const component = await renderTemplate(templateId, processedDocumentData.value)
     
-    if (component) {
-      currentTemplateId.value = templateId
-      templateComponent.value = component
-      emit('template-changed', templateId)
-    } else {
+    if (!component) {
       throw new Error('Failed to load template component')
     }
+    
+    currentTemplateId.value = templateId
+    templateComponent.value = component
+    emit('template-changed', templateId)
   } catch (err) {
     const docError: DocumentError = {
       name: 'TemplateLoadError',
@@ -204,60 +190,36 @@ const retryLoadTemplate = (): void => {
   }
 }
 
-const handleDataUpdated = (data: DocumentData): void => {
-  emit('data-updated', data)
-}
-
 const handleTemplateError = (err: DocumentError): void => {
   error.value = err
   emit('error', err)
 }
 
-const getTemplateIcon = (category: TemplateCategory): string => {
-  const iconMap = {
-    invoice: 'bi-receipt',
-    report: 'bi-file-earmark-bar-graph',
-    letter: 'bi-envelope',
-    contract: 'bi-file-earmark-text',
-    receipt: 'bi-receipt-cutoff',
-    statement: 'bi-file-earmark-spreadsheet',
-    other: 'bi-file-earmark'
-  }
-  return iconMap[category] || 'bi-file-earmark'
+const getTemplateForDocumentType = (documentType: string): string => {
+  return TEMPLATE_TYPE_MAP[documentType?.toUpperCase()] || 'template-invoice'
 }
 
-// Additional methods for template management
-const getCurrentTemplateInfo = () => ({
-  templateId: currentTemplateId.value,
-  template: currentTemplate.value,
-  documentData: processedDocumentData.value
-})
-
-const refreshTemplate = async (): Promise<void> => {
-  if (currentTemplateId.value) {
-    await selectTemplate(currentTemplateId.value)
+const autoSelectTemplate = async (item: any): Promise<void> => {
+  const documentType = item.type || item.document_type
+  if (!documentType) return
+  
+  const templateId = getTemplateForDocumentType(documentType)
+  if (templateId !== currentTemplateId.value) {
+    await selectTemplate(templateId)
   }
 }
 
 // Expose methods for parent components
 defineExpose({
-  getCurrentTemplateInfo,
-  refreshTemplate,
+  getCurrentTemplateInfo: () => ({
+    templateId: currentTemplateId.value,
+    template: currentTemplate.value,
+    documentData: processedDocumentData.value
+  }),
+  refreshTemplate: () => currentTemplateId.value && selectTemplate(currentTemplateId.value),
   selectTemplate,
   retryLoadTemplate
 })
-
-// Auto-select template based on document type
-const getTemplateForDocumentType = (documentType: string): string | null => {
-  const typeToTemplateMap: Record<string, string> = {
-    'ESTIMATE': 'template-estimate', // Use estimate template for estimates
-    'QUOTE': 'template-estimate',    // Use estimate template for quotes
-    'INVOICE': 'template-invoice',   // Use invoice template for invoices
-    'RECEIPT': 'template-receipt'    // Use receipt template for receipts
-  }
-  
-  return typeToTemplateMap[documentType?.toUpperCase()] || 'template-invoice'
-}
 
 // Watchers
 watch(
@@ -272,23 +234,16 @@ watch(
 
 watch(
   () => props.selectedItem,
-  (newItem) => {
-    if (newItem) {
-      // Auto-select template based on document type
-      const documentType = newItem.type || newItem.document_type
-      if (documentType) {
-        const templateId = getTemplateForDocumentType(documentType)
-        if (templateId && templateId !== currentTemplateId.value) {
-          selectTemplate(templateId)
-        }
-      }
-      
-      // Validate data when selected item changes using renderer
-      if (currentTemplateId.value) {
-        const validation = validateData(currentTemplateId.value, processedDocumentData.value)
-        if (!validation.isValid) {
-          console.warn('Template data validation failed:', validation.errors)
-        }
+  async (newItem) => {
+    if (!newItem) return
+    
+    await autoSelectTemplate(newItem)
+    
+    // Validate data when selected item changes
+    if (currentTemplateId.value) {
+      const validation = validateData(currentTemplateId.value, processedDocumentData.value)
+      if (!validation.isValid) {
+        console.warn('Template data validation failed:', validation.errors)
       }
     }
   },
@@ -297,23 +252,16 @@ watch(
 
 // Lifecycle
 onMounted(async () => {
-  // Load available templates
   try {
     await getAvailableTemplates()
     
     // Auto-select template based on document type if selectedItem is available
     if (props.selectedItem) {
-      const documentType = props.selectedItem.type || props.selectedItem.document_type
-      if (documentType) {
-        const templateId = getTemplateForDocumentType(documentType)
-        if (templateId) {
-          await selectTemplate(templateId)
-          return
-        }
-      }
+      await autoSelectTemplate(props.selectedItem)
+      return
     }
     
-    // Fallback: If no template is selected but templates are available, select first active template
+    // Fallback: Select first active template if none selected
     if (!currentTemplateId.value && activeTemplates.value.length > 0) {
       await selectTemplate(activeTemplates.value[0].id)
     }
@@ -324,7 +272,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* Maintain A4 aspect ratio and responsive behavior */
+/* A4 aspect ratio for mobile devices */
 @media (max-width: 768px) {
   .document-viewer {
     aspect-ratio: 595 / 842;
@@ -339,28 +287,6 @@ onMounted(async () => {
     max-width: 98vw !important;
     max-height: 90vh !important;
   }
-}
-
-/* Ensure dropdown stays within viewport */
-.dropdown-menu {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-/* Active template styling */
-.dropdown-item.active {
-  background-color: var(--bs-primary);
-  color: white;
-}
-
-.dropdown-item.active small {
-  color: rgba(255, 255, 255, 0.8) !important;
-}
-
-/* Alert sizing */
-.alert-sm {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
 }
 
 /* Smooth transitions */

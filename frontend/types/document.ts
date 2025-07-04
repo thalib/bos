@@ -3,19 +3,13 @@
  * TypeScript interfaces for dynamic document template system
  */
 import type { ApiError } from './index'
-import type { Component } from 'vue'
 
 /**
  * Template Categories for organizing document templates
  */
 export enum TemplateCategory {
   INVOICE = 'invoice',
-  REPORT = 'report',
-  LETTER = 'letter',
-  CONTRACT = 'contract',
-  RECEIPT = 'receipt',
-  STATEMENT = 'statement',
-  OTHER = 'other'
+  RECEIPT = 'receipt'
 }
 
 /**
@@ -171,144 +165,6 @@ export interface DocumentMetadata {
 }
 
 /**
- * Template Configuration Interface
- * Settings for customizing template appearance and behavior
- */
-export interface TemplateConfig {
-  /** Typography settings */
-  fonts: FontConfig
-  /** Color scheme */
-  colors: ColorConfig
-  /** Layout options */
-  layout: LayoutConfig
-  /** Print settings */
-  print: PrintConfig
-  /** Display options */
-  display: DisplayConfig
-}
-
-/**
- * Font Configuration
- */
-export interface FontConfig {
-  /** Primary font family */
-  primaryFont: string
-  /** Secondary font family */
-  secondaryFont: string
-  /** Base font size */
-  fontSize: number
-  /** Line height multiplier */
-  lineHeight: number
-  /** Font weights */
-  weights: {
-    normal: number
-    bold: number
-    light: number
-  }
-}
-
-/**
- * Color Configuration
- */
-export interface ColorConfig {
-  /** Primary brand color */
-  primary: string
-  /** Secondary color */
-  secondary: string
-  /** Accent color */
-  accent: string
-  /** Text colors */
-  text: {
-    primary: string
-    secondary: string
-    muted: string
-  }
-  /** Background colors */
-  background: {
-    primary: string
-    secondary: string
-    paper: string
-  }
-  /** Border colors */
-  border: {
-    primary: string
-    secondary: string
-  }
-}
-
-/**
- * Layout Configuration
- */
-export interface LayoutConfig {
-  /** Page margins */
-  margins: {
-    top: number
-    right: number
-    bottom: number
-    left: number
-  }
-  /** Header height */
-  headerHeight: number
-  /** Footer height */
-  footerHeight: number
-  /** Content spacing */
-  spacing: {
-    small: number
-    medium: number
-    large: number
-  }
-  /** Logo settings */
-  logo: {
-    maxWidth: number
-    maxHeight: number
-    position: 'left' | 'center' | 'right'
-  }
-}
-
-/**
- * Print Configuration
- */
-export interface PrintConfig {
-  /** Paper size */
-  paperSize: 'A4' | 'Letter' | 'Legal'
-  /** Orientation */
-  orientation: 'portrait' | 'landscape'
-  /** Print margins */
-  printMargins: {
-    top: string
-    right: string
-    bottom: string
-    left: string
-  }
-  /** Page breaks */
-  pageBreaks: boolean
-  /** Print headers/footers */
-  printHeaders: boolean
-  /** Background graphics */
-  printBackground: boolean
-}
-
-/**
- * Display Configuration
- */
-export interface DisplayConfig {
-  /** Show line numbers */
-  showLineNumbers: boolean
-  /** Show grid lines */
-  showGrid: boolean
-  /** Responsive breakpoints */
-  breakpoints: {
-    mobile: number
-    tablet: number
-    desktop: number
-  }
-  /** Animation preferences */
-  animations: boolean
-  /** Dark mode support */
-  darkMode: boolean
-}
-
-/**
  * Document Error Interface
  * Extends existing ApiError for template-specific errors
  */
@@ -331,8 +187,7 @@ export enum TemplateErrorType {
   TEMPLATE_LOAD_FAILED = 'template_load_failed',
   INVALID_TEMPLATE_DATA = 'invalid_template_data',
   TEMPLATE_RENDER_ERROR = 'template_render_error',
-  TEMPLATE_VALIDATION_FAILED = 'template_validation_failed',
-  TEMPLATE_CONFIG_INVALID = 'template_config_invalid'
+  TEMPLATE_VALIDATION_FAILED = 'template_validation_failed'
 }
 
 /**
@@ -361,25 +216,4 @@ export interface TemplateLoadingState {
   isLoading: boolean
   error: DocumentError | null
   progress?: number
-}
-
-/**
- * Template Preview Data
- */
-export interface TemplatePreview {
-  templateId: string
-  thumbnail: string
-  previewData: DocumentData
-  lastGenerated: Date
-}
-
-/**
- * User Template Preferences
- */
-export interface UserTemplatePreferences {
-  defaultTemplateId?: string
-  favoriteTemplates: string[]
-  recentTemplates: string[]
-  customConfigs: Record<string, TemplateConfig>
-  lastUsed: Record<string, Date>
 }

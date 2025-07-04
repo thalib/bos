@@ -2,8 +2,7 @@
  * Document Template Composable
  * Provides template loading, validation, and management functionality
  */
-import { ref, computed, readonly, type Ref, type Component, markRaw } from 'vue'
-import { componentRef, loadDynamicComponent, createSafeComponentRegistry } from '~/utils/componentUtils'
+import { ref, computed, readonly, type Component, markRaw } from 'vue'
 import type { 
   DocumentTemplate, 
   DocumentData, 
@@ -16,18 +15,13 @@ import {
   TemplateErrorType 
 } from '~/types/document'
 import { 
-  DOCUMENT_TEMPLATES, 
   getActiveTemplates, 
   getTemplateById as getTemplateFromRegistry,
   TEMPLATE_COMPONENT_MAP 
 } from '~/config/documentTemplates'
 
-// Create a safe version of the template component map
-const SAFE_TEMPLATE_COMPONENT_MAP = createSafeComponentRegistry(TEMPLATE_COMPONENT_MAP)
-
 // Global template cache for performance
 const templateCache = new Map<string, Component>()
-const templateRegistry = ref<DocumentTemplate[]>([])
 const loadingStates = ref<Map<string, TemplateLoadingState>>(new Map())
 
 /**
@@ -41,26 +35,6 @@ export const useDocumentTemplate = () => {
   const availableTemplates = ref<DocumentTemplate[]>([])
 
   // Computed properties
-  const templatesByCategory = computed(() => {
-    const grouped: Record<TemplateCategory, DocumentTemplate[]> = {
-      [TemplateCategory.INVOICE]: [],
-      [TemplateCategory.REPORT]: [],
-      [TemplateCategory.LETTER]: [],
-      [TemplateCategory.CONTRACT]: [],
-      [TemplateCategory.RECEIPT]: [],
-      [TemplateCategory.STATEMENT]: [],
-      [TemplateCategory.OTHER]: []
-    }
-
-    availableTemplates.value.forEach(template => {
-      if (grouped[template.category]) {
-        grouped[template.category].push(template)
-      }
-    })
-
-    return grouped
-  })
-
   const activeTemplates = computed(() => 
     availableTemplates.value.filter(template => template.isActive)
   )
@@ -73,11 +47,8 @@ export const useDocumentTemplate = () => {
       loading.value = true
       error.value = null
 
-      // Use the template registry
       const templates = getActiveTemplates()
-      
       availableTemplates.value = templates
-      templateRegistry.value = templates
       
       return templates
     } catch (err) {
@@ -115,50 +86,37 @@ export const useDocumentTemplate = () => {
       }
 
       // Set loading state
-      loadingStates.value.set(templateId, {
-        isLoading: true,
-        error: null
-      })
+      loadingStates.value.set(templateId, { isLoading: true, error: null })
 
-      // Dynamic import using the safe component map
-      try {
-        const componentLoader = SAFE_TEMPLATE_COMPONENT_MAP[template.component as keyof typeof SAFE_TEMPLATE_COMPONENT_MAP]
-        
-        if (!componentLoader) {
-          throw new Error(`No component loader found for: ${template.component}`)
-        }
-        
-        // Use our helper to load the component (it already handles markRaw)
-        const component = await loadDynamicComponent<Component>(componentLoader)
-        
-        // Cache the component (already wrapped with markRaw)
-        templateCache.set(templateId, component)
-
-        // Update loading state
-        loadingStates.value.set(templateId, {
-          isLoading: false,
-          error: null
-        })
-
-        return component
-      } catch (importError) {
-        const errorMessage = importError instanceof Error ? importError.message : 'Unknown import error'
-        throw createDocumentError(
-          `Failed to load template component: ${template.component} - ${errorMessage}`,
-          TemplateErrorType.TEMPLATE_LOAD_FAILED,
-          templateId,
-          { importError: errorMessage }
-        )
+      // Dynamic import using component map
+      const componentLoader = TEMPLATE_COMPONENT_MAP[template.component as keyof typeof TEMPLATE_COMPONENT_MAP]
+      
+      if (!componentLoader) {
+        throw new Error(`No component loader found for: ${template.component}`)
       }
+      
+      // Load and wrap component
+      const loaded = await componentLoader()
+      const component = markRaw('default' in loaded ? loaded.default : loaded)
+      
+      // Cache the component
+      templateCache.set(templateId, component)
+
+      // Update loading state
+      loadingStates.value.set(templateId, { isLoading: false, error: null })
+
+      return component
     } catch (err) {
-      const docError = err as DocumentError
+      const docError = err instanceof Error 
+        ? createDocumentError(
+            `Failed to load template component: ${err.message}`,
+            TemplateErrorType.TEMPLATE_LOAD_FAILED,
+            templateId
+          )
+        : err as DocumentError
       
       // Update loading state with error
-      loadingStates.value.set(templateId, {
-        isLoading: false,
-        error: docError
-      })
-
+      loadingStates.value.set(templateId, { isLoading: false, error: docError })
       error.value = docError
       return null
     }
@@ -181,24 +139,19 @@ export const useDocumentTemplate = () => {
       }
     }
 
-    const errors: ValidationResult['errors'] = []
-    const warnings: ValidationResult['errors'] = []
-
     // Since data comes from backend, minimal validation is needed
-    // Backend handles data validation, so we just check basic structure
     if (!data || typeof data !== 'object') {
-      errors.push({
-        field: 'data',
-        message: 'Invalid document data structure',
-        code: 'INVALID_DATA'
-      })
+      return {
+        isValid: false,
+        errors: [{
+          field: 'data',
+          message: 'Invalid document data structure',
+          code: 'INVALID_DATA'
+        }]
+      }
     }
 
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings
-    }
+    return { isValid: true, errors: [] }
   }
 
   /**
@@ -212,10 +165,7 @@ export const useDocumentTemplate = () => {
    * Get loading state for a template
    */
   const getTemplateLoadingState = (templateId: string): TemplateLoadingState => {
-    return loadingStates.value.get(templateId) || {
-      isLoading: false,
-      error: null
-    }
+    return loadingStates.value.get(templateId) || { isLoading: false, error: null }
   }
 
   /**
@@ -224,14 +174,6 @@ export const useDocumentTemplate = () => {
   const clearTemplateCache = (): void => {
     templateCache.clear()
     loadingStates.value.clear()
-  }
-
-  /**
-   * Refresh available templates
-   */
-  const refreshTemplates = async (): Promise<void> => {
-    clearTemplateCache()
-    await getAvailableTemplates()
   }
 
   // Initialize templates on first use
@@ -246,7 +188,6 @@ export const useDocumentTemplate = () => {
     availableTemplates: readonly(availableTemplates),
     
     // Computed
-    templatesByCategory: readonly(templatesByCategory),
     activeTemplates: readonly(activeTemplates),
     
     // Methods
@@ -255,8 +196,7 @@ export const useDocumentTemplate = () => {
     validateTemplateData,
     getTemplateById,
     getTemplateLoadingState,
-    clearTemplateCache,
-    refreshTemplates
+    clearTemplateCache
   }
 }
 

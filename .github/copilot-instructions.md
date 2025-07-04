@@ -1,7 +1,7 @@
 - Laravel 12 backend code in the `/backend` directory. Strictly follow Laravel 12 conventions and best practices, leveraging built-in features rather than creating custom solutions.
 - Nuxt 3 frontend code in the `/frontend` directory. Use Vue 3 Composition API patterns with `<script setup>` syntax and TypeScript. Use Nuxt 3 built-in features, including routing and data fetching capabilities. All components must implement comprehensive error handling and form validation to provide a robust user experience.
-- Frontend UI styling uses Bootstrap 5.3. Bootstrap-First Approach: only use custom styles when essential
+- Frontend UI styling uses Bootstrap 5.3. Bootstrap-First Approach: only use custom styles when essential.
 - Unless I tell you otherwise, do not write documentation file or write example code.
 - When in agent mode, you must always ask me to run a command; you should not run commands on your own. You show me the command, I copy and paste it into my terminal, and then I run it.
-- No SEO needed
-- In the frontend, all authenticated requests to the backend should go through `/frontend/services/api`. 
+- No SEO needed.
+- In the frontend, all authenticated requests to the backend should go through `/frontend/services/api.ts` for consistency, maintainability, and centralized error handling. Do not use `$fetch` or similar calls directly.

@@ -3,7 +3,7 @@
     <!-- Document Header Section -->
     <header class="template-header border-bottom flex-shrink-0">
       <div class="container-fluid p-3">
-        <slot name="header" :document-data="documentData" :template-config="templateConfig">
+        <slot name="header" :document-data="documentData">
           <!-- Default header content -->
           <div class="row align-items-center">
             <div class="col-md-8">
@@ -30,7 +30,7 @@
     <!-- Document Main Content Section -->
     <main class="template-content flex-grow-1 overflow-auto">
       <div class="container-fluid p-3 h-100">
-        <slot name="content" :document-data="documentData" :template-config="templateConfig">
+        <slot name="content" :document-data="documentData">
           <!-- Default content -->
           <div class="row h-100">
             <div class="col-12">
@@ -48,7 +48,7 @@
     <!-- Document Footer Section -->
     <footer class="template-footer border-top flex-shrink-0">
       <div class="container-fluid p-3">
-        <slot name="footer" :document-data="documentData" :template-config="templateConfig">
+        <slot name="footer" :document-data="documentData">
           <!-- Default footer content -->
           <div class="row align-items-center">
             <div class="col-md-6">
@@ -69,18 +69,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type PropType } from 'vue'
-import type { DocumentData, TemplateConfig } from '~/types/document'
+import { computed } from 'vue'
+import type { DocumentData } from '~/types/document'
 
 // Props
 interface Props {
   documentData?: DocumentData
-  templateConfig?: TemplateConfig
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  documentData: () => ({}),
-  templateConfig: undefined
+  documentData: () => ({})
 })
 
 // Computed properties
