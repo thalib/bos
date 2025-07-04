@@ -61,7 +61,7 @@ class MenuController extends Controller
                     [
                         'id' => 40,
                         'name' => 'Estimate',
-                        'path' => '/doc/products',
+                        'path' => '/doc/estimates',
                         'icon' => 'bi-receipt'
                     ]
                 ]

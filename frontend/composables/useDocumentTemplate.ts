@@ -184,16 +184,14 @@ export const useDocumentTemplate = () => {
     const errors: ValidationResult['errors'] = []
     const warnings: ValidationResult['errors'] = []
 
-    // Basic validation for different template types
-    switch (template.category) {
-      case TemplateCategory.INVOICE:
-        validateInvoiceData(data, errors, warnings)
-        break
-      case TemplateCategory.REPORT:
-        validateReportData(data, errors, warnings)
-        break
-      default:
-        validateBasicData(data, errors, warnings)
+    // Since data comes from backend, minimal validation is needed
+    // Backend handles data validation, so we just check basic structure
+    if (!data || typeof data !== 'object') {
+      errors.push({
+        field: 'data',
+        message: 'Invalid document data structure',
+        code: 'INVALID_DATA'
+      })
     }
 
     return {
@@ -278,165 +276,5 @@ function createDocumentError(
     templateId,
     context,
     statusCode: 400
-  }
-}
-
-/**
- * Create default invoice data
- */
-function createDefaultInvoiceData(): DocumentData {
-  return {
-    title: 'Invoice',
-    documentNumber: 'INV-001',
-    date: new Date().toISOString().split('T')[0],
-    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    company: {
-      name: 'Your Company Name',
-      address: '123 Business St',
-      city: 'Business City',
-      state: 'State',
-      zipCode: '12345',
-      phone: '(555) 123-4567',
-      email: 'info@company.com'
-    },
-    client: {
-      name: 'Client Name',
-      address: '456 Client Ave',
-      city: 'Client City',
-      state: 'State',
-      zipCode: '67890'
-    },
-    items: [
-      {
-        id: '1',
-        description: 'Sample Item',
-        quantity: 1,
-        unitPrice: 100,
-        total: 100
-      }
-    ],
-    totals: {
-      subtotal: 100,
-      taxAmount: 8,
-      total: 108,
-      currency: 'USD'
-    }
-  }
-}
-
-/**
- * Create default report data
- */
-function createDefaultReportData(): DocumentData {
-  return {
-    title: 'Report',
-    subtitle: 'Monthly Analysis',
-    date: new Date().toISOString().split('T')[0],
-    company: {
-      name: 'Your Company Name',
-      address: '123 Business St',
-      city: 'Business City',
-      state: 'State',
-      zipCode: '12345'
-    },
-    sections: [
-      {
-        id: '1',
-        title: 'Executive Summary',
-        content: 'This is the executive summary section.',
-        order: 1,
-        type: 'text'
-      },
-      {
-        id: '2',
-        title: 'Data Analysis',
-        content: 'This section contains data analysis.',
-        order: 2,
-        type: 'table'
-      }
-    ]
-  }
-}
-
-/**
- * Validate invoice data
- */
-function validateInvoiceData(
-  data: DocumentData, 
-  errors: ValidationResult['errors'], 
-  warnings: ValidationResult['errors']
-): void {
-  if (!data.company?.name) {
-    errors.push({
-      field: 'company.name',
-      message: 'Company name is required',
-      code: 'REQUIRED_FIELD'
-    })
-  }
-
-  if (!data.client?.name) {
-    errors.push({
-      field: 'client.name',
-      message: 'Client name is required',
-      code: 'REQUIRED_FIELD'
-    })
-  }
-
-  if (!data.items || data.items.length === 0) {
-    errors.push({
-      field: 'items',
-      message: 'At least one item is required',
-      code: 'REQUIRED_FIELD'
-    })
-  }
-
-  if (!data.totals?.total || data.totals.total <= 0) {
-    warnings.push({
-      field: 'totals.total',
-      message: 'Total amount should be greater than zero',
-      code: 'VALIDATION_WARNING'
-    })
-  }
-}
-
-/**
- * Validate report data
- */
-function validateReportData(
-  data: DocumentData, 
-  errors: ValidationResult['errors'], 
-  warnings: ValidationResult['errors']
-): void {
-  if (!data.title) {
-    errors.push({
-      field: 'title',
-      message: 'Report title is required',
-      code: 'REQUIRED_FIELD'
-    })
-  }
-
-  if (!data.sections || data.sections.length === 0) {
-    warnings.push({
-      field: 'sections',
-      message: 'Report has no sections',
-      code: 'VALIDATION_WARNING'
-    })
-  }
-}
-
-/**
- * Basic data validation
- */
-function validateBasicData(
-  data: DocumentData, 
-  errors: ValidationResult['errors'], 
-  warnings: ValidationResult['errors']
-): void {
-  if (!data.title) {
-    warnings.push({
-      field: 'title',
-      message: 'Document title is recommended',
-      code: 'VALIDATION_WARNING'
-    })
   }
 }

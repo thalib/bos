@@ -20,9 +20,9 @@ export type { Column }
  */
 export function createFormatter(formatterType: string | undefined, fieldKey: string, isClickable?: boolean) {
   // Handle clickable fields first, regardless of formatter type
-  if (isClickable && fieldKey === 'name') {
+  if (isClickable) {
     return (value: string, item: any) => 
-      value ? `<button type="button" class="btn btn-link text-decoration-none p-0 text-primary fw-medium" data-user-id="${item.id}">${value}</button>` : '-';
+      value ? `<button type="button" class="btn btn-link text-decoration-none p-0 text-primary fw-medium" data-item-id="${item.id}" data-field-key="${fieldKey}">${value}</button>` : '-';
   }
   
   if (!formatterType) return undefined;

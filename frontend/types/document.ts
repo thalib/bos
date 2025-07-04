@@ -33,8 +33,8 @@ export interface DocumentTemplate {
   category: TemplateCategory
   /** Vue component name for dynamic loading */
   component: string
-  /** Default data structure for this template */
-  defaultData: DocumentData
+  /** Default data structure for this template (optional - data comes from backend) */
+  defaultData?: DocumentData
   /** Preview thumbnail URL (optional) */
   thumbnail?: string
   /** Whether the template is available/active */

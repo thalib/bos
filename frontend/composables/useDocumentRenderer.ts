@@ -206,14 +206,14 @@ export const useDocumentRenderer = () => {
    */
   const fallbackToDefaultTemplate = async (data: any): Promise<Component | null> => {
     try {
-      // Try to load BaseTemplate as fallback
-      const fallbackComponent = await loadTemplate('base')
+      // Try to load InvoiceTemplate as fallback since it's our main template
+      const fallbackComponent = await loadTemplate('template-invoice')
       if (fallbackComponent) {
-        console.warn('Falling back to base template due to render error')
+        console.warn('Falling back to invoice template due to render error')
         return fallbackComponent
       }
       
-      // If base template is not available, try the first available template
+      // If invoice template is not available, try the first available template
       const templates = await getAvailableTemplates()
       if (templates.length > 0) {
         const firstTemplate = templates[0]

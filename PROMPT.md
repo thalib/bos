@@ -46,3 +46,32 @@ Ensure all authenticated requests are routed through `/frontend/services/api.ts`
 ✅ All plugins (/plugins/**)
 ✅ All middleware (/middleware/\*\*)
 ✅ Root application file (app.vue)
+
+# AI Coding Agent Prompts for Estimate Model Refactor
+
+## Input
+
+- The estimate JSON structure has been updated: "options" and "totals" are now flattened as individual fields at the root level.
+- All backend code must follow Laravel 12 conventions and best practices.
+- All changes must be reflected in the migration, model, factory, and seeder.
+
+## Output
+
+- Update the migration to remove "options" and "totals" JSON columns and add their properties as individual columns.
+- Update the model to remove casts for "options" and "totals" as arrays, and add casts for the new fields.
+- Update the factory to generate the new flattened fields.
+- Ensure the seeder uses the updated factory.
+- Do not generate documentation or example code.
+
+## Constraints
+
+- Do not break existing logic or relationships.
+- Use Laravel 12 built-in features and conventions.
+- Do not add custom solutions unless absolutely necessary.
+- Do not change the frontend or any unrelated backend code.
+
+---
+
+**Prompt for agent:**
+
+Refactor the Estimate migration, model, and factory to match the new flattened JSON structure. Remove the "options" and "totals" JSON columns and add their properties as individual columns at the root level. Update the model's `$fillable` and `$casts` accordingly. Update the factory to generate the new fields. Ensure the seeder uses the updated factory. Do not generate documentation or example code. Follow Laravel 12 best practices and conventions.

@@ -86,7 +86,7 @@ const processedColumns = computed<Column[]>(() => {
       key: 'name', 
       label: 'NAME', 
       sortable: true, 
-      formatter: (value: string, item: any) => value ? `<button type="button" class="btn btn-link text-decoration-none p-0 text-primary fw-medium" data-user-id="${item.id}">${value}</button>` : '-',
+      formatter: (value: string, item: any) => value ? `<button type="button" class="btn btn-link text-decoration-none p-0 text-primary fw-medium" data-item-id="${item.id}" data-field-key="name">${value}</button>` : '-',
       cellClass: 'text-primary fw-medium'
     }
   ];
@@ -101,6 +101,11 @@ const processedColumns = computed<Column[]>(() => {
 });
 
 const selectAll = ref(false);
+
+// Check if a column is clickable
+const isColumnClickable = (column: Column) => {
+  return column.formatter && column.cellClass?.includes('text-primary');
+};
 
 // Toggle selection of all items
 const toggleSelectAll = () => {
@@ -121,9 +126,10 @@ const sortColumn = (column: Column) => {
 // Simplified user click handler
 const handleUserClick = (event: Event) => {
   const target = event.target as HTMLElement;
-  const userId = target.getAttribute('data-user-id');
-  if (userId) {
-    const item = props.items.find(item => item.id == userId);
+  const itemId = target.getAttribute('data-item-id');
+  const fieldKey = target.getAttribute('data-field-key');
+  if (itemId && fieldKey) {
+    const item = props.items.find(item => item.id == itemId);
     if (item) {
       emit('userClick', item);
     }
@@ -185,7 +191,7 @@ const handleUserClick = (event: Event) => {
           </td>
           <td v-for="column in processedColumns" :key="column.key" 
             :class="column.cellClass"
-            @click="column.key === 'name' ? handleUserClick($event) : null">
+            @click="isColumnClickable(column) ? handleUserClick($event) : null">
             <span v-if="column.formatter" v-html="column.formatter(item[column.key], item)"></span>
             <template v-else>
               {{ item[column.key] !== undefined ? item[column.key] : '-' }}

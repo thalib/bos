@@ -4,80 +4,6 @@
       class="document-viewer bg-white border border-secondary-subtle shadow rounded-2 d-flex flex-column"
       style="width: 595px; height: 842px; max-width: 90vw; max-height: 80vh;"
     >
-      <!-- Document Header with Template Selection -->
-      <div class="border-bottom p-3 flex-shrink-0">
-        <div class="row align-items-center">
-          <div class="col-md-6">
-            <h6 class="mb-0 text-secondary">
-              <i class="bi bi-file-earmark-text me-2"></i>
-              Document Viewer
-            </h6>
-          </div>
-          <div class="col-md-6">
-            <div class="d-flex justify-content-end">
-              <!-- Template Selection Dropdown -->
-              <div class="dropdown">
-                <button
-                  class="btn btn-outline-secondary btn-sm dropdown-toggle"
-                  type="button"
-                  id="templateDropdown"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                  :disabled="templatesLoading"
-                  aria-label="Select document template"
-                >
-                  <i class="bi bi-layout-text-window me-1"></i>
-                  <span v-if="currentTemplate">
-                    {{ currentTemplate.name }}
-                  </span>
-                  <span v-else>
-                    Select Template
-                  </span>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="templateDropdown">
-                  <li v-if="templatesLoading">
-                    <span class="dropdown-item-text">
-                      <div class="d-flex align-items-center">
-                        <div class="spinner-border spinner-border-sm me-2" role="status">
-                          <span class="visually-hidden">Loading...</span>
-                        </div>
-                        Loading templates...
-                      </div>
-                    </span>
-                  </li>
-                  <li v-else-if="templatesError">
-                    <span class="dropdown-item-text text-danger">
-                      <i class="bi bi-exclamation-triangle me-1"></i>
-                      Failed to load templates
-                    </span>
-                  </li>
-                  <template v-else>
-                    <li v-for="template in availableTemplates" :key="template.id">
-                      <button
-                        class="dropdown-item"
-                        type="button"
-                        @click="selectTemplate(template.id)"
-                        :class="{ active: currentTemplateId === template.id }"
-                      >
-                        <i :class="getTemplateIcon(template.category)" class="me-2"></i>
-                        {{ template.name }}
-                        <small class="text-muted d-block">{{ template.description }}</small>
-                      </button>
-                    </li>
-                  </template>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Error Display -->
-        <div v-if="error" class="alert alert-warning alert-sm mt-2 mb-0" role="alert">
-          <i class="bi bi-exclamation-triangle me-2"></i>
-          {{ error.message }}
-        </div>
-      </div>
-
       <!-- Document Content Area -->
       <div class="flex-grow-1 overflow-auto position-relative">
         <!-- Loading State -->
@@ -231,7 +157,7 @@ const processedDocumentData = computed((): DocumentData => {
     return extractDocumentData(props.selectedItem)
   }
   
-  // Use default data from template or empty object
+  // Use default data from template or empty object (since data comes from backend)
   return currentTemplate.value?.defaultData || {}
 })
 
@@ -321,6 +247,18 @@ defineExpose({
   retryLoadTemplate
 })
 
+// Auto-select template based on document type
+const getTemplateForDocumentType = (documentType: string): string | null => {
+  const typeToTemplateMap: Record<string, string> = {
+    'ESTIMATE': 'template-estimate', // Use estimate template for estimates
+    'QUOTE': 'template-estimate',    // Use estimate template for quotes
+    'INVOICE': 'template-invoice',   // Use invoice template for invoices
+    'RECEIPT': 'template-receipt'    // Use receipt template for receipts
+  }
+  
+  return typeToTemplateMap[documentType?.toUpperCase()] || 'template-invoice'
+}
+
 // Watchers
 watch(
   () => props.templateId,
@@ -335,14 +273,26 @@ watch(
 watch(
   () => props.selectedItem,
   (newItem) => {
-    if (newItem && currentTemplateId.value) {
+    if (newItem) {
+      // Auto-select template based on document type
+      const documentType = newItem.type || newItem.document_type
+      if (documentType) {
+        const templateId = getTemplateForDocumentType(documentType)
+        if (templateId && templateId !== currentTemplateId.value) {
+          selectTemplate(templateId)
+        }
+      }
+      
       // Validate data when selected item changes using renderer
-      const validation = validateData(currentTemplateId.value, processedDocumentData.value)
-      if (!validation.isValid) {
-        console.warn('Template data validation failed:', validation.errors)
+      if (currentTemplateId.value) {
+        const validation = validateData(currentTemplateId.value, processedDocumentData.value)
+        if (!validation.isValid) {
+          console.warn('Template data validation failed:', validation.errors)
+        }
       }
     }
-  }
+  },
+  { immediate: true }
 )
 
 // Lifecycle
@@ -351,7 +301,19 @@ onMounted(async () => {
   try {
     await getAvailableTemplates()
     
-    // If no template is selected but templates are available, select first active template
+    // Auto-select template based on document type if selectedItem is available
+    if (props.selectedItem) {
+      const documentType = props.selectedItem.type || props.selectedItem.document_type
+      if (documentType) {
+        const templateId = getTemplateForDocumentType(documentType)
+        if (templateId) {
+          await selectTemplate(templateId)
+          return
+        }
+      }
+    }
+    
+    // Fallback: If no template is selected but templates are available, select first active template
     if (!currentTemplateId.value && activeTemplates.value.length > 0) {
       await selectTemplate(activeTemplates.value[0].id)
     }
