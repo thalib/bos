@@ -5,3 +5,5 @@
 - When in agent mode, you must always ask me to run a command; you should not run commands on your own. You show me the command, I copy and paste it into my terminal, and then I run it.
 - No SEO needed.
 - In the frontend, all authenticated requests to the backend should go through `/frontend/services/api.ts` for consistency, maintainability, and centralized error handling. Do not use `$fetch` or similar calls directly.
+- Backend Api and routes are in `backend\app\Http\Controllers\ApiResourceController.php`, `backend\app\Providers\ApiResourceServiceProvider.php`, and `backend\routes\api.php`.
+- Use the existing API response format and structure. Do not change the API response format unless explicitly requested.

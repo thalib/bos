@@ -112,7 +112,12 @@ class ApiResourceServiceProvider extends ServiceProvider
                     // Register GET route for columns (index configuration) - MUST be before parameterized routes
                     Route::get("/{$uri}/columns", [ApiResourceController::class, 'columns'])
                         ->defaults('modelName', $modelNameForController)
-                        ->name("{$modelNameForController}.columns");// Register GET route for single item (show)
+                        ->name("{$modelNameForController}.columns");
+
+                    // Register GET route for filters (available filters configuration) - MUST be before parameterized routes
+                    Route::get("/{$uri}/filters", [ApiResourceController::class, 'filters'])
+                        ->defaults('modelName', $modelNameForController)
+                        ->name("{$modelNameForController}.filters");// Register GET route for single item (show)
                     Route::get("/{$uri}/{id}", [ApiResourceController::class, 'show'])
                         ->defaults('modelName', $modelNameForController)
                         ->name("{$modelNameForController}.show");

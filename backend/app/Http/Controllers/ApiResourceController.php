@@ -63,27 +63,8 @@ class ApiResourceController extends Controller
                 }
             }
 
-            // Apply active filter if filter parameter is present and model has 'active' field
-            if ($request->has('filter') && !empty($request->input('filter'))) {
-                $filterValue = $request->input('filter');
-                $fillableFields = $model->getFillable();
-                
-                // Only apply active filter if the model has an 'active' field
-                if (in_array('active', $fillableFields)) {
-                    switch ($filterValue) {
-                        case 'active':
-                            $query->where('active', true);
-                            break;
-                        case 'inactive':
-                            $query->where('active', false);
-                            break;
-                        case 'all':
-                        default:
-                            // No filter applied - show all records
-                            break;
-                    }
-                }
-            }
+            // Apply filters based on model's getApiFilters or fallback to default active filter
+            $appliedFilters = $this->applyFilters($query, $request, $model);
 
             // Apply sorting if sort parameter is present
             if ($request->has('sort')) {
@@ -122,7 +103,7 @@ class ApiResourceController extends Controller
             }
 
             // Prepare metadata
-            $metadata = $this->buildResponseMetadata($request, $query);            // Return paginated results if page parameter is present
+            $metadata = $this->buildResponseMetadata($request, $query, $appliedFilters);            // Return paginated results if page parameter is present
             if ($request->has('page')) {
                 // Get per_page parameter with fallback to default of 15
                 $perPage = $request->input('per_page', 15);
@@ -1118,9 +1099,10 @@ class ApiResourceController extends Controller
      *
      * @param Request $request
      * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param array $appliedFilters
      * @return array
      */
-    protected function buildResponseMetadata(Request $request, $query): array
+    protected function buildResponseMetadata(Request $request, $query, array $appliedFilters = []): array
     {
         $metadata = [];
 
@@ -1129,6 +1111,18 @@ class ApiResourceController extends Controller
             $metadata['search'] = [
                 'query' => $request->input('search'),
                 'fields' => $this->getSearchableFields(new ($query->getModel()::class))
+            ];
+        }
+
+        // Add filter metadata
+        if (!empty($appliedFilters)) {
+            $filterStrings = [];
+            foreach ($appliedFilters as $field => $config) {
+                $filterStrings[] = $config['label'] . ': ' . $config['value'];
+            }
+            $metadata['filters'] = [
+                'applied' => $appliedFilters,
+                'summary' => implode(', ', $filterStrings)
             ];
         }
 
@@ -1151,7 +1145,7 @@ class ApiResourceController extends Controller
         }
 
         // Add total count (only for non-paginated requests with filters/search)
-        if (!$request->has('page') && ($request->has('search') || $request->has('sort'))) {
+        if (!$request->has('page') && ($request->has('search') || $request->has('sort') || !empty($appliedFilters))) {
             $metadata['total'] = $query->count();
         }
         return $metadata;
@@ -1398,5 +1392,162 @@ class ApiResourceController extends Controller
         }
 
         return response()->json($response);
+    }
+
+    /**
+     * Apply filters based on model's getApiFilters method or fallback to default active filter.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param Request $request
+     * @param Model $model
+     * @return array Applied filters metadata
+     */
+    protected function applyFilters($query, Request $request, Model $model): array
+    {
+        $appliedFilters = [];
+
+        // Debug: Log incoming request parameters
+        Log::info('Filter Debug - Request parameters:', $request->all());
+
+        // Check if model has custom API filters
+        if (method_exists($model, 'getApiFilters')) {
+            $apiFilters = $model->getApiFilters();
+            Log::info('Filter Debug - Available API filters:', $apiFilters);
+            
+            foreach ($apiFilters as $field => $config) {
+                $requestValue = $request->input($field);
+                Log::info("Filter Debug - Checking field: {$field}, value: {$requestValue}");
+                
+                if ($requestValue !== null && $requestValue !== '') {
+                    $allowedValues = $config['values'] ?? [];
+                    
+                    // Apply filter only if the value is in allowed values
+                    if (in_array($requestValue, $allowedValues)) {
+                        Log::info("Filter Debug - Applying filter: {$field} = {$requestValue}");
+                        $query->where($field, $requestValue);
+                        
+                        $appliedFilters[$field] = [
+                            'label' => $config['label'] ?? ucfirst($field),
+                            'value' => $requestValue
+                        ];
+                    } else {
+                        Log::info("Filter Debug - Value '{$requestValue}' not in allowed values for field '{$field}':", $allowedValues);
+                    }
+                } else {
+                    Log::info("Filter Debug - No value or empty value for field: {$field}");
+                }
+            }
+        } else {
+            // Fallback to default active filter logic
+            if ($request->has('filter') && !empty($request->input('filter'))) {
+                $filterValue = $request->input('filter');
+                $fillableFields = $model->getFillable();
+                
+                // Only apply active filter if the model has an 'active' field
+                if (in_array('active', $fillableFields)) {
+                    switch ($filterValue) {
+                        case 'active':
+                            $query->where('active', true);
+                            $appliedFilters['active'] = [
+                                'label' => 'Status',
+                                'value' => 'Active'
+                            ];
+                            break;
+                        case 'inactive':
+                            $query->where('active', false);
+                            $appliedFilters['active'] = [
+                                'label' => 'Status',
+                                'value' => 'Inactive'
+                            ];
+                            break;
+                        case 'all':
+                        default:
+                            // No filter applied - show all records
+                            break;
+                    }
+                }
+            }
+        }
+
+        return $appliedFilters;
+    }
+
+    /**
+     * Get available filters for the resource.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function filters(Request $request): JsonResponse
+    {
+        $modelName = null;
+        try {
+            // Get model name from route defaults
+            $route = $request->route();
+            $modelName = $route->defaults['modelName'] ?? null;
+
+            // Validate that we have a model name
+            if (!$modelName) {
+                return $this->errorResponse(
+                    'BAD_REQUEST',
+                    'Model name not found in route defaults',
+                    400
+                );
+            }
+
+            // Convert model name to proper class name (e.g., 'user' -> 'User', 'user-profiles' -> 'UserProfile')
+            $className = Str::studly(Str::singular($modelName));
+            $modelClass = "App\\Models\\{$className}";
+
+            // Validate that the class exists and is a Model
+            if (!class_exists($modelClass) || !is_subclass_of($modelClass, Model::class)) {
+                return $this->errorResponse(
+                    'RESOURCE_NOT_FOUND',
+                    "Model '{$className}' not found or is not a valid Eloquent model",
+                    404
+                );
+            }
+
+            // Create model instance for introspection
+            $model = new $modelClass();
+
+            // Check if model has custom API filters
+            if (method_exists($model, 'getApiFilters')) {
+                $filters = $model->getApiFilters();
+                return $this->successResponse($filters);
+            } else {
+                // Fallback to legacy active/inactive filter if model has 'active' field
+                $fillableFields = $model->getFillable();
+                if (in_array('active', $fillableFields)) {
+                    $filters = [
+                        'filter' => [
+                            'type' => 'select',
+                            'label' => 'Status',
+                            'values' => ['all', 'active', 'inactive'],
+                            'labels' => [
+                                'all' => 'All',
+                                'active' => 'Active',
+                                'inactive' => 'Inactive'
+                            ]
+                        ]
+                    ];
+                    return $this->successResponse($filters);
+                } else {
+                    // No filters available
+                    return $this->successResponse([]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("Error fetching filters for " . ($modelName ?? 'unknown model'), [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse(
+                'INTERNAL_SERVER_ERROR',
+                'An error occurred while fetching filters',
+                500
+            );
+        }
     }
 }

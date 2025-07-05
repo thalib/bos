@@ -487,6 +487,25 @@ class Estimate extends Model
     }
 
     /**
+     * Get the API filters for this model.
+     *
+     * @return array
+     */
+    public static function getApiFilters(): array
+    {
+        return [
+            'status' => [
+                'label' => 'Status',
+                'values' => ['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'INVOICED']
+            ],
+            'channel' => [
+                'label' => 'Channel',
+                'values' => ['Online', 'Offline']
+            ]
+        ];
+    }
+
+    /**
      * Get the grand total from totals JSON.
      *
      * @return float|null
