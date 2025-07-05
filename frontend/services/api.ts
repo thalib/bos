@@ -5,7 +5,6 @@
  */
 import { ref, watch, computed, type Ref } from 'vue'
 import type { ApiResponse, ApiError } from '~/types'
-import { createAuthTokenInterceptor } from './auth'
 import { useApplicationConfig } from '~/composables/useApplicationConfig'
 
 // Get configuration from centralized config
@@ -533,10 +532,49 @@ const createApiService = (): ApiService => {
           throw new Error('No internet connection available')
         }
         return options
-      })      // Add auth token interceptor
-      const { requestInterceptor, responseInterceptor } = createAuthTokenInterceptor()
-      addRequestInterceptor(requestInterceptor)
-      addResponseInterceptor(responseInterceptor)
+      })  // Add auth token interceptor
+  const createAuthTokenInterceptor = () => {
+    const requestInterceptor: RequestInterceptor = (url, options) => {
+      // Get token from localStorage
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      
+      if (token) {
+        const headers = new Headers(options.headers)
+        headers.set('Authorization', `Bearer ${token}`)
+        return {
+          ...options,
+          headers
+        }
+      }
+      
+      return options
+    }
+
+    const responseInterceptor: ResponseInterceptor = async (response, { resource, id }) => {
+      // Handle 401 unauthorized responses
+      if (response.status === 401) {
+        // Clear stored token if unauthorized
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth_token')
+          localStorage.removeItem('auth_refresh_token')
+          localStorage.removeItem('auth_user')
+          
+          // Emit unauthorized event for other components to handle
+          window.dispatchEvent(new CustomEvent('auth:unauthorized', { 
+            detail: { source: 'api-service', resource, id } 
+          }))
+        }
+      }
+      
+      return response
+    }
+
+    return { requestInterceptor, responseInterceptor }
+  }
+
+  const { requestInterceptor, responseInterceptor } = createAuthTokenInterceptor()
+  addRequestInterceptor(requestInterceptor)
+  addResponseInterceptor(responseInterceptor)
     }
   }
   

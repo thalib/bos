@@ -100,7 +100,7 @@ export const useResourceFilter = (options: UseResourceFilterOptions = {}): UseRe
   // Set filter and update URL
   const setFilter = async (filter: FilterValue): Promise<void> => {
     if (!isValidFilter(filter)) {
-      console.warn(`Invalid filter value: ${filter}. Using default: ${defaultFilter}`)
+      // Silently use default for invalid values (dynamic filters are handled elsewhere)
       filter = defaultFilter
     }
 

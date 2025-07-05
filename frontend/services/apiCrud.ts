@@ -223,6 +223,22 @@ export const useApiCrud = () => {
   }
 
   /**
+   * Fetch available filters for a resource
+   * @param resource - The API resource/endpoint
+   * @param v - Optional API version override
+   * @returns Available filter configurations
+   */
+  const apiGetFilters = async (
+    resource: string,
+    v?: string
+  ): Promise<ApiResponse<import('~/types').FiltersResponse>> => {
+    return api.request<import('~/types').FiltersResponse>(`${resource}/filters`, {
+      method: 'GET',
+      version: v
+    })
+  }
+
+  /**
    * Example of using a form schema to dynamically create a form
    * @param resource - The API resource/endpoint
    * @param id - Optional resource ID for edit forms
@@ -260,6 +276,7 @@ export const useApiCrud = () => {
     apiCreate,
     apiUpdate,
     apiDelete,
+    apiGetFilters,
     getFormData
   }
 }

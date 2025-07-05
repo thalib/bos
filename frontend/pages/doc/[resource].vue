@@ -18,7 +18,7 @@ import { useApiEndpoint } from '~/composables/useApplicationConfig';
 import { useResourceState } from '~/composables/useResourceState';
 import { useResourceFilter } from '~/composables/useResourceFilter';
 import { getResourceColumns } from '~/utils/columnUtils';
-import type { Column, PaginationMeta } from '../../types';
+import type { Column, PaginationMeta, FilterChangeEvent } from '../../types';
 import { useApiService } from '~/services/api';
 
 // Enhanced item interface with selected property for UI state
@@ -118,9 +118,20 @@ const handleClearAllFilters = async () => {
 };
 
 // Filter change handler
-const handleFilterChange = async (filterValue: 'all' | 'active' | 'inactive') => {
-  await setFilter(filterValue);
-  fetchData(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, filterValue);
+const handleFilterChange = async (filterEvent: 'all' | 'active' | 'inactive' | string | FilterChangeEvent) => {
+  // Handle new multi-field filter events
+  if (typeof filterEvent === 'object' && 'field' in filterEvent) {
+    // For now, handle as legacy for backward compatibility
+    // TODO: Implement proper multi-field filtering in the future
+    const legacyValue = filterEvent.value as 'all' | 'active' | 'inactive';
+    await setFilter(legacyValue);
+    fetchData(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, legacyValue);
+  } else {
+    // Handle legacy string values
+    const filterValue = filterEvent as 'all' | 'active' | 'inactive';
+    await setFilter(filterValue);
+    fetchData(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, filterValue);
+  }
 };
 
 // Use toast utility instead of direct toast component ref
@@ -443,6 +454,7 @@ onBeforeUnmount(() => {
       <template #filter>
         <ResourceFilter 
           :model-value="currentFilter" 
+          :resource="resourceName"
           :loading="loading || isSearching || isSorting"
           @filter-change="handleFilterChange" 
         />

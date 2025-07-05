@@ -1,151 +1,369 @@
 <template>
-  <div class="dropdown">
+  <div class="dropdown" ref="dropdownRef">
     <button
-      :id="dropdownId"
-      ref="dropdownButton"
-      class="btn btn-outline-primary dropdown-toggle"
+      id="filterDropdown"
+      class="btn btn-outline-secondary dropdown-toggle"
       type="button"
       data-bs-toggle="dropdown"
-      :aria-expanded="isOpen"
-      :aria-label="`Filter by status: ${getFilterLabel(modelValue)}`"
-      :disabled="loading"
+      aria-expanded="false"
+      aria-haspopup="true"
+      :disabled="loading || isLoadingFilters"
+      :aria-label="`Filter options${currentFilter ? ': ' + currentFilter : ''}`"
     >
-      <i class="bi bi-funnel me-1"></i>
-      <span v-if="loading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-      <span class="d-none d-sm-inline">{{ getFilterLabel(modelValue) }}</span>
-      <span class="d-sm-none">{{ getFilterLabel(modelValue, true) }}</span>
+      <i class="fas fa-filter me-2" aria-hidden="true"></i>
+      <span v-if="isLoadingFilters">
+        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+        Loading...
+      </span>
+      <span v-else-if="hasError">
+        Filter (Error)
+      </span>
+      <span v-else-if="currentFilter && currentFilter !== 'all'">
+        Filter: {{ formatFilterLabel(currentFilter) }}
+      </span>
+      <span v-else>
+        Filter
+      </span>
     </button>
-    
-    <ul 
-      class="dropdown-menu" 
-      :aria-labelledby="dropdownId"
+
+    <ul
+      class="dropdown-menu"
+      aria-labelledby="filterDropdown"
       role="menu"
     >
-      <li role="none">
-        <button
-          type="button"
-          class="dropdown-item"
-          :class="{ active: modelValue === 'all' }"
-          role="menuitem"
-          :aria-pressed="modelValue === 'all'"
-          @click="handleFilterChange('all')"
-        >
-          <i class="bi bi-circle me-2" aria-hidden="true"></i>
-          All
-        </button>
+      <!-- Loading State -->
+      <li v-if="isLoadingFilters" class="dropdown-item-text text-center py-3">
+        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+        Loading filters...
       </li>
-      <li role="none">
-        <button
-          type="button"
-          class="dropdown-item"
-          :class="{ active: modelValue === 'active' }"
-          role="menuitem"
-          :aria-pressed="modelValue === 'active'"
-          @click="handleFilterChange('active')"
-        >
-          <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-          Active
-        </button>
+
+      <!-- Error State -->
+      <li v-else-if="hasError" class="dropdown-item-text text-center py-3 text-muted">
+        <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+        Failed to load filters
       </li>
-      <li role="none">
-        <button
-          type="button"
-          class="dropdown-item"
-          :class="{ active: modelValue === 'inactive' }"
-          role="menuitem"
-          :aria-pressed="modelValue === 'inactive'"
-          @click="handleFilterChange('inactive')"
-        >
-          <i class="bi bi-x-circle-fill text-danger me-2" aria-hidden="true"></i>
-          Inactive
-        </button>
-      </li>
+
+      <!-- Filter Options -->
+      <template v-else>
+        <template v-for="(filterConfig, filterKey) in typedFilters" :key="filterKey">
+          <li class="dropdown-header" v-if="Object.keys(typedFilters).length > 1">
+            {{ filterConfig.label }}
+          </li>
+          <li v-for="(value, index) in filterConfig.values" :key="`${filterKey}-${index}`">
+            <button
+              type="button"
+              class="dropdown-item d-flex align-items-center"
+              role="menuitem"
+              :class="{
+                'active': isCurrentFilter(filterKey, value),
+                'disabled': loading
+              }"
+              :aria-pressed="isCurrentFilter(filterKey, value)"
+              @click="handleFilterChange(filterKey, value)"
+              :disabled="loading"
+            >
+              <i
+                class="fas me-2"
+                :class="{
+                  'fa-check': isCurrentFilter(filterKey, value),
+                  'fa-circle': !isCurrentFilter(filterKey, value)
+                }"
+                aria-hidden="true"
+              ></i>
+              {{ formatFilterLabel(value) }}
+            </button>
+          </li>
+          <li v-if="Object.keys(typedFilters).length > 1" class="dropdown-divider"></li>
+        </template>
+
+        <!-- Clear Filter Option (if not 'all') -->
+        <li v-if="currentFilter && currentFilter !== 'all'">
+          <hr class="dropdown-divider">
+          <button
+            type="button"
+            class="dropdown-item d-flex align-items-center text-muted"
+            role="menuitem"
+            @click="handleFilterClear"
+            :disabled="loading"
+          >
+            <i class="fas fa-times me-2" aria-hidden="true"></i>
+            Clear Filter
+          </button>
+        </li>
+      </template>
     </ul>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { useApiCrud } from '~/services/api'
+import type { ApiResponse, FiltersResponse, FilterConfig, FilterChangeEvent } from '~/types'
 
-// Types
-type FilterValue = 'all' | 'active' | 'inactive'
-
+// Component Props
 interface Props {
-  modelValue?: FilterValue
+  /** Current filter value */
+  modelValue?: string
+  /** Resource name to fetch filters for */
+  resource: string
+  /** Loading state from parent */
   loading?: boolean
 }
 
+// Component Emits
 interface Emits {
-  'filter-change': [value: FilterValue]
+  /** Emitted when filter selection changes */
+  (event: 'filter-change', payload: FilterChangeEvent): void
+  /** Emitted when model value changes */
+  (event: 'update:modelValue', value: string): void
 }
 
-// Props and emits
 const props = withDefaults(defineProps<Props>(), {
-  modelValue: 'active',
+  modelValue: 'all',
   loading: false
 })
 
 const emit = defineEmits<Emits>()
 
-// Reactive state
-const dropdownButton = ref<HTMLButtonElement | null>(null)
-const isOpen = ref(false)
-
-// Generate SSR-safe unique ID
-const dropdownId = useSSRSafeId('filter-dropdown')
-
-// Utility function to get filter labels
-const getFilterLabel = (value: FilterValue, short = false) => {
-  const labels = {
-    all: 'All',
-    active: short ? 'Act' : 'Active',
-    inactive: short ? 'Inact' : 'Inactive'
+// Reactive refs
+const dropdownRef = ref<HTMLElement>()
+const availableFilters = ref<FiltersResponse>({
+  active: {
+    label: 'Status',
+    values: ['all', 'active', 'inactive'],
+    parameter: 'filter'
   }
-  return labels[value] || labels.active
+})
+const isLoadingFilters = ref(false)
+const hasError = ref(false)
+const currentFilter = ref(props.modelValue)
+
+// API service
+const { apiGetFilters } = useApiCrud()
+
+// Computed properties
+const formatFilterLabel = (value: string | number): string => {
+  const stringValue = String(value)
+  if (stringValue === 'all') return 'All'
+  if (stringValue === 'active') return 'Active'
+  if (stringValue === 'inactive') return 'Inactive'
+  
+  // Format camelCase/snake_case to Title Case
+  return stringValue
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase())
+    .trim()
 }
+
+const isCurrentFilter = (filterKey: string, value: string | number): boolean => {
+  return currentFilter.value === String(value)
+}
+
+// Computed property to ensure proper typing for template
+const typedFilters = computed(() => {
+  const result: Record<string, { label: string; values: string[] }> = {}
+  Object.entries(availableFilters.value).forEach(([key, config]) => {
+    // Ensure config and config.values exist before processing
+    if (config && config.values && Array.isArray(config.values)) {
+      result[key] = {
+        label: config.label || formatFilterLabel(key),
+        values: config.values.map(v => String(v))
+      }
+    }
+  })
+  return result
+})
 
 // Methods
-const handleFilterChange = (value: FilterValue) => {
-  if (props.loading) return
-  
+const fetchFilters = async (): Promise<void> => {
+  if (!props.resource) return
+
+  isLoadingFilters.value = true
+  hasError.value = false
+
   try {
-    emit('filter-change', value)
+    const response: ApiResponse<FiltersResponse> = await apiGetFilters(props.resource)
+    
+    if (response.error) {
+      console.warn('Failed to fetch filters, using fallback:', response.error)
+      // Use fallback filters for legacy support
+      availableFilters.value = {
+        active: {
+          label: 'Status',
+          values: ['all', 'active', 'inactive'],
+          parameter: 'filter'
+        }
+      }
+    } else if (response.data) {
+      // Handle nested response structure - check if data contains success/data wrapper
+      let filterData: any = response.data
+      
+      // If the response has success/data structure, extract the inner data
+      if (typeof response.data === 'object' && 'success' in response.data && 'data' in response.data) {
+        filterData = (response.data as any).data
+      }
+      
+      if (filterData && typeof filterData === 'object' && Object.keys(filterData).length > 0) {
+        // Validate the response data structure
+        const validatedFilters: FiltersResponse = {}
+        Object.entries(filterData).forEach(([key, config]) => {
+          const typedConfig = config as any
+          if (config && typedConfig.values && Array.isArray(typedConfig.values) && typedConfig.values.length > 0) {
+            validatedFilters[key] = {
+              label: typedConfig.label || formatFilterLabel(key),
+              values: typedConfig.values,
+              parameter: typedConfig.parameter
+            }
+          }
+        })
+        
+        // If we have valid filters, use them, otherwise fallback
+        if (Object.keys(validatedFilters).length > 0) {
+          availableFilters.value = validatedFilters
+        } else {
+          console.warn('No valid filters found in API response, using fallback')
+          availableFilters.value = {
+            active: {
+              label: 'Status',
+              values: ['all', 'active', 'inactive'],
+              parameter: 'filter'
+            }
+          }
+        }
+      } else {
+        // Fallback if no valid filter data found
+        availableFilters.value = {
+          active: {
+            label: 'Status',
+            values: ['all', 'active', 'inactive'],
+            parameter: 'filter'
+          }
+        }
+      }
+    } else {
+      // Fallback if no data
+      availableFilters.value = {
+        active: {
+          label: 'Status',
+          values: ['all', 'active', 'inactive'],
+          parameter: 'filter'
+        }
+      }
+    }
   } catch (error) {
-    console.error('Error emitting filter change:', error)
+    console.error('Error fetching filters:', error)
+    hasError.value = true
+    
+    // Use fallback filters on error
+    availableFilters.value = {
+      active: {
+        label: 'Status',
+        values: ['all', 'active', 'inactive'],
+        parameter: 'filter'
+      }
+    }
+  } finally {
+    isLoadingFilters.value = false
   }
 }
 
-// Bootstrap dropdown event listeners
-const handleDropdownShow = () => {
-  isOpen.value = true
+const handleFilterChange = (filterKey: string, value: string): void => {
+  if (props.loading) return
+
+  currentFilter.value = value
+  emit('update:modelValue', value)
+  
+  // Find the filter configuration to get the label
+  const filterConfig = availableFilters.value[filterKey]
+  const filterLabel = filterConfig?.label || formatFilterLabel(filterKey)
+  
+  // Emit filter change event with field, value, and label
+  emit('filter-change', {
+    field: filterKey,
+    value: value,
+    label: filterLabel
+  })
+
+  // Close dropdown
+  if (dropdownRef.value) {
+    const dropdown = dropdownRef.value.querySelector('.dropdown-toggle') as HTMLElement
+    if (dropdown && dropdown.getAttribute('aria-expanded') === 'true') {
+      dropdown.click()
+    }
+  }
 }
 
-const handleDropdownHide = () => {
-  isOpen.value = false
+const handleFilterClear = (): void => {
+  handleFilterChange('active', 'all')
 }
+
+// Watchers
+watch(() => props.modelValue, (newValue) => {
+  currentFilter.value = newValue || 'all'
+})
+
+watch(() => props.resource, (newResource, oldResource) => {
+  if (newResource) {
+    fetchFilters()
+  }
+}, { immediate: false })
 
 // Lifecycle
-onMounted(() => {
-  if (dropdownButton.value) {
-    dropdownButton.value.addEventListener('show.bs.dropdown', handleDropdownShow)
-    dropdownButton.value.addEventListener('hide.bs.dropdown', handleDropdownHide)
+onMounted(async () => {
+  await nextTick()
+  if (props.resource) {
+    await fetchFilters()
   }
 })
 
 onUnmounted(() => {
-  if (dropdownButton.value) {
-    dropdownButton.value.removeEventListener('show.bs.dropdown', handleDropdownShow)
-    dropdownButton.value.removeEventListener('hide.bs.dropdown', handleDropdownHide)
-  }
+  // Cleanup if needed
 })
+
+// Initialize on mount
+if (props.resource) {
+  fetchFilters()
+}
 </script>
 
 <style scoped>
-/* Responsive adjustments */
-@media (max-width: 576px) {
-  .dropdown-menu {
-    min-width: 120px;
-  }
+.dropdown-toggle:disabled {
+  cursor: not-allowed;
+}
+
+.dropdown-item.active {
+  background-color: var(--bs-primary);
+  color: var(--bs-white);
+}
+
+.dropdown-item.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dropdown-header {
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.spinner-border-sm {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* Smooth transitions for filter changes */
+.dropdown-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.dropdown-item:hover:not(.disabled) {
+  background-color: var(--bs-light);
+}
+
+.dropdown-item.active:hover {
+  background-color: var(--bs-primary);
 }
 </style>
-

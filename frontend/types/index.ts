@@ -258,3 +258,68 @@ export interface DynamicPageProps {
   /** Page slug */
   slug: string;
 }
+
+/**
+ * Filter Configuration
+ * Represents a single filter option configuration
+ */
+export interface FilterConfig {
+  /** Display label for the filter */
+  label: string;
+  /** Available values for this filter */
+  values: string[];
+  /** Optional parameter name for legacy filters */
+  parameter?: string;
+}
+
+/**
+ * Filter Options
+ * Collection of all available filters for a resource
+ */
+export interface FilterOptions {
+  [key: string]: FilterConfig;
+}
+
+/**
+ * Applied Filter
+ * Represents a filter that has been applied
+ */
+export interface AppliedFilter {
+  /** Display label for the filter */
+  label: string;
+  /** Selected value */
+  value: string;
+}
+
+/**
+ * Filter Response
+ * API response structure for filter endpoints
+ */
+export interface FilterResponse {
+  /** Success status */
+  success: boolean;
+  /** Filter configuration data */
+  data: FilterOptions;
+}
+
+/**
+ * Filter Change Event
+ * Event payload when a filter changes
+ */
+export interface FilterChangeEvent {
+  /** Filter field name */
+  field: string;
+  /** Selected value */
+  value: string;
+  /** Display label */
+  label: string;
+}
+
+/**
+ * Filters Response
+ * Structure returned by the backend filters API endpoint
+ */
+export interface FiltersResponse {
+  /** Map of filter configurations keyed by filter name */
+  [filterName: string]: FilterConfig;
+}
