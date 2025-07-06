@@ -103,7 +103,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { useApiCrud } from '~/services/api'
+import { useApiCrud } from '~/services/apiCrud'
 import type { ApiResponse, FiltersResponse, FilterConfig, FilterChangeEvent } from '~/types'
 
 // Component Props

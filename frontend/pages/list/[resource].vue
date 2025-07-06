@@ -15,9 +15,14 @@ import Toast from '../../components/Toast.vue';
 import { useToast } from '~/utils/errorHandling';
 import { useApiEndpoint } from '~/composables/useApplicationConfig';
 import { useResourceState } from '~/composables/useResourceState';
+import { usePageLoading } from '~/composables/usePageLoading';
+import { useAppLoading } from '~/composables/useAppLoading';
 import { getResourceColumns, type Column } from '~/utils/columnUtils';
 import { useApiService } from '~/services/api';
 import type { PaginationMeta, FilterChangeEvent } from '~/types/index';
+
+// Client-side rendering flag to prevent hydration mismatches
+const isClient = ref(false);
 
 // Define the Column interface locally
 // interface Column {
@@ -100,9 +105,17 @@ const {
   initializeFromURL
 } = resourceState;
 
+// Initialize loading helpers
+const { withApiLoading, withLoading } = usePageLoading();
+const { canShowComponentContent } = useAppLoading();
+
+// Page loading state management
+const isPageReady = ref(false);
+const canShowPageContent = computed(() => isPageReady.value);
+const pageLoadingMessage = ref('Authenticating...');
+
 // State management
 const items = ref<ResourceItem[]>([]);
-const loading = ref(true); // Start as true to prevent content flash
 const error = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
 const searchComponent = ref<InstanceType<typeof ResourceSearch>>();
@@ -116,6 +129,8 @@ const apiService = useApiService();
 
 // Computed property for search disabled state to handle SSR hydration
 const isSearchDisabled = computed(() => {
+  // Always return true during SSR to prevent hydration mismatch
+  if (!isClient.value) return true;
   // Only disable during actual loading operations, not initial SSR loading
   return isSearching.value || isSorting.value;
 });
@@ -151,181 +166,196 @@ const fetchDataWithMultiFilters = async (
   sort: string = sortField.value,
   direction: 'asc' | 'desc' = sortDirection.value
 ) => {
-  loading.value = true;
-  error.value = null;
-  try {
-    // Build query parameters
-    const queryParams = new URLSearchParams({
-      page: page.toString(),
-      per_page: perPage.toString()
-    });
+  return await withApiLoading(
+    async () => {
+      // Build query parameters
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        per_page: perPage.toString()
+      });
 
-    // Add search parameter if provided
-    if (search && search.trim()) {
-      queryParams.append('search', search.trim());
-    }
-
-    // Add multi-field filters
-    Object.entries(activeFilters.value).forEach(([field, value]) => {
-      if (value && value !== 'all') {
-        console.log(`Adding filter parameter: ${field} = ${value}`);
-        queryParams.append(field, value);
+      // Add search parameter if provided
+      if (search && search.trim()) {
+        queryParams.append('search', search.trim());
       }
-    });
 
-    console.log('Query parameters being sent:', Object.fromEntries(queryParams));
+      // Add multi-field filters
+      Object.entries(activeFilters.value).forEach(([field, value]) => {
+        if (value && value !== 'all') {
+          queryParams.append(field, value);
+        }
+      });
 
-    // Add sort parameters if provided
-    if (sort && sort.trim()) {
-      queryParams.append('sort', sort.trim());
-      queryParams.append('direction', direction);
-    } 
-    
-    // Use API service instead of $fetch to ensure auth headers are included
-    const paramsObject = Object.fromEntries(queryParams);
-    const apiResponse = await apiService.request<{
-      success?: boolean;
-      data?: any[];
-      message?: string;
-      meta?: any;
-      pagination?: {
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
-        from: number;
-        to: number;
-        has_more_pages: boolean;
-        path: string;
-        first_page_url: string;
-        last_page_url: string;
-        next_page_url: string | null;
-        prev_page_url: string | null;
-      };
-      error?: {
-        code: string;
-        message: string;
-        details?: any;
-        validation_errors?: any;
-      };
-      // Legacy format support
-      current_page?: number;
-      last_page?: number;
-      per_page?: number;
-      total?: number;
-      from?: number;
-      to?: number;
-    }>(resourceName.value, {
-      params: paramsObject
-    });
-
-    // Handle API response - check for errors first
-    if (apiResponse.error || (apiResponse.data && !apiResponse.data.success && apiResponse.data.error)) {
-      const errorInfo = apiResponse.error || apiResponse.data?.error;
-      throw new Error((errorInfo && errorInfo.message) ? errorInfo.message : 'Failed to fetch data');
-    }
-
-    const response = apiResponse.data;
-    if (!response) {
-      throw new Error('No data received from API');
-    }
-
-    // Handle response data structure - support both new standardized and legacy formats
-    let responseData: any[] = [];
-    let responseMeta: any = {};
-
-    // Check if this is the new standardized response format
-    if (response.success !== undefined) {
-      // New standardized format
-      if (!response.success) {
-        throw new Error(response.error?.message || 'API request failed');
-      }
+      // Add sort parameters if provided
+      if (sort && sort.trim()) {
+        queryParams.append('sort', sort.trim());
+        queryParams.append('direction', direction);
+      } 
       
-      responseData = response.data || [];
-      responseMeta = response.pagination || response.meta || {};
-    } else if (Array.isArray(response)) {
-      // Simple array response (legacy)
-      responseData = response;
-    } else if (response.data && Array.isArray(response.data)) {
-      // Laravel paginated response (legacy)
-      responseData = response.data;
-
-      // Laravel puts pagination data directly in the response root, not in meta
-      if (response.current_page !== undefined) {
-        responseMeta = {
-          current_page: response.current_page,
-          last_page: response.last_page,
-          per_page: response.per_page,
-          total: response.total,
-          from: response.from,
-          to: response.to
+      // Use API service instead of $fetch to ensure auth headers are included
+      const paramsObject = Object.fromEntries(queryParams);
+      const apiResponse = await apiService.request<{
+        success?: boolean;
+        data?: any[];
+        message?: string;
+        meta?: any;
+        pagination?: {
+          current_page: number;
+          last_page: number;
+          per_page: number;
+          total: number;
+          from: number;
+          to: number;
+          has_more_pages: boolean;
+          path: string;
+          first_page_url: string;
+          last_page_url: string;
+          next_page_url: string | null;
+          prev_page_url: string | null;
         };
-      } else {
-        // Fallback to nested meta/pagination structure
-        responseMeta = response.meta || response.pagination || {};
+        error?: {
+          code: string;
+          message: string;
+          details?: any;
+          validation_errors?: any;
+        };
+        // Legacy format support
+        current_page?: number;
+        last_page?: number;
+        per_page?: number;
+        total?: number;
+        from?: number;
+        to?: number;
+      }>(resourceName.value, {
+        params: paramsObject
+      });
+
+      return apiResponse;
+    },
+    {
+      message: isInitialLoad.value ? `Loading ${resourceTitle.value.toLowerCase()}...` : 'Updating data...',
+      type: 'page',
+      onSuccess: async (apiResponse: any) => {
+        if (!apiResponse) {
+          throw new Error('No response received from API');
+        }
+
+        error.value = null;
+        
+        // @ts-ignore - Complex type checking for API response handling
+        // Handle API response - check for errors first
+        if (apiResponse.error || (apiResponse.data && typeof apiResponse.data === 'object' && !Array.isArray(apiResponse.data) && !apiResponse.data.success && apiResponse.data.error)) {
+          const errorInfo = apiResponse.error || (typeof apiResponse.data === 'object' && !Array.isArray(apiResponse.data) ? apiResponse.data?.error : null);
+          throw new Error((errorInfo && errorInfo.message) ? errorInfo.message : 'Failed to fetch data');
+        }
+
+        const response = apiResponse.data;
+        if (!response) {
+          throw new Error('No data received from API');
+        }
+
+        // Handle response data structure - support both new standardized and legacy formats
+        let responseData: any[] = [];
+        let responseMeta: any = {};
+
+        // @ts-ignore - Flexible response format handling
+        // Check if this is the new standardized response format
+        if (typeof response === 'object' && !Array.isArray(response) && 'success' in response) {
+          // New standardized format
+          if (!response.success) {
+            throw new Error(response.error?.message || 'API request failed');
+          }
+          
+          responseData = response.data || [];
+          responseMeta = response.pagination || response.meta || {};
+        } else if (Array.isArray(response)) {
+          // Simple array response (legacy)
+          responseData = response;
+        } else if (typeof response === 'object' && response.data && Array.isArray(response.data)) {
+          // Laravel paginated response (legacy)
+          responseData = response.data;
+
+          // Laravel puts pagination data directly in the response root, not in meta
+          if (response.current_page !== undefined) {
+            responseMeta = {
+              current_page: response.current_page,
+              last_page: response.last_page,
+              per_page: response.per_page,
+              total: response.total,
+              from: response.from,
+              to: response.to
+            };
+          } else {
+            // Fallback to nested meta/pagination structure
+            responseMeta = response.meta || response.pagination || {};
+          }
+        } else {
+          // Object response - convert to array
+          responseData = [response];
+        }
+
+        // Map items and add selected property for UI state
+        items.value = responseData.map((item: any) => ({ ...item, selected: false }));
+
+        // Get columns using utility (now properly async)
+        try {
+          processedColumns.value = await getResourceColumns(resourceName.value, responseData);
+        } catch (error) {
+          console.warn('Failed to get resource columns:', error);
+          processedColumns.value = [];
+        }
+
+        // Update pagination data
+        if (responseMeta && Object.keys(responseMeta).length > 0) {
+          resourcePagination.value = {
+            currentPage: responseMeta.current_page || page,
+            totalPages: responseMeta.last_page || 1,
+            perPage: responseMeta.per_page || perPage,
+            total: responseMeta.total || responseData.length,
+            hasNextPage: responseMeta.has_more_pages !== undefined ? responseMeta.has_more_pages : (responseMeta.current_page < responseMeta.last_page),
+            hasPrevPage: responseMeta.current_page > 1,
+            nextPage: responseMeta.has_more_pages !== undefined ? 
+              (responseMeta.has_more_pages ? (responseMeta.current_page || 1) + 1 : null) : 
+              (responseMeta.current_page < responseMeta.last_page ? (responseMeta.current_page || 1) + 1 : null),
+            prevPage: responseMeta.current_page > 1 ? (responseMeta.current_page || 1) - 1 : null,
+            from: responseMeta.from || 0,
+            to: responseMeta.to || responseData.length
+          };
+        } else {
+          // No pagination metadata - single page
+          resourcePagination.value = {
+            currentPage: 1,
+            totalPages: 1,
+            perPage: responseData.length,
+            total: responseData.length,
+            hasNextPage: false,
+            hasPrevPage: false,
+            nextPage: null,
+            prevPage: null,
+            from: responseData.length > 0 ? 1 : 0,
+            to: responseData.length
+          };
+        }
+
+        // Mark initial load as complete
+        if (isInitialLoad.value) {
+          isInitialLoad.value = false;
+        }
+      },
+      onError: (error) => {
+        // Handle different error types
+        if (error.message?.includes('404')) {
+          error.value = `Resource '${resourceName.value}' not found. Please check if the API endpoint exists.`;
+        } else if (error.message?.includes('403')) {
+          error.value = `Access denied to '${resourceName.value}' resource.`;
+        } else if (error.message?.includes('500')) {
+          error.value = `Server error when fetching '${resourceName.value}' data.`;
+        } else {
+          error.value = error.message || `Failed to fetch ${resourceName.value} data`;
+        }
       }
-    } else {
-      // Object response - convert to array
-      responseData = [response];
     }
-
-    // Map items and add selected property for UI state
-    items.value = responseData.map((item: any) => ({ ...item, selected: false }));
-
-    // Get columns using utility
-    processedColumns.value = await getResourceColumns(resourceName.value, responseData);
-
-    // Update pagination data
-    if (responseMeta && Object.keys(responseMeta).length > 0) {
-      resourcePagination.value = {
-        currentPage: responseMeta.current_page || page,
-        totalPages: responseMeta.last_page || 1,
-        perPage: responseMeta.per_page || perPage,
-        total: responseMeta.total || responseData.length,
-        hasNextPage: responseMeta.has_more_pages !== undefined ? responseMeta.has_more_pages : (responseMeta.current_page < responseMeta.last_page),
-        hasPrevPage: responseMeta.current_page > 1,
-        nextPage: responseMeta.has_more_pages !== undefined ? 
-          (responseMeta.has_more_pages ? (responseMeta.current_page || 1) + 1 : null) : 
-          (responseMeta.current_page < responseMeta.last_page ? (responseMeta.current_page || 1) + 1 : null),
-        prevPage: responseMeta.current_page > 1 ? (responseMeta.current_page || 1) - 1 : null,
-        from: responseMeta.from || 0,
-        to: responseMeta.to || responseData.length
-      };
-    } else {
-      // No pagination metadata - single page
-      resourcePagination.value = {
-        currentPage: 1,
-        totalPages: 1,
-        perPage: responseData.length,
-        total: responseData.length,
-        hasNextPage: false,
-        hasPrevPage: false,
-        nextPage: null,
-        prevPage: null,
-        from: responseData.length > 0 ? 1 : 0,
-        to: responseData.length
-      };
-    }
-
-    // Pagination data is already updated above - no need to set currentPage/currentPerPage separately
-  } catch (err: any) {
-    // Handle different error types
-    if (err.status === 404) {
-      error.value = `Resource '${resourceName.value}' not found. Please check if the API endpoint exists.`;
-    } else if (err.status === 403) {
-      error.value = `Access denied to '${resourceName.value}' resource.`;
-    } else if (err.status === 500) {
-      error.value = `Server error when fetching '${resourceName.value}' data.`;
-    } else {
-      error.value = err.message || `Failed to fetch ${resourceName.value} data`;
-    }
-    // Show toast notification
-    if (error.value) {
-      showErrorToast(error.value);
-    }
-  } finally {
-    loading.value = false;
-  }
+  );
 };
 
 // Handle item click from table
@@ -530,77 +560,118 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleGlobalKeydown);
 });
+
+// Handle page initialization sequence
+onMounted(async () => {
+  try {
+    // Set client flag to enable reactive rendering
+    await nextTick();
+    isClient.value = true;
+    
+    // Page structure is ready
+    pageLoadingMessage.value = 'Loading resource data...';
+    isPageReady.value = true;
+
+    // Small delay to show page structure before components
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Initialize data after page structure is ready
+    await initializeFromURL();
+    await fetchDataWithMultiFilters(currentPage.value, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
+    
+    // Mark initial load as complete
+    isInitialLoad.value = false;
+    
+  } catch (err) {
+    console.error('Page initialization error:', err);
+    showErrorToast('Failed to initialize resource page');
+  }
+});
 </script>
 
 <template>
   <div class="container-fluid pt-3">
-    <!-- Initial Loading State - Show spinner during authentication and initial data load -->
-    <div v-if="isInitialLoad" class="d-flex justify-content-center align-items-center py-5" style="min-height: 400px;">
+    <!-- Initial Loading State - show until client is ready -->
+    <div v-if="!isClient || !canShowPageContent" class="d-flex justify-content-center align-items-center py-5" style="min-height: 400px;">
       <div class="text-center">
         <div class="spinner-border text-primary mb-3" role="status">
           <span class="visually-hidden">Loading...</span>
         </div>
-        <p class="text-muted">Loading {{ resourceTitle.toLowerCase() }}...</p>
+        <p class="text-muted">{{ pageLoadingMessage }}</p>
       </div>
     </div>
 
-    <!-- Main Content - Only show after initial load is complete -->
-    <template v-else>
-      <!-- Global Loading Overlay for Actions -->
-      <div v-if="isSearching || isSorting || isFiltering"
-        class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-black bg-opacity-10"
-        style="z-index: 1050;">
-        <div class="bg-white rounded shadow p-3 d-flex align-items-center">
-          <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-          <span v-if="isSearching">Searching...</span>
-          <span v-else-if="isSorting">Sorting...</span>
-          <span v-else-if="isFiltering">Filtering...</span>
+    <!-- Main Content - only show when client is ready -->
+    <div v-if="isClient && canShowPageContent">
+      <!-- Page Header Skeleton -->
+      <div v-if="!canShowComponentContent" class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="placeholder-glow">
+            <h2 class="placeholder col-4" style="height: 2.5rem;"></h2>
+          </div>
+          <div class="d-flex gap-2">
+            <div class="placeholder rounded" style="width: 100px; height: 38px;"></div>
+            <div class="placeholder rounded" style="width: 100px; height: 38px;"></div>
+            <div class="placeholder rounded" style="width: 140px; height: 38px;"></div>
+          </div>
+        </div>
+        
+        <!-- Search and Filter Skeleton -->
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <div class="placeholder rounded" style="height: 38px;"></div>
+          </div>
+          <div class="col-md-6">
+            <div class="placeholder rounded" style="height: 38px;"></div>
+          </div>
+        </div>
+
+        <!-- Table Skeleton -->
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-center align-items-center py-5">
+              <div class="text-center">
+                <div class="spinner-border text-secondary mb-3" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted">Loading {{ resourceTitle.toLowerCase() }} data...</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <!-- Resource Header Component -->
-      <ResourceHeader :resource-name="resourceName" :title="resourceTitle" :loading="loading"
-        :total-results="pagination.total" :has-filters="hasActiveFilters" :from="pagination.from" :to="pagination.to"
-        @create="handleCreate" @export="handleExport" @import="handleImport">
-      
-      <!-- Filter Component in Header -->
-      <template #filter>
-        <ResourceFilter 
-          :resource="resourceName"
-          :loading="loading || isSearching || isSorting || isFiltering"
-          :active-filter-field="activeFilterField"
-          :is-active="Object.keys(activeFilters).length > 0"
-          :filter-count="filterCount"
-          @filter-change="handleFilterChange"
-          @filter-clear-all="handleFilterClearAll"
-          @filters-cleared="handleFiltersClearedEvent"
-        />
-      </template>
 
-      <!-- Search Component in Header -->
-      <template #search>
-        <ResourceSearch ref="searchComponent" v-model="searchQuery" :loading="isSearching" :disabled="isSearchDisabled"
-          @search="handleSearch" @clear="handleSearchClear"><template #search-info="{ query }">
-            <!-- Empty template - search info handled elsewhere -->
-          </template>
-        </ResourceSearch>
-      </template>
+      <!-- Main Content - Only show after components can load -->
+      <div v-if="canShowComponentContent">
+        <!-- Resource Header Component -->
+        <ResourceHeader :resource-name="resourceName" :title="resourceTitle" :loading="false"
+          :total-results="pagination.total" :has-filters="hasActiveFilters" :from="pagination.from" :to="pagination.to"
+          @create="handleCreate" @export="handleExport" @import="handleImport">
+        
+        <!-- Filter Component in Header -->
+        <template #filter>
+          <ResourceFilter 
+            :resource="resourceName"
+            :loading="isSearching || isSorting || isFiltering"
+            :active-filter-field="activeFilterField"
+            :is-active="Object.keys(activeFilters).length > 0"
+            :filter-count="filterCount"
+            @filter-change="handleFilterChange"
+            @filter-clear-all="handleFilterClearAll"
+            @filters-cleared="handleFiltersClearedEvent"
+          />
+        </template>
 
-      <!-- Custom Action Indicators -->
-      <template #indicators>
-        <span v-if="isSearching" class="badge bg-primary">
-          <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-          Searching...
-        </span>
-        <span v-if="isSorting" class="badge bg-secondary">
-          <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-          Sorting...
-        </span>
-        <span v-if="isFiltering" class="badge bg-info">
-          <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-          Filtering...
-        </span>
-      </template>    </ResourceHeader>
+        <!-- Search Component in Header -->
+        <template #search>
+          <ResourceSearch ref="searchComponent" v-model="searchQuery" :loading="isSearching" :disabled="isSearchDisabled"
+            @search="handleSearch" @clear="handleSearchClear"><template #search-info="{ query }">
+              <!-- Empty template - search info handled elsewhere -->
+            </template>
+          </ResourceSearch>
+        </template>
+
+        </ResourceHeader>
     
     <!-- Error Alert for Resource Not Found -->
     <div v-if="error && error.includes('not found')" class="alert alert-warning" role="alert">
@@ -624,14 +695,14 @@ onBeforeUnmount(() => {
         <p class="mb-2">{{ error }}</p>
         <button type="button" class="btn btn-outline-danger btn-sm"
           @click="() => fetchDataWithMultiFilters(currentPage, currentPerPage, searchQuery, sortField, sortDirection)"
-          :disabled="loading">
+          :disabled="false">
           <i class="bi bi-arrow-clockwise me-1"></i>
           Try Again
         </button>
       </div>
     </div>    <!-- Master-Detail View -->
-    <ResourceMasterDetail ref="masterDetailRef" v-if="!loading || items.length > 0" :resource="resourceName"
-      :items="items" :loading="loading" :error="error" :columns="processedColumns" :pagination="pagination"
+    <ResourceMasterDetail ref="masterDetailRef" v-if="items.length > 0" :resource="resourceName"
+      :items="items" :loading="false" :error="error" :columns="processedColumns" :pagination="pagination"
       :show-pagination="false" :resource-title="resourceTitle" :search-query="searchQuery"
       :has-search-results="hasSearchResults" :has-no-search-results="hasNoSearchResults" :sort-field="sortField"
       :sort-direction="sortDirection" @itemClick="handleItemClick" @create="handleCreate"
@@ -691,16 +762,17 @@ onBeforeUnmount(() => {
       </template>
     </ResourceMasterDetail>
 
-    <!-- Pagination Component -->
-    <ResourcePagination v-if="!loading && items.length > 0" :current-page="pagination.currentPage"
-      :total-pages="pagination.totalPages" :per-page="pagination.perPage" :total="pagination.total"
-      :from="pagination.from" :to="pagination.to" :has-next-page="pagination.hasNextPage"
-      :has-prev-page="pagination.hasPrevPage" :loading="loading || isSearching || isSorting"
-      :per-page-options="[10, 20, 50, 100]" @page-change="handlePageChange" @per-page-change="handlePerPageChange" />
+        <!-- Pagination Component -->
+        <ResourcePagination v-if="items.length > 0" :current-page="pagination.currentPage"
+          :total-pages="pagination.totalPages" :per-page="pagination.perPage" :total="pagination.total"
+          :from="pagination.from" :to="pagination.to" :has-next-page="pagination.hasNextPage"
+          :has-prev-page="pagination.hasPrevPage" :loading="isSearching || isSorting"
+          :per-page-options="[10, 20, 50, 100]" @page-change="handlePageChange" @per-page-change="handlePerPageChange" />
+      </div>
+    </div>
       
     <!-- Toast Notifications -->
     <Toast />
-    </template>
   </div>
 </template>
 

@@ -34,6 +34,11 @@ import { ref } from 'vue';
 import { useAuth } from '~/composables/useAuth';
 import { useRoute, useRouter } from 'vue-router';
 
+// Define emits
+const emit = defineEmits<{
+  'login-success': []
+}>();
+
 const username = ref('');
 const password = ref('');
 const error = ref('');
@@ -47,6 +52,9 @@ async function onSubmit() {
   if (!success) {
     error.value = 'Invalid username or password';
   } else {
+    // Emit login success event for parent components to handle
+    emit('login-success');
+    
     // Check if there's a redirect parameter in the URL
     const redirectTo = route.query.redirect as string;
     if (redirectTo) {

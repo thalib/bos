@@ -15,6 +15,8 @@ import Toast from '../../components/Toast.vue';
 import { useToast } from '~/utils/errorHandling';
 import { useApiEndpoint } from '~/composables/useApplicationConfig';
 import { useResourceState } from '~/composables/useResourceState';
+import { usePageLoading } from '~/composables/usePageLoading';
+import { useAppLoading } from '~/composables/useAppLoading';
 
 import { getResourceColumns } from '~/utils/columnUtils';
 import type { Column, PaginationMeta, FilterChangeEvent } from '../../types';
@@ -85,6 +87,15 @@ const {
   clearFiltersOnly,
   initializeFromURL
 } = resourceState;
+
+// Initialize loading helpers
+const { withApiLoading, withLoading } = usePageLoading();
+const { canShowComponentContent } = useAppLoading();
+
+// Page loading state management
+const isPageReady = ref(false);
+const canShowPageContent = computed(() => isPageReady.value);
+const pageLoadingMessage = ref('Authenticating...');
 
 // State management
 const items = ref<ResourceItem[]>([]);
@@ -399,12 +410,26 @@ const handleUpdateError = (errorValue: string | null) => {
 };
 
 // Fetch data on component mount and add keyboard shortcuts
-onMounted(() => {
-  initializeFromURL();
-  fetchDataWithMultiFilters(currentPage.value, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
+onMounted(async () => {
+  try {
+    // Page structure is ready
+    pageLoadingMessage.value = 'Loading document data...';
+    isPageReady.value = true;
 
-  // Add keyboard shortcuts
-  document.addEventListener('keydown', handleGlobalKeydown);
+    // Small delay to show page structure before components
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Initialize data after page structure is ready
+    initializeFromURL();
+    await fetchDataWithMultiFilters(currentPage.value, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', handleGlobalKeydown);
+    
+  } catch (err) {
+    console.error('Page initialization error:', err);
+    showErrorToast('Failed to initialize document page');
+  }
 });
 
 // Set page title dynamically
@@ -431,62 +456,114 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="container-fluid pt-3">
-    <!-- Global Loading Overlay for Actions -->
-    <div v-if="isSearching || isSorting"
-      class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-black bg-opacity-10"
-      style="z-index: 1050;">
-      <div class="bg-white rounded shadow p-3 d-flex align-items-center">
-        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-        <span v-if="isSearching">Searching...</span>
-        <span v-else-if="isSorting">Sorting...</span>
+    <!-- Initial Authentication & Page Loading State -->
+    <div v-if="!canShowPageContent" class="d-flex justify-content-center align-items-center py-5" style="min-height: 400px;">
+      <div class="text-center">
+        <div class="spinner-border text-primary mb-3" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="text-muted">{{ pageLoadingMessage }}</p>
       </div>
     </div>
 
-    <!-- Resource Header Component -->
-    <ResourceHeader :resource-name="resourceName" :title="`${resourceTitle} Documents`" :loading="loading"
-      :total-results="pagination.total" :has-filters="hasActiveFilters" :from="pagination.from" :to="pagination.to"
-      @create="handleCreate" @export="handleExport" @import="handleImport">
-      
-      <!-- Filter Component in Header -->
-      <template #filter>
-        <ResourceFilter 
-          :resource="resourceName"
-          :loading="loading || isSearching || isSorting || isFiltering"
-          :active-filter-field="activeFilterField"
-          :is-active="Object.keys(activeFilters).length > 0"
-          :filter-count="filterCount"
-          @filter-change="handleFilterChange"
-          @filter-clear-all="handleFilterClearAll"
-          @filters-cleared="handleFiltersClearedEvent"
-        />
-      </template>
+    <!-- Page Structure (loads first after auth) -->
+    <template v-else>
+      <!-- Page Header Skeleton -->
+      <div v-if="!canShowComponentContent" class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="placeholder-glow">
+            <h2 class="placeholder col-4" style="height: 2.5rem;"></h2>
+          </div>
+          <div class="d-flex gap-2">
+            <div class="placeholder rounded" style="width: 100px; height: 38px;"></div>
+            <div class="placeholder rounded" style="width: 100px; height: 38px;"></div>
+            <div class="placeholder rounded" style="width: 140px; height: 38px;"></div>
+          </div>
+        </div>
+        
+        <!-- Search and Filter Skeleton -->
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <div class="placeholder rounded" style="height: 38px;"></div>
+          </div>
+          <div class="col-md-6">
+            <div class="placeholder rounded" style="height: 38px;"></div>
+          </div>
+        </div>
 
-      <!-- Search Component in Header -->
-      <template #search>
-        <ResourceSearch ref="searchComponent" v-model="searchQuery" :loading="isSearching" :disabled="isSearchDisabled"
-          @search="handleSearch" @clear="handleSearchClear">
-          <template #search-info="{ query }">
-            <!-- Empty template - search info handled elsewhere -->
+        <!-- Document Viewer Skeleton -->
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-center align-items-center py-5">
+              <div class="text-center">
+                <div class="spinner-border text-secondary mb-3" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted">Loading {{ resourceTitle.toLowerCase() }} documents...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Component Loading Overlay (only during actions) -->
+      <div v-if="canShowComponentContent && (isSearching || isSorting)"
+        class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-black bg-opacity-10"
+        style="z-index: 1050;">
+        <div class="bg-white rounded shadow p-3 d-flex align-items-center">
+          <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+          <span v-if="isSearching">Searching...</span>
+          <span v-else-if="isSorting">Sorting...</span>
+        </div>
+      </div>
+
+      <!-- Main Content - Only show after components can load -->
+      <template v-if="canShowComponentContent">
+        <!-- Resource Header Component -->
+        <ResourceHeader :resource-name="resourceName" :title="`${resourceTitle} Documents`" :loading="loading"
+          :total-results="pagination.total" :has-filters="hasActiveFilters" :from="pagination.from" :to="pagination.to"
+          @create="handleCreate" @export="handleExport" @import="handleImport">
+          
+          <!-- Filter Component in Header -->
+          <template #filter>
+            <ResourceFilter 
+              :resource="resourceName"
+              :loading="loading || isSearching || isSorting || isFiltering"
+              :active-filter-field="activeFilterField"
+              :is-active="Object.keys(activeFilters).length > 0"
+              :filter-count="filterCount"
+              @filter-change="handleFilterChange"
+              @filter-clear-all="handleFilterClearAll"
+              @filters-cleared="handleFiltersClearedEvent"
+            />
           </template>
-        </ResourceSearch>
-      </template>
 
-      <!-- Custom Action Indicators -->
-      <template #indicators>
-        <span v-if="isSearching" class="badge bg-primary">
-          <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-          Searching...
-        </span>
-        <span v-if="isSorting" class="badge bg-secondary">
-          <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-          Sorting...
-        </span>
-        <span v-if="isFiltering" class="badge bg-info">
-          <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-          Filtering...
-        </span>
-      </template>
-    </ResourceHeader>
+          <!-- Search Component in Header -->
+          <template #search>
+            <ResourceSearch ref="searchComponent" v-model="searchQuery" :loading="isSearching" :disabled="isSearchDisabled"
+              @search="handleSearch" @clear="handleSearchClear">
+              <template #search-info="{ query }">
+                <!-- Empty template - search info handled elsewhere -->
+              </template>
+            </ResourceSearch>
+          </template>
+
+          <!-- Custom Action Indicators -->
+          <template #indicators>
+            <span v-if="isSearching" class="badge bg-primary">
+              <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+              Searching...
+            </span>
+            <span v-if="isSorting" class="badge bg-secondary">
+              <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+              Sorting...
+            </span>
+            <span v-if="isFiltering" class="badge bg-info">
+              <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+              Filtering...
+            </span>
+          </template>
+        </ResourceHeader>
 
     <!-- Error Alert for Resource Not Found -->
     <div v-if="error && error.includes('not found')" class="alert alert-warning" role="alert">
@@ -591,12 +668,14 @@ onBeforeUnmount(() => {
       </template>
     </ResourceMasterDetailDoc>
 
-    <!-- Pagination Component -->
-    <ResourcePagination v-if="!loading && items.length > 0" :current-page="pagination.currentPage"
-      :total-pages="pagination.totalPages" :per-page="pagination.perPage" :total="pagination.total"
-      :from="pagination.from" :to="pagination.to" :has-next-page="pagination.hasNextPage"
-      :has-prev-page="pagination.hasPrevPage" :loading="loading || isSearching || isSorting"
-      :per-page-options="[10, 20, 50, 100]" @page-change="handlePageChange" @per-page-change="handlePerPageChange" />
+        <!-- Pagination Component -->
+        <ResourcePagination v-if="!loading && items.length > 0" :current-page="pagination.currentPage"
+          :total-pages="pagination.totalPages" :per-page="pagination.perPage" :total="pagination.total"
+          :from="pagination.from" :to="pagination.to" :has-next-page="pagination.hasNextPage"
+          :has-prev-page="pagination.hasPrevPage" :loading="loading || isSearching || isSorting"
+          :per-page-options="[10, 20, 50, 100]" @page-change="handlePageChange" @per-page-change="handlePerPageChange" />
+      </template>
+    </template>
 
     <!-- Toast Notifications -->
     <Toast />
