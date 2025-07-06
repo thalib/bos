@@ -20,7 +20,7 @@ const handleToggle = () => {
 };
 
 // Authentication and loading state management
-const { isAuthenticated, isInitialized, user, logout: baseLogout } = useAuth();
+const { isAuthenticated, isInitialized, user } = useAuth();
 const { canShowComponentContent } = useAppLoading();
 const { showErrorToast, showSuccessToast } = useToast();
 
@@ -32,7 +32,6 @@ const { menuItems, flatMenuItems, isLoading: menuLoading, error: menuError } = u
 
 // Local loading states
 const isNavbarReady = ref(false);
-const isLoggingOut = ref(false);
 
 // Computed states for rendering control - only active on client side
 const canShowNavbar = computed(() => {
@@ -56,23 +55,6 @@ const currentPageName = computed(() => {
 });
 
 const router = useRouter();
-
-// Enhanced logout with loading state and error handling
-async function logoutAndRedirect() {
-  if (isLoggingOut.value) return; // Prevent multiple logout attempts
-  
-  try {
-    isLoggingOut.value = true;
-    await baseLogout();
-    showSuccessToast('Logged out successfully');
-    await router.push('/');
-  } catch (error) {
-    console.error('Logout error:', error);
-    showErrorToast('Error during logout. Please try again.');
-  } finally {
-    isLoggingOut.value = false;
-  }
-}
 
 // Initialize navbar after authentication is confirmed
 onMounted(async () => {
@@ -157,7 +139,7 @@ watch(menuError, (error) => {
             :data-bs-target="canShowNavbar ? '#mainMenuOffcanvas' : undefined"
             :aria-controls="canShowNavbar ? 'mainMenuOffcanvas' : undefined"
             aria-label="Menu" 
-            :disabled="!canShowNavbar || menuLoading || isLoggingOut">
+            :disabled="!canShowNavbar || menuLoading">
             
             <!-- Loading states for menu button -->
             <div v-if="!canShowNavbar || menuLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
@@ -178,36 +160,16 @@ watch(menuError, (error) => {
           <!-- User info and logout - show content or skeleton -->
           <div v-if="canShowNavbarContent" class="d-flex align-items-center">
             <!-- User info -->
-            <div class="me-3">
+            <div>
               <span class="text-muted small">Welcome, </span>
               <span class="fw-semibold">{{ user?.name || 'User' }}</span>
             </div>
-
-            <!-- Logout button with loading state -->
-            <button 
-              class="btn btn-outline-danger btn-sm"
-              @click="logoutAndRedirect"
-              :disabled="isLoggingOut"
-              :aria-label="isLoggingOut ? 'Logging out...' : 'Logout'">
-              
-              <div v-if="isLoggingOut" class="d-flex align-items-center">
-                <div class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></div>
-                <span>Logging out...</span>
-              </div>
-              <div v-else class="d-flex align-items-center">
-                <i class="bi bi-box-arrow-right me-1"></i>
-                <span>Logout</span>
-              </div>
-            </button>
           </div>
 
           <!-- Loading skeleton for user section -->
           <div v-else class="d-flex align-items-center">
-            <div class="placeholder-glow me-3">
-              <span class="placeholder col-12" style="width: 100px; height: 1rem;"></span>
-            </div>
             <div class="placeholder-glow">
-              <div class="placeholder rounded" style="width: 80px; height: 32px;"></div>
+              <span class="placeholder col-12" style="width: 100px; height: 1rem;"></span>
             </div>
           </div>
         </div>
