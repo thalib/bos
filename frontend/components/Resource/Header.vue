@@ -95,35 +95,6 @@
           <span class="placeholder col-2 btn btn-sm"></span>
         </div>
       </div>
-    </div>    
-    
-    <!-- Results Summary -->
-    <div v-if="totalResults !== undefined && totalResults >= 0" class="d-flex justify-content-between align-items-center mb-3">
-      <div class="text-muted small">
-        <!-- Custom Summary Slot -->
-        <slot name="summary" :total="totalResults" :loading="loading" :hasFilters="hasFilters">
-          <template v-if="loading">
-            <div class="placeholder-glow">
-              <span class="placeholder col-4"></span>
-            </div>
-          </template>
-          <template v-else-if="totalResults > 0">
-            {{ formatResultsCount(totalResults) }}
-            <span v-if="hasFilters" class="badge bg-light text-dark ms-2">
-              <i class="bi bi-funnel-fill me-1" aria-hidden="true"></i>
-              Filters applied
-            </span>
-          </template>
-          <template v-else>
-            No {{ resourceName.toLowerCase() }} found
-          </template>
-        </slot>
-      </div>
-      
-      <!-- Action Indicators -->
-      <div class="d-flex align-items-center gap-2">
-        <slot name="indicators"></slot>
-      </div>
     </div>
   </div>
 </template>
@@ -132,12 +103,8 @@
 interface Props {
   title?: string;
   loading?: boolean;
-  totalResults?: number;
-  hasFilters?: boolean;
   resourceName: string;
   showBreadcrumbs?: boolean;
-  from?: number;
-  to?: number;
 }
 
 interface Emits {
@@ -150,11 +117,7 @@ interface Emits {
 const props = withDefaults(defineProps<Props>(), {
   title: undefined,
   loading: false,
-  totalResults: undefined,
-  hasFilters: false,
-  showBreadcrumbs: true,
-  from: undefined,
-  to: undefined
+  showBreadcrumbs: true
 });
 
 const emit = defineEmits<Emits>()
@@ -181,24 +144,6 @@ function handleEmit(event: 'create' | 'export' | 'import'): void {
     }
   } catch (error) {
     console.error(`Error emitting ${event} event:`, error)
-  }
-}
-
-// Format results count with proper pluralization and validation
-const formatResultsCount = (total: number) => {
-  if (typeof total !== 'number' || total < 0) {
-    return `No ${props.resourceName.toLowerCase()} found`
-  }
-  
-  const resourceLower = props.resourceName.toLowerCase()
-  const resourcePlural = resourceLower.endsWith('s') ? resourceLower : `${resourceLower}s`
-  
-  if (props.from !== undefined && props.to !== undefined && total > 0) {
-    return `Showing ${props.from} to ${props.to} of ${total} ${total === 1 ? resourceLower : resourcePlural}`
-  } else if (total > 0) {
-    return `${total} ${total === 1 ? resourceLower : resourcePlural}`
-  } else {
-    return `No ${resourcePlural} found`
   }
 }
 </script>
