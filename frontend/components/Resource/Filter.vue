@@ -10,7 +10,7 @@
       :disabled="loading || isLoadingFilters"
       :aria-label="`Filter options${currentFilter ? ': ' + currentFilter : ''}`"
     >
-      <i class="fas fa-filter me-2" aria-hidden="true"></i>
+      <i class="bi bi-funnel me-2" aria-hidden="true"></i>
       <span v-if="isLoadingFilters">
         <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
         Loading...
@@ -39,20 +39,20 @@
 
       <!-- Error State -->
       <li v-else-if="hasError" class="dropdown-item-text text-center py-3 text-muted">
-        <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+        <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
         Failed to load filters
       </li>
 
       <!-- Filter Options -->
       <template v-else>
         <template v-for="(filterConfig, filterKey) in typedFilters" :key="filterKey">
-          <li class="dropdown-header" v-if="Object.keys(typedFilters).length > 1">
+          <li class="dropdown-header text-uppercase fw-semibold small" v-if="Object.keys(typedFilters).length > 1">
             {{ filterConfig.label }}
           </li>
           <li v-for="(value, index) in filterConfig.values" :key="`${filterKey}-${index}`">
             <button
               type="button"
-              class="dropdown-item d-flex align-items-center"
+              class="dropdown-item d-flex align-items-center small"
               role="menuitem"
               :class="{
                 'active': isCurrentFilter(filterKey, value),
@@ -63,10 +63,10 @@
               :disabled="loading"
             >
               <i
-                class="fas me-2"
+                class="bi me-2"
                 :class="{
-                  'fa-check': isCurrentFilter(filterKey, value),
-                  'fa-circle': !isCurrentFilter(filterKey, value)
+                  'bi-check-lg': isCurrentFilter(filterKey, value),
+                  'bi-circle': !isCurrentFilter(filterKey, value)
                 }"
                 aria-hidden="true"
               ></i>
@@ -81,12 +81,12 @@
           <hr class="dropdown-divider">
           <button
             type="button"
-            class="dropdown-item d-flex align-items-center text-muted"
+            class="dropdown-item d-flex align-items-center text-muted small"
             role="menuitem"
             @click="handleFilterClear"
             :disabled="loading"
           >
-            <i class="fas fa-times me-2" aria-hidden="true"></i>
+            <i class="bi bi-x-lg me-2" aria-hidden="true"></i>
             Clear Filter
           </button>
         </li>
@@ -340,13 +340,6 @@ if (props.resource) {
 .dropdown-item.disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.dropdown-header {
-  font-weight: 600;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .spinner-border-sm {

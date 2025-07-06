@@ -16,7 +16,7 @@ import Toast from '../../components/Toast.vue';
 import { useToast } from '~/utils/errorHandling';
 import { useApiEndpoint } from '~/composables/useApplicationConfig';
 import { useResourceState } from '~/composables/useResourceState';
-import { useResourceFilter } from '~/composables/useResourceFilter';
+
 import { getResourceColumns } from '~/utils/columnUtils';
 import type { Column, PaginationMeta, FilterChangeEvent } from '../../types';
 import { useApiService } from '~/services/api';
@@ -57,11 +57,8 @@ const resourceState = useResourceState({
   }
 });
 
-// Initialize filter state management composable
-const resourceFilter = useResourceFilter({
-  defaultFilter: 'active',
-  paramName: 'filter'
-});
+// Multi-field filter state
+const activeFilters = ref<Record<string, string>>({});
 
 // Extract state and actions from composable
 const {
@@ -86,13 +83,6 @@ const {
   initializeFromURL
 } = resourceState;
 
-// Extract filter state and actions from filter composable
-const {
-  currentFilter,
-  setFilter,
-  resetFilter
-} = resourceFilter;
-
 // State management
 const items = ref<ResourceItem[]>([]);
 const loading = ref(false);
@@ -112,26 +102,29 @@ const isSearchDisabled = computed(() => {
 // Clear all filters handler using composable
 const handleClearAllFilters = async () => {
   await clearFilters();
-  await resetFilter();
+  // Clear multi-field filters as well
+  activeFilters.value = {};
   // Fetch clean data
-  fetchData(1, currentPerPage.value, '', '', 'asc', currentFilter.value);
+  fetchDataWithMultiFilters(1, currentPerPage.value, '', '', 'asc');
 };
 
 // Filter change handler
-const handleFilterChange = async (filterEvent: 'all' | 'active' | 'inactive' | string | FilterChangeEvent) => {
-  // Handle new multi-field filter events
-  if (typeof filterEvent === 'object' && 'field' in filterEvent) {
-    // For now, handle as legacy for backward compatibility
-    // TODO: Implement proper multi-field filtering in the future
-    const legacyValue = filterEvent.value as 'all' | 'active' | 'inactive';
-    await setFilter(legacyValue);
-    fetchData(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, legacyValue);
+const handleFilterChange = async (filterEvent: FilterChangeEvent) => {
+  console.log('Filter change event:', filterEvent);
+  
+  // Update multi-field filter state
+  if (filterEvent.value === 'all' || filterEvent.value === '') {
+    // Remove filter for this field
+    delete activeFilters.value[filterEvent.field];
   } else {
-    // Handle legacy string values
-    const filterValue = filterEvent as 'all' | 'active' | 'inactive';
-    await setFilter(filterValue);
-    fetchData(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, filterValue);
+    // Set filter for this field
+    activeFilters.value[filterEvent.field] = filterEvent.value;
   }
+  
+  console.log('Active filters after update:', activeFilters.value);
+  
+  // Fetch data with multi-field filters
+  fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
 // Use toast utility instead of direct toast component ref
@@ -157,14 +150,13 @@ const pagination = computed<PaginationMeta>(() => ({
 // Dynamic API endpoint based on resource
 const apiEndpoint = computed(() => useApiEndpoint(resourceName.value));
 
-// Fetch data using Nuxt's $fetch
-const fetchData = async (
+// Fetch data with multi-field filter support
+const fetchDataWithMultiFilters = async (
   page: number = currentPage.value,
   perPage: number = currentPerPage.value,
   search: string = searchQuery.value,
   sort: string = sortField.value,
-  direction: 'asc' | 'desc' = sortDirection.value,
-  filter: string = currentFilter.value
+  direction: 'asc' | 'desc' = sortDirection.value
 ) => {
   loading.value = true;
   error.value = null;
@@ -180,10 +172,15 @@ const fetchData = async (
       queryParams.append('search', search.trim());
     }
 
-    // Add filter parameter if not 'all'
-    if (filter && filter !== 'all') {
-      queryParams.append('filter', filter);
-    }
+    // Add multi-field filters
+    Object.entries(activeFilters.value).forEach(([field, value]) => {
+      if (value && value !== 'all') {
+        console.log(`Adding filter parameter: ${field} = ${value}`);
+        queryParams.append(field, value);
+      }
+    });
+
+    console.log('Query parameters being sent:', Object.fromEntries(queryParams));
 
     // Add sort parameters if provided
     if (sort && sort.trim()) {
@@ -322,30 +319,30 @@ const fetchData = async (
 // Handle search
 const handleSearch = async (query: string) => {
   await updateSearch(query);
-  fetchData(1, currentPerPage.value, query, sortField.value, sortDirection.value, currentFilter.value);
+  fetchDataWithMultiFilters(1, currentPerPage.value, query, sortField.value, sortDirection.value);
 };
 
 // Handle search clear
 const handleSearchClear = async () => {
   await updateSearch('');
-  fetchData(1, currentPerPage.value, '', sortField.value, sortDirection.value, currentFilter.value);
+  fetchDataWithMultiFilters(1, currentPerPage.value, '', sortField.value, sortDirection.value);
 };
 
 // Handle pagination
 const handlePageChange = async (page: number) => {
-  fetchData(page, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, currentFilter.value);
+  fetchDataWithMultiFilters(page, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
 // Handle per-page change
 const handlePerPageChange = async (perPage: number) => {
-  fetchData(1, perPage, searchQuery.value, sortField.value, sortDirection.value, currentFilter.value);
+  fetchDataWithMultiFilters(1, perPage, searchQuery.value, sortField.value, sortDirection.value);
 };
 
 // Handle sorting
 const handleSort = async (column: Column) => {
   const newDirection = (sortField.value === column.key && sortDirection.value === 'asc') ? 'desc' : 'asc';
   await updateSort(column.key, newDirection);
-  fetchData(currentPage.value, currentPerPage.value, searchQuery.value, column.key, newDirection, currentFilter.value);
+  fetchDataWithMultiFilters(currentPage.value, currentPerPage.value, searchQuery.value, column.key, newDirection);
 };
 
 // Handle item click - for document view, just select the item
@@ -376,7 +373,7 @@ const handleImport = () => {
 // Handle clear sort
 const handleClearSort = async () => {
   await updateSort('');
-  fetchData(1, currentPerPage.value, searchQuery.value, '', 'asc', currentFilter.value);
+  fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, '', 'asc');
 };
 
 // Handle error events
@@ -404,7 +401,7 @@ const handleUpdateError = (errorValue: string | null) => {
 // Fetch data on component mount and add keyboard shortcuts
 onMounted(() => {
   initializeFromURL();
-  fetchData(currentPage.value, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, currentFilter.value);
+  fetchDataWithMultiFilters(currentPage.value, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 
   // Add keyboard shortcuts
   document.addEventListener('keydown', handleGlobalKeydown);
@@ -453,7 +450,6 @@ onBeforeUnmount(() => {
       <!-- Filter Component in Header -->
       <template #filter>
         <ResourceFilter 
-          :model-value="currentFilter" 
           :resource="resourceName"
           :loading="loading || isSearching || isSorting"
           @filter-change="handleFilterChange" 
@@ -523,7 +519,7 @@ onBeforeUnmount(() => {
         <h6 class="alert-heading mb-2">Error Loading Data</h6>
         <p class="mb-2">{{ error }}</p>
         <button type="button" class="btn btn-outline-danger btn-sm"
-          @click="() => fetchData(currentPage, currentPerPage, searchQuery, sortField, sortDirection)"
+          @click="() => fetchDataWithMultiFilters(currentPage, currentPerPage, searchQuery, sortField, sortDirection)"
           :disabled="loading">
           <i class="bi bi-arrow-clockwise me-1"></i>
           Try Again

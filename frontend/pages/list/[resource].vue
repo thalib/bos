@@ -16,7 +16,6 @@ import Toast from '../../components/Toast.vue';
 import { useToast } from '~/utils/errorHandling';
 import { useApiEndpoint } from '~/composables/useApplicationConfig';
 import { useResourceState } from '~/composables/useResourceState';
-import { useResourceFilter } from '~/composables/useResourceFilter';
 import { getResourceColumns, type Column } from '~/utils/columnUtils';
 import { useApiService } from '~/services/api';
 import type { PaginationMeta, FilterChangeEvent } from '~/types/index';
@@ -72,34 +71,8 @@ const resourceState = useResourceState({
   }
 });
 
-// Initialize filter state management composable
-const resourceFilter = useResourceFilter({
-  defaultFilter: 'active',
-  paramName: 'filter'
-});
-
-// Extract filter state and actions from filter composable (for legacy compatibility only)
-const {
-  currentFilter: legacyCurrentFilter,
-  setFilter: legacySetFilter,
-  resetFilter: legacyResetFilter
-} = resourceFilter;
-
-// Create proxy functions that handle both legacy and dynamic filters
-const currentFilter = ref<string>('active');
-const setFilter = async (filterValue: string) => {
-  const legacyValues = ['active', 'inactive', 'all'];
-  if (legacyValues.includes(filterValue)) {
-    await legacySetFilter(filterValue as any);
-    currentFilter.value = filterValue;
-  } else {
-    console.warn(`Cannot set legacy filter to dynamic value: ${filterValue}`);
-  }
-};
-const resetFilter = async () => {
-  await legacyResetFilter();
-  currentFilter.value = 'active';
-};
+// Multi-field filter state
+const activeFilters = ref<Record<string, string>>({});
 
 // Extract state and actions from resource state composable
 const {
@@ -147,61 +120,29 @@ const isSearchDisabled = computed(() => {
 // Clear all filters handler using composable
 const handleClearAllFilters = async () => {
   await clearFilters();
-  await resetFilter();
   // Clear multi-field filters as well
   activeFilters.value = {};
   // Fetch clean data
-  fetchData(1, currentPerPage.value, '', '', 'asc', 'all');
+  fetchDataWithMultiFilters(1, currentPerPage.value, '', '', 'asc');
 };
 
-// Multi-field filter state
-const activeFilters = ref<Record<string, string>>({});
-
 // Filter change handler
-const handleFilterChange = async (filterEvent: 'all' | 'active' | 'inactive' | string | FilterChangeEvent) => {
+const handleFilterChange = async (filterEvent: FilterChangeEvent) => {
   console.log('Filter change event:', filterEvent);
   
-  // Handle new multi-field filter events
-  if (typeof filterEvent === 'object' && 'field' in filterEvent) {
-    console.log('Handling multi-field filter:', filterEvent.field, '=', filterEvent.value);
-    
-    // Update multi-field filter state
-    if (filterEvent.value === 'all' || filterEvent.value === '') {
-      // Remove filter for this field
-      delete activeFilters.value[filterEvent.field];
-    } else {
-      // Set filter for this field
-      activeFilters.value[filterEvent.field] = filterEvent.value;
-    }
-    
-    console.log('Active filters after update:', activeFilters.value);
-    
-    // Fetch data with multi-field filters (bypass legacy filter composable)
-    fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
+  // Update multi-field filter state
+  if (filterEvent.value === 'all' || filterEvent.value === '') {
+    // Remove filter for this field
+    delete activeFilters.value[filterEvent.field];
   } else {
-    console.log('Handling legacy filter:', filterEvent);
-    
-    // Handle legacy string values and "all" clear
-    if (filterEvent === 'all') {
-      // Clear all filters
-      activeFilters.value = {};
-      // Don't call resetFilter to avoid legacy system
-    } else {
-      // Handle legacy single filter (only for valid legacy values)
-      const legacyValues = ['active', 'inactive', 'all'];
-      if (legacyValues.includes(filterEvent as string)) {
-        const filterValue = filterEvent as 'all' | 'active' | 'inactive';
-        await setFilter(filterValue);
-      } else {
-        // This is a dynamic filter value, treat as multi-field
-        console.warn(`Received unexpected filter value: ${filterEvent}. Treating as dynamic filter.`);
-        return; // Don't process invalid legacy values
-      }
-    }
-    
-    // Use multi-field fetch for all cases to avoid legacy parameter issues
-    fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
+    // Set filter for this field
+    activeFilters.value[filterEvent.field] = filterEvent.value;
   }
+  
+  console.log('Active filters after update:', activeFilters.value);
+  
+  // Fetch data with multi-field filters
+  fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
 // Use toast utility instead of direct toast component ref
@@ -226,181 +167,6 @@ const pagination = computed<ExtendedPaginationMeta>(() => ({
 
 // Dynamic API endpoint based on resource
 const apiEndpoint = computed(() => useApiEndpoint(resourceName.value));
-
-// Fetch data using Nuxt's $fetch
-const fetchData = async (
-  page: number = currentPage.value,
-  perPage: number = currentPerPage.value,
-  search: string = searchQuery.value,
-  sort: string = sortField.value,
-  direction: 'asc' | 'desc' = sortDirection.value,
-  filter: string = currentFilter.value
-) => {
-  loading.value = true;
-  error.value = null;
-  try {
-    // Build query parameters
-    const queryParams = new URLSearchParams({
-      page: page.toString(),
-      per_page: perPage.toString()
-    });
-
-    // Add search parameter if provided
-    if (search && search.trim()) {
-      queryParams.append('search', search.trim());
-    }
-
-    // Add filter parameter if not 'all'
-    if (filter && filter !== 'all') {
-      queryParams.append('filter', filter);
-    }
-
-    // Add sort parameters if provided
-    if (sort && sort.trim()) {
-      queryParams.append('sort', sort.trim());
-      queryParams.append('direction', direction);    } 
-    
-    const fullUrl = `${apiEndpoint.value}?${queryParams.toString()}`;
-        // Use API service instead of $fetch to ensure auth headers are included
-    const paramsObject = Object.fromEntries(queryParams);
-    const apiResponse = await apiService.request<{
-      success?: boolean;
-      data?: any[];
-      message?: string;
-      meta?: any;
-      pagination?: {
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
-        from: number;
-        to: number;
-        has_more_pages: boolean;
-        path: string;
-        first_page_url: string;
-        last_page_url: string;
-        next_page_url: string | null;
-        prev_page_url: string | null;
-      };
-      error?: {
-        code: string;
-        message: string;
-        details?: any;
-        validation_errors?: any;
-      };
-      // Legacy format support
-      current_page?: number;
-      last_page?: number;
-      per_page?: number;
-      total?: number;
-      from?: number;
-      to?: number;    }>(resourceName.value, {
-      params: paramsObject
-    });
-
-    // Handle API response - check for errors first
-    if (apiResponse.error || (apiResponse.data && !apiResponse.data.success && apiResponse.data.error)) {
-      const errorInfo = apiResponse.error || apiResponse.data?.error;
-      throw new Error((errorInfo && errorInfo.message) ? errorInfo.message : 'Failed to fetch data');
-    }
-
-    const response = apiResponse.data;    if (!response) {
-      throw new Error('No data received from API');
-    }    // Handle response data structure - support both new standardized and legacy formats
-    let responseData: any[] = [];
-    let responseMeta: any = {};
-
-    // Check if this is the new standardized response format
-    if (response.success !== undefined) {
-      // New standardized format
-      if (!response.success) {
-        throw new Error(response.error?.message || 'API request failed');
-      }
-      
-      responseData = response.data || [];
-      responseMeta = response.pagination || response.meta || {};
-    } else if (Array.isArray(response)) {
-      // Simple array response (legacy)
-      responseData = response;
-    } else if (response.data && Array.isArray(response.data)) {
-      // Laravel paginated response (legacy)
-      responseData = response.data;
-
-      // Laravel puts pagination data directly in the response root, not in meta
-      if (response.current_page !== undefined) {
-        responseMeta = {
-          current_page: response.current_page,
-          last_page: response.last_page,
-          per_page: response.per_page,
-          total: response.total,
-          from: response.from,
-          to: response.to
-        };
-      } else {
-        // Fallback to nested meta/pagination structure
-        responseMeta = response.meta || response.pagination || {};
-      }
-    } else {
-      // Object response - convert to array
-      responseData = [response];
-    }
-
-    // Map items and add selected property for UI state
-    items.value = responseData.map((item: any) => ({ ...item, selected: false }));
-
-    // Get columns using utility
-    processedColumns.value = await getResourceColumns(resourceName.value, items.value);    // Update pagination data
-    if (responseMeta && Object.keys(responseMeta).length > 0) {
-      resourcePagination.value = {
-        currentPage: responseMeta.current_page || page,
-        totalPages: responseMeta.last_page || 1,
-        perPage: responseMeta.per_page || perPage,
-        total: responseMeta.total || responseData.length,
-        hasNextPage: responseMeta.has_more_pages !== undefined ? responseMeta.has_more_pages : (responseMeta.current_page < responseMeta.last_page),
-        hasPrevPage: responseMeta.current_page > 1,
-        nextPage: responseMeta.has_more_pages !== undefined ? 
-          (responseMeta.has_more_pages ? (responseMeta.current_page || 1) + 1 : null) : 
-          (responseMeta.current_page < responseMeta.last_page ? (responseMeta.current_page || 1) + 1 : null),
-        prevPage: responseMeta.current_page > 1 ? (responseMeta.current_page || 1) - 1 : null,
-        from: responseMeta.from || 0,
-        to: responseMeta.to || responseData.length
-      };
-    } else {
-      // No pagination metadata - single page
-      resourcePagination.value = {
-        currentPage: 1,
-        totalPages: 1,
-        perPage: responseData.length,
-        total: responseData.length,
-        hasNextPage: false,
-        hasPrevPage: false,
-        nextPage: null,
-        prevPage: null,
-        from: responseData.length > 0 ? 1 : 0,
-        to: responseData.length
-      };
-    }
-
-    // Pagination data is already updated above - no need to set currentPage/currentPerPage separately
-  } catch (err: any) {
-    // Handle different error types
-    if (err.status === 404) {
-      error.value = `Resource '${resourceName.value}' not found. Please check if the API endpoint exists.`;
-    } else if (err.status === 403) {
-      error.value = `Access denied to '${resourceName.value}' resource.`;
-    } else if (err.status === 500) {
-      error.value = `Server error when fetching '${resourceName.value}' data.`;
-    } else {
-      error.value = err.message || `Failed to fetch ${resourceName.value} data`;
-    }
-    // Show toast notification
-    if (error.value) {
-      showErrorToast(error.value);
-    }
-  } finally {
-    loading.value = false;
-  }
-};
 
 // Fetch data with multi-field filter support
 const fetchDataWithMultiFilters = async (
@@ -618,7 +384,7 @@ const handleImport = () => {
 const handleSuccess = async (data: any) => {
   if (!data || !data.id) {
     // No data or ID - fallback to full refresh
-    await fetchData(currentPage.value, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, currentFilter.value);
+    await fetchDataWithMultiFilters(currentPage.value, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
     return;
   }
   
@@ -627,7 +393,7 @@ const handleSuccess = async (data: any) => {
   items.value.unshift({ ...data, selected: false });
   
   // Then refresh in the background to get proper pagination and ordering
-  await fetchData(currentPage.value, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, currentFilter.value);
+  await fetchDataWithMultiFilters(currentPage.value, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
   
   // Select the newly created item
   if (masterDetailRef.value && data.id) {
@@ -658,12 +424,12 @@ const handleUpdateItemInMemory = (data: any) => {
 // Handle pagination with composable
 const handlePageChange = async (page: number) => {
   await updatePagination(page);
-  fetchData(page, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, currentFilter.value);
+  fetchDataWithMultiFilters(page, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
 const handlePerPageChange = async (perPage: number) => {
   await updatePagination(1, perPage); // Reset to first page when changing perPage
-  fetchData(1, perPage, searchQuery.value, sortField.value, sortDirection.value, currentFilter.value);
+  fetchDataWithMultiFilters(1, perPage, searchQuery.value, sortField.value, sortDirection.value);
 };
 
 // Search handlers using composable
@@ -678,12 +444,12 @@ const handleSearch = async (query: string) => {
   }
 
   await updateSearch(query);
-  fetchData(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, currentFilter.value);
+  fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
 const handleSearchClear = async () => {
   await updateSearch('');
-  fetchData(1, currentPerPage.value, '', sortField.value, sortDirection.value, currentFilter.value);
+  fetchDataWithMultiFilters(1, currentPerPage.value, '', sortField.value, sortDirection.value);
 };
 
 // Sort handlers using composable
@@ -694,12 +460,12 @@ const handleSort = async (column: Column) => {
   }
 
   await updateSort(column.key);
-  fetchData(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, currentFilter.value);
+  fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
 const handleClearSort = async () => {
   await updateSort('');
-  fetchData(1, currentPerPage.value, searchQuery.value, '', 'asc', currentFilter.value);
+  fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, '', 'asc');
 };
 
 // Handle error events
@@ -734,7 +500,7 @@ onMounted(async () => {
   initializeFromURL();
   
   // Fetch initial data
-  await fetchData(currentPage.value, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value, currentFilter.value);
+  await fetchDataWithMultiFilters(currentPage.value, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
   
   // Mark initial load as complete
   isInitialLoad.value = false;
@@ -798,7 +564,6 @@ onBeforeUnmount(() => {
       <!-- Filter Component in Header -->
       <template #filter>
         <ResourceFilter 
-          :model-value="currentFilter" 
           :resource="resourceName"
           :loading="loading || isSearching || isSorting"
           @filter-change="handleFilterChange" 
@@ -853,7 +618,7 @@ onBeforeUnmount(() => {
         <h6 class="alert-heading mb-2">Error Loading Data</h6>
         <p class="mb-2">{{ error }}</p>
         <button type="button" class="btn btn-outline-danger btn-sm"
-          @click="() => fetchData(currentPage, currentPerPage, searchQuery, sortField, sortDirection)"
+          @click="() => fetchDataWithMultiFilters(currentPage, currentPerPage, searchQuery, sortField, sortDirection)"
           :disabled="loading">
           <i class="bi bi-arrow-clockwise me-1"></i>
           Try Again
