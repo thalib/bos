@@ -7,7 +7,7 @@
           <div class="d-flex align-items-center justify-content-between mb-2">
             <small class="text-muted fw-semibold">
               <i class="bi bi-sort-alpha-down me-1"></i>
-              {{ activeFiltersCount }} sorting option{{ activeFiltersCount !== 1 ? 's' : '' }} active
+              {{ activeFiltersCount + (hasFilters ? 1 : 0) }} option{{ (activeFiltersCount + (hasFilters ? 1 : 0)) !== 1 ? 's' : '' }} active
             </small>
             <button
               type="button"
@@ -61,6 +61,27 @@
                     aria-label="Clear sort filter"
                     data-bs-toggle="tooltip"
                     title="Clear sort filter"
+                  ></button>
+                </span>
+              </div>
+            </transition>
+            
+            <transition name="filter-fade" appear>
+              <div v-if="hasFilters">
+                <span class="badge bg-info d-flex align-items-center justify-content-between w-100 p-2">
+                  <span class="d-flex align-items-center">
+                    <i class="bi bi-funnel-fill me-1"></i>
+                    <span>Filters ({{ filterCount }})</span>
+                  </span>
+                  <button
+                    type="button"
+                    class="btn-close btn-close-white ms-2"
+                    style="--bs-btn-close-font-size: 0.6em;"
+                    @click="handleClearFiltersOnly"
+                    :disabled="loading"
+                    aria-label="Clear filters only"
+                    data-bs-toggle="tooltip"
+                    title="Clear filters only"
                   ></button>
                 </span>
               </div>
@@ -129,10 +150,36 @@
         </span>
       </transition>
       
+      <!-- Filter Badge -->
+      <transition name="filter-slide" appear>
+        <span 
+          v-if="hasFilters" 
+          class="badge bg-info d-flex align-items-center p-2 rounded-pill cursor-pointer position-relative shadow-sm"
+          role="button"
+          tabindex="0"
+          style="max-width: 300px; transition: all 0.15s ease-in-out;"
+          @keydown.enter="handleClearFiltersOnly"
+          @keydown.space="handleClearFiltersOnly"  
+        >
+          <i class="bi bi-funnel-fill me-1" aria-hidden="true"></i>
+          <span class="text-truncate" style="max-width: 200px;">Filters ({{ filterCount }})</span>
+          <button
+            type="button"
+            class="btn-close btn-close-white ms-2"
+            style="--bs-btn-close-font-size: 0.75em;"
+            @click="handleClearFiltersOnly"
+            :disabled="loading"
+            aria-label="Clear filters only"
+            data-bs-toggle="tooltip"
+            title="Clear filters only"
+          ></button>
+        </span>
+      </transition>
+      
       <!-- Clear All Filters Button -->
       <transition name="filter-slide" appear>
         <button
-          v-if="activeFiltersCount > 1"
+          v-if="activeFiltersCount > 1 || (activeFiltersCount >= 1 && hasFilters)"
           type="button"
           class="btn btn-outline-danger btn-sm shadow-sm"
           style="transition: all 0.15s ease-in-out;"
@@ -184,10 +231,11 @@
           ></button>
         </div>
         <div class="modal-body">
-          <p class="mb-2">Are you sure you want to clear all active sorting options?</p>
+          <p class="mb-2">Are you sure you want to clear all active options?</p>
           <ul class="list-unstyled small text-muted mb-0">
             <li v-if="hasSearchFilter">• Search filter</li>
             <li v-if="hasSortFilter">• Sort filter</li>
+            <li v-if="hasFilters">• {{ filterCount }} active filter{{ filterCount !== 1 ? 's' : '' }}</li>
           </ul>
         </div>
         <div class="modal-footer border-top">
@@ -221,6 +269,7 @@ interface Props {
   searchQuery: string
   sortField: string
   sortDirection: 'asc' | 'desc'
+  filterCount?: number
   loading?: boolean
 }
 
@@ -228,6 +277,7 @@ interface Emits {
   (e: 'clear-search'): void
   (e: 'clear-sort'): void
   (e: 'clear-all'): void
+  (e: 'clear-filters-only'): void
 }
 
 // Export types for use in other components
@@ -236,7 +286,8 @@ export type ResourceSortingEmits = Emits
 
 // Define props and emits
 const props = withDefaults(defineProps<Props>(), {
-  loading: false
+  loading: false,
+  filterCount: 0
 })
 
 const emit = defineEmits<Emits>()
@@ -247,7 +298,8 @@ const showClearAllModal = ref(false)
 // Computed properties
 const hasSearchFilter = computed(() => props.searchQuery.trim().length > 0)
 const hasSortFilter = computed(() => props.sortField.length > 0)
-const hasActiveFilters = computed(() => hasSearchFilter.value || hasSortFilter.value)
+const hasFilters = computed(() => props.filterCount > 0)
+const hasActiveFilters = computed(() => hasSearchFilter.value || hasSortFilter.value || hasFilters.value)
 const activeFiltersCount = computed(() => +hasSearchFilter.value + +hasSortFilter.value)
 
 const formatSortField = computed(() => 
@@ -272,6 +324,7 @@ const filterSummaryText = computed(() => {
 // Event handlers
 const handleClearSearch = () => emit('clear-search')
 const handleClearSort = () => emit('clear-sort')
+const handleClearFiltersOnly = () => emit('clear-filters-only')
 
 const handleClearAll = () => {
   if (activeFiltersCount.value > 1) {

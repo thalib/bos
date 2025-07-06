@@ -38,6 +38,11 @@ export interface ResourceState {
   sortDirection: Ref<'asc' | 'desc'>
   isSorting: Ref<boolean>
   
+  // Filter state (independent from search and sort)
+  activeFilters: Ref<Record<string, string>>
+  activeFilterField: Ref<string>
+  isFiltering: Ref<boolean>
+  
   // Pagination state
   pagination: Ref<PaginationMeta & {
     from: number
@@ -53,7 +58,9 @@ export interface ResourceStateActions {
   updateSearch: (query: string) => Promise<void>
   updateSort: (field: string, direction?: 'asc' | 'desc') => Promise<void>
   updatePagination: (page: number, perPage?: number) => Promise<void>
+  updateFilters: (filters: Record<string, string>) => Promise<void>
   clearFilters: () => Promise<void>
+  clearFiltersOnly: () => Promise<void>
   initializeFromURL: () => void
   
   // URL synchronization
@@ -75,7 +82,9 @@ export interface ResourceStateReturns extends ResourceState, ResourceStateAction
   hasNoSearchResults: Readonly<ComputedRef<boolean>>
   hasSortApplied: Readonly<ComputedRef<boolean>>
   hasActiveFilters: Readonly<ComputedRef<boolean>>
+  hasFiltersOnly: Readonly<ComputedRef<boolean>>
   activeFiltersCount: Readonly<ComputedRef<number>>
+  filterCount: Readonly<ComputedRef<number>>
   currentPage: Readonly<ComputedRef<number>>
   currentPerPage: Readonly<ComputedRef<number>>
 }
@@ -120,6 +129,11 @@ export function useResourceState(config: ResourceStateConfig): ResourceStateRetu
   const sortDirection = ref<'asc' | 'desc'>(settings.defaults.sortDirection)
   const isSorting = ref<boolean>(false)
   
+  // Filter state (independent from search and sort)
+  const activeFilters = ref<Record<string, string>>({})
+  const activeFilterField = ref<string>('')
+  const isFiltering = ref<boolean>(false)
+  
   const paginationData = ref<PaginationMeta & { from: number; to: number }>({
     currentPage: 1,
     totalPages: 1,
@@ -140,7 +154,9 @@ export function useResourceState(config: ResourceStateConfig): ResourceStateRetu
   const hasSearchResults = computed(() => hasSearchQuery.value && paginationData.value.total > 0)
   const hasNoSearchResults = computed(() => hasSearchQuery.value && paginationData.value.total === 0 && !loading.value)
   const hasSortApplied = computed(() => sortField.value.length > 0)
-  const hasActiveFilters = computed(() => hasSearchQuery.value || hasSortApplied.value)
+  const hasFiltersOnly = computed(() => Object.keys(activeFilters.value).some(key => activeFilters.value[key] && activeFilters.value[key] !== 'all'))
+  const hasActiveFilters = computed(() => hasSearchQuery.value || hasSortApplied.value || hasFiltersOnly.value)
+  const filterCount = computed(() => Object.keys(activeFilters.value).filter(key => activeFilters.value[key] && activeFilters.value[key] !== 'all').length)
   const activeFiltersCount = computed(() => {
     let count = 0
     if (hasSearchQuery.value) count++
@@ -179,6 +195,15 @@ export function useResourceState(config: ResourceStateConfig): ResourceStateRetu
       delete query.direction
     }
     
+    // Handle filter parameters
+    Object.entries(activeFilters.value).forEach(([field, value]) => {
+      if (value && value !== 'all') {
+        query[field] = value
+      } else {
+        delete query[field]
+      }
+    })
+    
     // Handle pagination parameters
     if (paginationData.value.currentPage > 1) {
       query.page = paginationData.value.currentPage.toString()
@@ -205,6 +230,8 @@ export function useResourceState(config: ResourceStateConfig): ResourceStateRetu
         searchQuery: searchQuery.value,
         sortField: sortField.value,
         sortDirection: sortDirection.value,
+        activeFilters: activeFilters.value,
+        activeFilterField: activeFilterField.value,
         perPage: paginationData.value.perPage,
         timestamp: Date.now()
       }
@@ -292,6 +319,15 @@ export function useResourceState(config: ResourceStateConfig): ResourceStateRetu
         }
       }
       
+      // Set filter parameters from URL (excluding search, sort, page, perPage)
+      const reservedParams = ['search', 'sort', 'direction', 'page', 'perPage']
+      Object.entries(route.query).forEach(([key, value]) => {
+        if (!reservedParams.includes(key) && typeof value === 'string' && value !== 'all') {
+          activeFilters.value[key] = value
+          activeFilterField.value = key // Set the active filter field
+        }
+      })
+      
       // Set page from URL if present
       if (route.query.page && typeof route.query.page === 'string') {
         const pageNum = parseInt(route.query.page, 10)
@@ -378,14 +414,52 @@ export function useResourceState(config: ResourceStateConfig): ResourceStateRetu
     await nextTick()
   }
   
+  const updateFilters = async (filters: Record<string, string>): Promise<void> => {
+    isFiltering.value = true
+    activeFilters.value = { ...filters }
+    
+    // Set the active filter field to the first non-'all' filter
+    const activeField = Object.keys(filters).find(key => filters[key] && filters[key] !== 'all')
+    activeFilterField.value = activeField || ''
+    
+    // Reset pagination to first page when filtering
+    paginationData.value.currentPage = 1
+    
+    // Sync to URL and save state
+    syncToURL()
+    saveState()
+    
+    await nextTick()
+    isFiltering.value = false
+  }
+  
+  const clearFiltersOnly = async (): Promise<void> => {
+    isFiltering.value = true
+    activeFilters.value = {}
+    activeFilterField.value = ''
+    
+    // Reset pagination to first page when clearing filters
+    paginationData.value.currentPage = 1
+    
+    // Sync to URL (will remove only filter parameters, preserving search and sort)
+    syncToURL()
+    saveState()
+    
+    await nextTick()
+    isFiltering.value = false
+  }
+  
   const clearFilters = async (): Promise<void> => {
     searchQuery.value = ''
     sortField.value = ''
     sortDirection.value = settings.defaults.sortDirection
+    activeFilters.value = {}
+    activeFilterField.value = ''
     paginationData.value.currentPage = 1
     
     isSearching.value = false
     isSorting.value = false
+    isFiltering.value = false
     
     // Sync to URL (will remove all filter parameters)
     syncToURL()
@@ -424,7 +498,7 @@ export function useResourceState(config: ResourceStateConfig): ResourceStateRetu
   }, { immediate: false })
   
   // Auto-save state changes
-  watch([searchQuery, sortField, sortDirection, () => paginationData.value.perPage], () => {
+  watch([searchQuery, sortField, sortDirection, activeFilters, activeFilterField, () => paginationData.value.perPage], () => {
     saveState()
   })
   
@@ -439,6 +513,9 @@ export function useResourceState(config: ResourceStateConfig): ResourceStateRetu
     sortField,
     sortDirection,
     isSorting,
+    activeFilters,
+    activeFilterField,
+    isFiltering,
     pagination: paginationData,
     loading,
     
@@ -448,7 +525,9 @@ export function useResourceState(config: ResourceStateConfig): ResourceStateRetu
     hasNoSearchResults,
     hasSortApplied,
     hasActiveFilters,
+    hasFiltersOnly,
     activeFiltersCount,
+    filterCount,
     currentPage,
     currentPerPage,
     
@@ -456,7 +535,9 @@ export function useResourceState(config: ResourceStateConfig): ResourceStateRetu
     updateSearch,
     updateSort,
     updatePagination,
+    updateFilters,
     clearFilters,
+    clearFiltersOnly,
     initializeFromURL,
     syncToURL,
     saveState,

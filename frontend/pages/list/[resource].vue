@@ -71,9 +71,6 @@ const resourceState = useResourceState({
   }
 });
 
-// Multi-field filter state
-const activeFilters = ref<Record<string, string>>({});
-
 // Extract state and actions from resource state composable
 const {
   searchQuery,
@@ -81,19 +78,26 @@ const {
   sortField,
   sortDirection,
   isSorting,
+  activeFilters,
+  activeFilterField,
+  isFiltering,
   pagination: resourcePagination,
   hasSearchQuery,
   hasSearchResults,
   hasNoSearchResults,
   hasSortApplied,
   hasActiveFilters,
+  hasFiltersOnly,
   activeFiltersCount,
+  filterCount,
   currentPage,
   currentPerPage,
   updateSearch,
   updateSort,
   updatePagination,
+  updateFilters,
   clearFilters,
+  clearFiltersOnly,
   initializeFromURL
 } = resourceState;
 
@@ -116,34 +120,6 @@ const isSearchDisabled = computed(() => {
   // Only disable during actual loading operations, not initial SSR loading
   return isSearching.value || isSorting.value;
 });
-
-// Clear all filters handler using composable
-const handleClearAllFilters = async () => {
-  await clearFilters();
-  // Clear multi-field filters as well
-  activeFilters.value = {};
-  // Fetch clean data
-  fetchDataWithMultiFilters(1, currentPerPage.value, '', '', 'asc');
-};
-
-// Filter change handler
-const handleFilterChange = async (filterEvent: FilterChangeEvent) => {
-  console.log('Filter change event:', filterEvent);
-  
-  // Update multi-field filter state
-  if (filterEvent.value === 'all' || filterEvent.value === '') {
-    // Remove filter for this field
-    delete activeFilters.value[filterEvent.field];
-  } else {
-    // Set filter for this field
-    activeFilters.value[filterEvent.field] = filterEvent.value;
-  }
-  
-  console.log('Active filters after update:', activeFilters.value);
-  
-  // Fetch data with multi-field filters
-  fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
-};
 
 // Use toast utility instead of direct toast component ref
 const { showErrorToast, showSuccessToast } = useToast();
@@ -468,6 +444,37 @@ const handleClearSort = async () => {
   fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, '', 'asc');
 };
 
+// Filter handlers using composable
+const handleFilterChange = async (event: FilterChangeEvent) => {
+  if (!event.field || !event.value) return;
+  
+  // For single filter policy, clear existing filters and set only the new one
+  const newFilters = event.value === 'all' ? {} : { [event.field]: event.value };
+  
+  await updateFilters(newFilters);
+  fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
+};
+
+const handleFilterClearAll = async () => {
+  await clearFiltersOnly();
+  fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
+};
+
+const handleFiltersClearedEvent = async () => {
+  await clearFiltersOnly();
+  fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
+};
+
+const handleClearFiltersOnly = async () => {
+  await clearFiltersOnly();
+  fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
+};
+
+const handleClearAllFilters = async () => {
+  await clearFilters();
+  fetchDataWithMultiFilters(1, currentPerPage.value, '', '', 'asc');
+};
+
 // Handle error events
 const handleError = (err: any) => {
   let errorMessage = '';
@@ -546,13 +553,14 @@ onBeforeUnmount(() => {
     <!-- Main Content - Only show after initial load is complete -->
     <template v-else>
       <!-- Global Loading Overlay for Actions -->
-      <div v-if="isSearching || isSorting"
+      <div v-if="isSearching || isSorting || isFiltering"
         class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-black bg-opacity-10"
         style="z-index: 1050;">
         <div class="bg-white rounded shadow p-3 d-flex align-items-center">
           <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
           <span v-if="isSearching">Searching...</span>
           <span v-else-if="isSorting">Sorting...</span>
+          <span v-else-if="isFiltering">Filtering...</span>
         </div>
       </div>
       
@@ -565,8 +573,13 @@ onBeforeUnmount(() => {
       <template #filter>
         <ResourceFilter 
           :resource="resourceName"
-          :loading="loading || isSearching || isSorting"
-          @filter-change="handleFilterChange" 
+          :loading="loading || isSearching || isSorting || isFiltering"
+          :active-filter-field="activeFilterField"
+          :is-active="Object.keys(activeFilters).length > 0"
+          :filter-count="filterCount"
+          @filter-change="handleFilterChange"
+          @filter-clear-all="handleFilterClearAll"
+          @filters-cleared="handleFiltersClearedEvent"
         />
       </template>
 
@@ -589,12 +602,24 @@ onBeforeUnmount(() => {
           <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
           Sorting...
         </span>
+        <span v-if="isFiltering" class="badge bg-info">
+          <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+          Filtering...
+        </span>
       </template>
     </ResourceHeader>    <!-- Active Sorting Display Component -->
     <div v-if="!error || !error.includes('not found')" class="mb-4">
-      <ResourceSorting :search-query="searchQuery" :sort-field="sortField" :sort-direction="sortDirection"
-        :loading="loading || isSearching || isSorting" @clear-search="handleSearchClear" @clear-sort="handleClearSort"
-        @clear-all="handleClearAllFilters" />
+      <ResourceSorting 
+        :search-query="searchQuery" 
+        :sort-field="sortField" 
+        :sort-direction="sortDirection"
+        :filter-count="filterCount"
+        :loading="loading || isSearching || isSorting || isFiltering" 
+        @clear-search="handleSearchClear" 
+        @clear-sort="handleClearSort"
+        @clear-filters-only="handleClearFiltersOnly"
+        @clear-all="handleClearAllFilters" 
+      />
     </div>
 
     <!-- Error Alert for Resource Not Found -->

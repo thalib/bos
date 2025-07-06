@@ -2,13 +2,19 @@
   <div class="dropdown" ref="dropdownRef">
     <button
       id="filterDropdown"
-      class="btn btn-outline-secondary dropdown-toggle"
+      class="btn dropdown-toggle"
+      :class="{
+        'btn-outline-secondary': !props.isActive,
+        'btn-primary': props.isActive,
+        'disabled': !!props.activeFilterField && !props.isActive
+      }"
       type="button"
       data-bs-toggle="dropdown"
       aria-expanded="false"
       aria-haspopup="true"
-      :disabled="loading || isLoadingFilters"
+      :disabled="isButtonDisabled"
       :aria-label="`Filter options${currentFilter ? ': ' + currentFilter : ''}`"
+      :title="!!props.activeFilterField && !props.isActive ? 'Another filter is active. Clear it first.' : ''"
     >
       <i class="bi bi-funnel me-2" aria-hidden="true"></i>
       <span v-if="isLoadingFilters">
@@ -18,7 +24,8 @@
       <span v-else-if="hasError">
         Filter (Error)
       </span>
-      <span v-else-if="currentFilter && currentFilter !== 'all'">
+      <span v-else-if="props.isActive && currentFilter && currentFilter !== 'all'">
+        <i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i>
         Filter: {{ formatFilterLabel(currentFilter) }}
       </span>
       <span v-else>
@@ -56,11 +63,11 @@
               role="menuitem"
               :class="{
                 'active': isCurrentFilter(filterKey, value),
-                'disabled': loading
+                'disabled': props.loading
               }"
               :aria-pressed="isCurrentFilter(filterKey, value)"
               @click="handleFilterChange(filterKey, value)"
-              :disabled="loading"
+              :disabled="props.loading"
             >
               <i
                 class="bi me-2"
@@ -76,19 +83,34 @@
           <li v-if="Object.keys(typedFilters).length > 1" class="dropdown-divider"></li>
         </template>
 
-        <!-- Clear Filter Option (if not 'all') -->
-        <li v-if="currentFilter && currentFilter !== 'all'">
+        <!-- Clear All Filters Button (if any filter is active) -->
+        <li v-if="!!props.activeFilterField || props.filterCount > 0">
+          <button
+            type="button"
+            class="dropdown-item d-flex align-items-center text-danger fw-semibold"
+            role="menuitem"
+            @click="handleClearAllFilters"
+            :disabled="props.loading"
+          >
+            <i class="bi bi-x-circle-fill me-2" aria-hidden="true"></i>
+            Clear Filters{{ props.filterCount > 0 ? ` (${props.filterCount})` : '' }}
+          </button>
           <hr class="dropdown-divider">
+        </li>
+
+        <!-- Clear Filter Option (if this filter is active) -->
+        <li v-if="props.isActive && currentFilter && currentFilter !== 'all'">
           <button
             type="button"
             class="dropdown-item d-flex align-items-center text-muted small"
             role="menuitem"
             @click="handleFilterClear"
-            :disabled="loading"
+            :disabled="props.loading"
           >
             <i class="bi bi-x-lg me-2" aria-hidden="true"></i>
-            Clear Filter
+            Clear This Filter
           </button>
+          <hr class="dropdown-divider">
         </li>
       </template>
     </ul>
@@ -108,6 +130,12 @@ interface Props {
   resource: string
   /** Loading state from parent */
   loading?: boolean
+  /** The field name of the currently active filter across all filters */
+  activeFilterField?: string
+  /** Whether this specific filter field is currently active */
+  isActive?: boolean
+  /** Count of active filters for display */
+  filterCount?: number
 }
 
 // Component Emits
@@ -116,11 +144,18 @@ interface Emits {
   (event: 'filter-change', payload: FilterChangeEvent): void
   /** Emitted when model value changes */
   (event: 'update:modelValue', value: string): void
+  /** Emitted when user wants to clear all filters */
+  (event: 'filter-clear-all'): void
+  /** Emitted when filters are cleared specifically */
+  (event: 'filters-cleared'): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: 'all',
-  loading: false
+  loading: false,
+  activeFilterField: '',
+  isActive: false,
+  filterCount: 0
 })
 
 const emit = defineEmits<Emits>()
@@ -137,11 +172,18 @@ const availableFilters = ref<FiltersResponse>({
 const isLoadingFilters = ref(false)
 const hasError = ref(false)
 const currentFilter = ref(props.modelValue)
+const isMounted = ref(false) // Track if component is mounted to prevent hydration mismatch
 
 // API service
 const { apiGetFilters } = useApiCrud()
 
 // Computed properties
+const isButtonDisabled = computed(() => {
+  // During SSR, always return false to prevent hydration mismatch
+  if (!isMounted.value) return false
+  return props.loading || isLoadingFilters.value || (!!props.activeFilterField && !props.isActive)
+})
+
 const formatFilterLabel = (value: string | number): string => {
   const stringValue = String(value)
   if (stringValue === 'all') return 'All'
@@ -298,6 +340,24 @@ const handleFilterClear = (): void => {
   handleFilterChange('active', 'all')
 }
 
+const handleClearAllFilters = (): void => {
+  // Clear the current filter
+  currentFilter.value = 'all'
+  emit('update:modelValue', 'all')
+  
+  // Emit events to parent to clear all filters
+  emit('filter-clear-all')
+  emit('filters-cleared')
+
+  // Close dropdown
+  if (dropdownRef.value) {
+    const dropdown = dropdownRef.value.querySelector('.dropdown-toggle') as HTMLElement
+    if (dropdown && dropdown.getAttribute('aria-expanded') === 'true') {
+      dropdown.click()
+    }
+  }
+}
+
 // Watchers
 watch(() => props.modelValue, (newValue) => {
   currentFilter.value = newValue || 'all'
@@ -311,6 +371,7 @@ watch(() => props.resource, (newResource, oldResource) => {
 
 // Lifecycle
 onMounted(async () => {
+  isMounted.value = true // Set mounted flag to prevent hydration mismatch
   await nextTick()
   if (props.resource) {
     await fetchFilters()
@@ -330,6 +391,15 @@ if (props.resource) {
 <style scoped>
 .dropdown-toggle:disabled {
   cursor: not-allowed;
+}
+
+.dropdown-toggle.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  border-color: var(--bs-primary);
 }
 
 .dropdown-item.active {
@@ -358,5 +428,20 @@ if (props.resource) {
 
 .dropdown-item.active:hover {
   background-color: var(--bs-primary);
+}
+
+/* Clear all filters button styling */
+.dropdown-item.text-danger {
+  color: var(--bs-danger) !important;
+}
+
+.dropdown-item.text-danger:hover {
+  background-color: var(--bs-danger);
+  color: var(--bs-white) !important;
+}
+
+/* Active filter visual feedback */
+.btn-primary .bi-check-circle-fill {
+  color: var(--bs-white);
 }
 </style>

@@ -1114,16 +1114,72 @@ class ApiResourceController extends Controller
             ];
         }
 
-        // Add filter metadata
+        // Get model instance for filter information
+        $model = new ($query->getModel()::class);
+        
+        // Build comprehensive filter metadata
+        $filterData = [
+            'filter_policy' => 'single_filter_only',
+            'available_filters' => $this->getAvailableFilterFields($model),
+            'active_filter' => null,
+            'rejected_filters' => []
+        ];
+
+        // Handle filter data from applyFilters
         if (!empty($appliedFilters)) {
-            $filterStrings = [];
-            foreach ($appliedFilters as $field => $config) {
-                $filterStrings[] = $config['label'] . ': ' . $config['value'];
+            if (isset($appliedFilters['applied'])) {
+                // New format with enhanced metadata
+                if (!empty($appliedFilters['applied'])) {
+                    $filterStrings = [];
+                    foreach ($appliedFilters['applied'] as $field => $config) {
+                        $filterStrings[] = $config['label'] . ': ' . $config['value'];
+                    }
+                    
+                    $filterData['applied'] = $appliedFilters['applied'];
+                    $filterData['summary'] = implode(', ', $filterStrings);
+                }
+                
+                if (!empty($appliedFilters['rejected'])) {
+                    $filterData['rejected_filters'] = $appliedFilters['rejected'];
+                }
+                
+                if (isset($appliedFilters['active_filter'])) {
+                    $filterData['active_filter'] = $appliedFilters['active_filter'];
+                }
+                
+                if (isset($appliedFilters['cleared_by'])) {
+                    $filterData['cleared_by'] = $appliedFilters['cleared_by'];
+                    $filterData['summary'] = 'All filters cleared';
+                }
+                
+                $metadata['filters'] = $filterData;
+            } else {
+                // Legacy format support - convert to new format
+                $filterStrings = [];
+                foreach ($appliedFilters as $field => $config) {
+                    $filterStrings[] = $config['label'] . ': ' . $config['value'];
+                }
+                
+                // Convert legacy format to new format
+                $filterData['applied'] = $appliedFilters;
+                $filterData['summary'] = implode(', ', $filterStrings);
+                
+                // Try to determine active filter from legacy data
+                if (!empty($appliedFilters)) {
+                    $firstFilter = array_key_first($appliedFilters);
+                    $filterConfig = $appliedFilters[$firstFilter];
+                    $filterData['active_filter'] = [
+                        'field' => $firstFilter,
+                        'value' => $filterConfig['value'],
+                        'label' => $filterConfig['label'] . ': ' . $filterConfig['value']
+                    ];
+                }
+                
+                $metadata['filters'] = $filterData;
             }
-            $metadata['filters'] = [
-                'applied' => $appliedFilters,
-                'summary' => implode(', ', $filterStrings)
-            ];
+        } else {
+            // No filters applied - still include filter metadata
+            $metadata['filters'] = $filterData;
         }
 
         // Add sorting metadata
@@ -1405,6 +1461,10 @@ class ApiResourceController extends Controller
     protected function applyFilters($query, Request $request, Model $model): array
     {
         $appliedFilters = [];
+        $rejectedFilters = [];
+        $activeFilter = null;
+        $hasAppliedFilter = false;
+        $attemptedFilters = [];
 
         // Debug: Log incoming request parameters
         Log::info('Filter Debug - Request parameters:', $request->all());
@@ -1414,6 +1474,43 @@ class ApiResourceController extends Controller
             $apiFilters = $model->getApiFilters();
             Log::info('Filter Debug - Available API filters:', $apiFilters);
             
+            // Collect all attempted filter parameters
+            foreach ($apiFilters as $field => $config) {
+                $requestValue = $request->input($field);
+                if ($requestValue !== null && $requestValue !== '') {
+                    $attemptedFilters[] = [
+                        'field' => $field,
+                        'value' => $requestValue,
+                        'config' => $config
+                    ];
+                }
+            }
+            
+            // Log multiple filter attempts if detected
+            if (count($attemptedFilters) > 1) {
+                Log::warning('Filter Debug - Multiple filters attempted (single filter policy active):', [
+                    'attempted_filters' => $attemptedFilters,
+                    'policy' => 'single_filter_only'
+                ]);
+            }
+            
+            // First pass: Check for 'all' values to clear all filters
+            foreach ($apiFilters as $field => $config) {
+                $requestValue = $request->input($field);
+                if ($requestValue === 'all') {
+                    Log::info("Filter Debug - 'all' value found for field '{$field}', clearing all filters");
+                    // When 'all' is found, clear everything and return empty filters
+                    return [
+                        'applied' => [],
+                        'rejected' => [],
+                        'active_filter' => null,
+                        'cleared_by' => $field,
+                        'attempted_filters' => $attemptedFilters
+                    ];
+                }
+            }
+            
+            // Second pass: Apply only the first valid filter (single filter policy)
             foreach ($apiFilters as $field => $config) {
                 $requestValue = $request->input($field);
                 Log::info("Filter Debug - Checking field: {$field}, value: {$requestValue}");
@@ -1421,17 +1518,44 @@ class ApiResourceController extends Controller
                 if ($requestValue !== null && $requestValue !== '') {
                     $allowedValues = $config['values'] ?? [];
                     
-                    // Apply filter only if the value is in allowed values
+                    // Check if this is a valid filter value
                     if (in_array($requestValue, $allowedValues)) {
-                        Log::info("Filter Debug - Applying filter: {$field} = {$requestValue}");
-                        $query->where($field, $requestValue);
-                        
-                        $appliedFilters[$field] = [
-                            'label' => $config['label'] ?? ucfirst($field),
-                            'value' => $requestValue
-                        ];
+                        if (!$hasAppliedFilter) {
+                            // Apply this filter (first valid one found)
+                            Log::info("Filter Debug - Applying filter: {$field} = {$requestValue}");
+                            $query->where($field, $requestValue);
+                            
+                            $appliedFilters[$field] = [
+                                'label' => $config['label'] ?? ucfirst($field),
+                                'value' => $requestValue
+                            ];
+                            
+                            $activeFilter = [
+                                'field' => $field,
+                                'value' => $requestValue,
+                                'label' => ($config['label'] ?? ucfirst($field)) . ': ' . $requestValue
+                            ];
+                            
+                            $hasAppliedFilter = true;
+                        } else {
+                            // Reject this filter due to single filter policy
+                            Log::warning("Filter Debug - Rejecting filter '{$field}={$requestValue}' due to single filter policy");
+                            $rejectedFilters[] = [
+                                'field' => $field,
+                                'value' => $requestValue,
+                                'reason' => 'single_filter_policy',
+                                'label' => ($config['label'] ?? ucfirst($field)) . ': ' . $requestValue
+                            ];
+                        }
                     } else {
-                        Log::info("Filter Debug - Value '{$requestValue}' not in allowed values for field '{$field}':", $allowedValues);
+                        Log::warning("Filter Debug - Value '{$requestValue}' not in allowed values for field '{$field}':", $allowedValues);
+                        $rejectedFilters[] = [
+                            'field' => $field,
+                            'value' => $requestValue,
+                            'reason' => 'invalid_value',
+                            'allowed_values' => $allowedValues,
+                            'label' => ($config['label'] ?? ucfirst($field)) . ': ' . $requestValue
+                        ];
                     }
                 } else {
                     Log::info("Filter Debug - No value or empty value for field: {$field}");
@@ -1443,6 +1567,18 @@ class ApiResourceController extends Controller
                 $filterValue = $request->input('filter');
                 $fillableFields = $model->getFillable();
                 
+                // Check for 'all' value first
+                if ($filterValue === 'all') {
+                    Log::info("Filter Debug - 'all' value found in legacy filter, clearing all filters");
+                    return [
+                        'applied' => [],
+                        'rejected' => [],
+                        'active_filter' => null,
+                        'cleared_by' => 'filter',
+                        'attempted_filters' => [['field' => 'filter', 'value' => $filterValue]]
+                    ];
+                }
+                
                 // Only apply active filter if the model has an 'active' field
                 if (in_array('active', $fillableFields)) {
                     switch ($filterValue) {
@@ -1452,6 +1588,11 @@ class ApiResourceController extends Controller
                                 'label' => 'Status',
                                 'value' => 'Active'
                             ];
+                            $activeFilter = [
+                                'field' => 'active',
+                                'value' => 'active',
+                                'label' => 'Status: Active'
+                            ];
                             break;
                         case 'inactive':
                             $query->where('active', false);
@@ -1459,17 +1600,36 @@ class ApiResourceController extends Controller
                                 'label' => 'Status',
                                 'value' => 'Inactive'
                             ];
+                            $activeFilter = [
+                                'field' => 'active',
+                                'value' => 'inactive',
+                                'label' => 'Status: Inactive'
+                            ];
                             break;
-                        case 'all':
                         default:
                             // No filter applied - show all records
+                            Log::info("Filter Debug - Unknown legacy filter value: {$filterValue}");
                             break;
                     }
                 }
             }
         }
 
-        return $appliedFilters;
+        // Log final filter state
+        Log::info('Filter Debug - Final filter state:', [
+            'applied_filters' => $appliedFilters,
+            'rejected_filters' => $rejectedFilters,
+            'active_filter' => $activeFilter,
+            'total_attempted' => count($attemptedFilters)
+        ]);
+
+        // Return enhanced filter metadata
+        return [
+            'applied' => $appliedFilters,
+            'rejected' => $rejectedFilters,
+            'active_filter' => $activeFilter,
+            'attempted_filters' => $attemptedFilters
+        ];
     }
 
     /**
@@ -1549,5 +1709,32 @@ class ApiResourceController extends Controller
                 500
             );
         }
+    }
+
+    /**
+     * Get available filter fields for a model.
+     *
+     * @param Model $model
+     * @return array
+     */
+    protected function getAvailableFilterFields(Model $model): array
+    {
+        $availableFilters = [];
+        
+        // Check if model has custom API filters
+        if (method_exists($model, 'getApiFilters')) {
+            $apiFilters = $model->getApiFilters();
+            foreach ($apiFilters as $field => $config) {
+                $availableFilters[] = $field;
+            }
+        } else {
+            // Fallback to legacy active filter if model has 'active' field
+            $fillableFields = $model->getFillable();
+            if (in_array('active', $fillableFields)) {
+                $availableFilters[] = 'filter'; // Legacy filter parameter
+            }
+        }
+        
+        return $availableFilters;
     }
 }
