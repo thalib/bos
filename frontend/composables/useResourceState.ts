@@ -196,11 +196,19 @@ export function useResourceState(config: ResourceStateConfig): ResourceStateRetu
     }
     
     // Handle filter parameters
+    const reservedParams = ['search', 'sort', 'direction', 'page', 'perPage']
+    
+    // First, remove all existing filter parameters from the current query
+    Object.keys(route.query).forEach(key => {
+      if (!reservedParams.includes(key)) {
+        delete query[key]
+      }
+    })
+    
+    // Then add current active filters
     Object.entries(activeFilters.value).forEach(([field, value]) => {
       if (value && value !== 'all') {
         query[field] = value
-      } else {
-        delete query[field]
       }
     })
     

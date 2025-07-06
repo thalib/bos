@@ -9,7 +9,6 @@ import { useRoute } from 'vue-router';
 import ResourceMasterDetailDoc from '../../components/Resource/MasterDetailDoc.vue';
 import ResourceSearch from '../../components/Resource/Search.vue';
 import ResourcePagination from '../../components/Resource/Pagination.vue';
-import ResourceSorting from '../../components/Resource/TableSorting.vue';
 import ResourceHeader from '../../components/Resource/Header.vue';
 import ResourceFilter from '../../components/Resource/Filter.vue';
 import Toast from '../../components/Toast.vue';
@@ -346,12 +345,6 @@ const handleImport = () => {
   showErrorToast('Import functionality not implemented yet');
 };
 
-// Handle clear sort
-const handleClearSort = async () => {
-  await updateSort('');
-  fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, '', 'asc');
-};
-
 // Filter handlers using composable
 const handleFilterChange = async (event: FilterChangeEvent) => {
   if (!event.field || !event.value) return;
@@ -494,21 +487,6 @@ onBeforeUnmount(() => {
         </span>
       </template>
     </ResourceHeader>
-
-    <!-- Active Sorting Display Component -->
-    <div v-if="!error || !error.includes('not found')" class="mb-4">
-      <ResourceSorting 
-        :search-query="searchQuery" 
-        :sort-field="sortField" 
-        :sort-direction="sortDirection"
-        :filter-count="filterCount"
-        :loading="loading || isSearching || isSorting || isFiltering" 
-        @clear-search="handleSearchClear" 
-        @clear-sort="handleClearSort"
-        @clear-filters-only="handleClearFiltersOnly"
-        @clear-all="handleClearAllFilters" 
-      />
-    </div>
 
     <!-- Error Alert for Resource Not Found -->
     <div v-if="error && error.includes('not found')" class="alert alert-warning" role="alert">

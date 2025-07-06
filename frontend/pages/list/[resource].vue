@@ -9,7 +9,6 @@ import { useRoute } from 'vue-router';
 import ResourceMasterDetail from '../../components/Resource/MasterDetail.vue';
 import ResourceSearch from '../../components/Resource/Search.vue';
 import ResourcePagination from '../../components/Resource/Pagination.vue';
-import ResourceSorting from '../../components/Resource/TableSorting.vue';
 import ResourceHeader from '../../components/Resource/Header.vue';
 import ResourceFilter from '../../components/Resource/Filter.vue';
 import Toast from '../../components/Toast.vue';
@@ -439,11 +438,6 @@ const handleSort = async (column: Column) => {
   fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
-const handleClearSort = async () => {
-  await updateSort('');
-  fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, '', 'asc');
-};
-
 // Filter handlers using composable
 const handleFilterChange = async (event: FilterChangeEvent) => {
   if (!event.field || !event.value) return;
@@ -606,22 +600,8 @@ onBeforeUnmount(() => {
           <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
           Filtering...
         </span>
-      </template>
-    </ResourceHeader>    <!-- Active Sorting Display Component -->
-    <div v-if="!error || !error.includes('not found')" class="mb-4">
-      <ResourceSorting 
-        :search-query="searchQuery" 
-        :sort-field="sortField" 
-        :sort-direction="sortDirection"
-        :filter-count="filterCount"
-        :loading="loading || isSearching || isSorting || isFiltering" 
-        @clear-search="handleSearchClear" 
-        @clear-sort="handleClearSort"
-        @clear-filters-only="handleClearFiltersOnly"
-        @clear-all="handleClearAllFilters" 
-      />
-    </div>
-
+      </template>    </ResourceHeader>
+    
     <!-- Error Alert for Resource Not Found -->
     <div v-if="error && error.includes('not found')" class="alert alert-warning" role="alert">
       <h4 class="alert-heading">
