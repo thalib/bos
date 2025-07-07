@@ -11,7 +11,7 @@
     </div>
 
     <!-- Page Not Found -->
-    <div v-else-if="!pageConfig" class="d-flex justify-content-center align-items-center min-vh-100">
+    <div v-else-if="pageConfig === null" class="d-flex justify-content-center align-items-center min-vh-100">
       <div class="text-center">
         <i class="bi bi-exclamation-triangle-fill text-warning display-1 mb-3"></i>
         <h1 class="h3 mb-3">Page Not Found</h1>
@@ -24,7 +24,7 @@
     </div>
 
     <!-- Page Structure (loads first) -->
-    <div v-else class="container-fluid">
+    <div v-else-if="pageConfig" class="container-fluid">
       <!-- Page Header (renders immediately after auth) -->
       <div class="row">
         <div class="col-12">
@@ -34,7 +34,7 @@
               <div v-if="!canShowComponentContent" class="placeholder-glow me-2">
                 <div class="placeholder rounded" style="width: 24px; height: 24px;"></div>
               </div>
-              <i v-else-if="pageConfig.icon" :class="pageConfig.icon" class="me-2 fs-4 text-primary"></i>
+              <i v-else-if="pageConfig?.icon" :class="pageConfig.icon" class="me-2 fs-4 text-primary"></i>
               
               <div>
                 <!-- Title skeleton or actual title -->
@@ -43,13 +43,13 @@
                   <p class="text-muted mb-0 small placeholder col-8" style="height: 1rem;"></p>
                 </div>
                 <div v-else>
-                  <h1 class="h3 mb-0">{{ pageConfig.title }}</h1>
-                  <p class="text-muted mb-0 small">{{ pageConfig.description }}</p>
+                  <h1 class="h3 mb-0">{{ pageConfig?.title }}</h1>
+                  <p class="text-muted mb-0 small">{{ pageConfig?.description }}</p>
                 </div>
               </div>
             </div>
-            <div v-if="canShowComponentContent" class="text-muted small">
-              Route: /{{ pageConfig.slug }}
+            <div v-if="canShowComponentContent && pageConfig" class="text-muted small">
+              Route: /{{ pageConfig?.slug }}
             </div>
             <div v-else class="placeholder-glow">
               <div class="placeholder col-12" style="width: 120px; height: 1rem;"></div>
@@ -71,7 +71,7 @@
       </div>
 
       <!-- Dynamic Component Content (loads after page structure) -->
-      <div v-else class="row mt-3">
+      <div v-else-if="pageConfig" class="row mt-3">
         <div class="col-12">
           <ContentDefaultPageContent 
             :page-title="pageConfig.title"
@@ -105,21 +105,36 @@ const isPageReady = ref(false)
 const canShowPageContent = computed(() => isPageReady.value)
 const pageLoadingMessage = ref('Authenticating...')
 
-// Get page configuration
+// Get page configuration and navigation
 const { getPageConfig, isValidPage } = usePageConfig()
-const pageConfig = computed(() => getPageConfig(slug.value))
+const { fetchMenuItems, isLoading: navLoading } = useNavigation()
+
+// Check if page is valid and set up pageConfig reactively
+const pageConfig = computed(() => {
+  // Don't check validity until navigation is loaded
+  if (navLoading.value) {
+    return undefined // undefined means still loading
+  }
+  
+  if (!isValidPage(slug.value)) {
+    return null // null means page not found
+  }
+  return getPageConfig(slug.value)
+})
 
 // Validate page and set up data with proper loading sequence
 const { pending, error } = await useLazyAsyncData(`page-${slug.value}`, async () => {
   // Update loading message
+  pageLoadingMessage.value = 'Loading navigation...'
+  
+  // Ensure navigation is loaded first
+  await fetchMenuItems()
+  
   pageLoadingMessage.value = 'Loading page configuration...'
   
   // Validate the page exists
   if (!isValidPage(slug.value)) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: `Page "${slug.value}" not found`
-    })
+    return null // Return null instead of throwing error to allow component to render 404
   }
   
   return {
@@ -167,7 +182,7 @@ onMounted(async () => {
 // Set page middleware (must be called at top level)
 definePageMeta({
   middleware: 'auth',
-  name: 'dynamic-slug-page'
+  name: 'single-dynamic-slug-page'
 })
 </script>
 

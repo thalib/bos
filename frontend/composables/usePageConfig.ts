@@ -16,6 +16,7 @@ const transformMenuItemToPageConfig = (item: MenuItem): PageConfig => {
   // Generate component name from slug (PascalCase + Content)
   const componentName = slug
     .split('-')
+    .filter(word => word && word.length > 0) // Filter out empty strings
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join('') + 'Content'
     return {
@@ -62,6 +63,9 @@ export const usePageConfig = () => {
    * Get page configuration by slug
    */
   const getPageConfig = (slug: string): PageConfig | null => {
+    if (!slug || typeof slug !== 'string') {
+      return null
+    }
     return pageConfigs.value[slug] || null
   }
 
@@ -69,6 +73,9 @@ export const usePageConfig = () => {
    * Check if page slug is valid
    */
   const isValidPage = (slug: string): boolean => {
+    if (!slug || typeof slug !== 'string') {
+      return false
+    }
     return slug in pageConfigs.value
   }
 
