@@ -55,7 +55,7 @@ const handleLoginSuccess = async () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Redirect to dashboard/home page
-      await navigateTo('/list/users');
+      await navigateTo('/dashboard');
     },
     {
       message: 'Redirecting to dashboard...',
@@ -78,7 +78,7 @@ watch(
           await new Promise(resolve => setTimeout(resolve, 500));
           
           // Redirect authenticated users to dashboard
-          await navigateTo('/list/users', { replace: true });
+          await navigateTo('/dashboard', { replace: true });
         },
         {
           message: 'Redirecting to your dashboard...',

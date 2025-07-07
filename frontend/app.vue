@@ -24,12 +24,29 @@ const isDarkMode = ref(true);
 const isClient = ref(false);
 
 // Simple computed for showing different content states
+const showErrorPage = computed(() => {
+  // Show error pages - include navbar if authenticated
+  const errorPages = ['/404', '/error'];
+  return isClient.value && isInitialized.value && errorPages.includes(route.path);
+});
+
+const showErrorPageWithNavbar = computed(() => {
+  // Show error pages with navbar when authenticated
+  return showErrorPage.value && isAuthenticated.value;
+});
+
+const showErrorPageWithoutNavbar = computed(() => {
+  // Show error pages without navbar when not authenticated
+  return showErrorPage.value && !isAuthenticated.value;
+});
+
 const showMainApp = computed(() => {
-  return isClient.value && isInitialized.value && isAuthenticated.value;
+  // Only show main app for authenticated users on non-error pages
+  return isClient.value && isInitialized.value && isAuthenticated.value && !showErrorPage.value;
 });
 
 const showLoginForm = computed(() => {
-  return isClient.value && isInitialized.value && !isAuthenticated.value && route.path !== '/';
+  return isClient.value && isInitialized.value && !isAuthenticated.value && route.path !== '/' && !showErrorPage.value;
 });
 
 const showHomePage = computed(() => {
@@ -117,6 +134,50 @@ const containerClass = computed(() => {
 
     <!-- Home Page Content (handles its own auth) -->
     <div v-if="showHomePage">
+      <div id="app" class="pt-3 pb-5">
+        <NuxtPage />
+      </div>
+    </div>
+
+    <!-- Error pages without navbar (unauthenticated users) -->
+    <div v-if="showErrorPageWithoutNavbar">
+      <NuxtPage />
+    </div>
+
+    <!-- Error pages with navbar (authenticated users) -->
+    <div v-if="showErrorPageWithNavbar">
+      <!-- Navbar Component -->
+      <ClientOnly>
+        <Navbar 
+          @toggle-dark-mode="toggleDarkMode" 
+          :is-dark-mode="isDarkMode" 
+        />
+        <template #fallback>
+          <!-- Navbar loading skeleton -->
+          <nav class="navbar navbar-expand-lg sticky-top shadow-sm"
+            :class="isDarkMode ? 'navbar-dark bg-dark' : 'navbar-light bg-light'">
+            <div class="container-fluid d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center">
+                <div class="placeholder-glow me-2">
+                  <div class="placeholder rounded" style="width: 40px; height: 40px;"></div>
+                </div>
+                <div class="placeholder-glow">
+                  <h1 class="placeholder col-6 mb-0" style="height: 2rem; width: 120px;"></h1>
+                </div>
+              </div>
+              <div class="d-flex align-items-center">
+                <div class="placeholder-glow me-3">
+                  <span class="placeholder col-12" style="width: 100px; height: 1rem;"></span>
+                </div>
+                <div class="placeholder-glow">
+                  <div class="placeholder rounded" style="width: 80px; height: 32px;"></div>
+                </div>
+              </div>
+            </div>
+          </nav>
+        </template>
+      </ClientOnly>
+
       <div id="app" class="pt-3 pb-5">
         <NuxtPage />
       </div>

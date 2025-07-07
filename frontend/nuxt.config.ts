@@ -15,6 +15,34 @@ export default defineNuxtConfig({
     },
   },
 
+  // Error handling configuration
+  experimental: {
+    // Enable error page improvements
+    emitRouteChunkError: 'automatic'
+  },
+
+  // Router configuration for error handling
+  router: {
+    options: {
+      // Custom route matching for better error handling
+      strict: false, // Allow trailing slashes to prevent unnecessary 404s
+      sensitive: false, // Case-insensitive routing
+    }
+  },
+
+  // Nitro configuration for API proxy and error handling
+  nitro: {
+    devProxy: {
+      '/api': {
+        target: process.env.NUXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000/api',
+        changeOrigin: true,
+        prependPath: true,
+      }
+    }
+    // Note: Removed errorHandler config as it's causing build issues
+    // Error handling is managed through pages/404.vue and middleware
+  },
+
   // Runtime configuration for centralized config
   runtimeConfig: {
     // Private keys (only available on server-side)
@@ -53,17 +81,10 @@ export default defineNuxtConfig({
       currencyCode: process.env.NUXT_PUBLIC_CURRENCY_CODE || 'INR',
       currencySymbol: process.env.NUXT_PUBLIC_CURRENCY_SYMBOL || '₹',
       currencyLocale: process.env.NUXT_PUBLIC_CURRENCY_LOCALE || 'en-IN',
-    }
-  },
-
-  // Nitro configuration for API proxy
-  nitro: {
-    devProxy: {
-      '/api': {
-        target: process.env.NUXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000/api',
-        changeOrigin: true,
-        prependPath: true,
-      }
+      
+      // Error Handling Configuration
+      enableErrorReporting: process.env.NUXT_PUBLIC_ENABLE_ERROR_REPORTING === 'true',
+      errorReportingEndpoint: process.env.NUXT_PUBLIC_ERROR_REPORTING_ENDPOINT,
     }
   },
 
@@ -72,11 +93,67 @@ export default defineNuxtConfig({
       title: process.env.NUXT_APP_NAME || 'Thanzil'
     }
   },
-  // Ensure Bootstrap JS is available client-side
+
+  // Plugin configuration with proper loading order
   plugins: [
+    // Core plugins first
+    { src: '~/plugins/api.client.ts', mode: 'client' },
+    { src: '~/plugins/loading.client.ts', mode: 'client' },
+    
+    // Navigation and error handling plugins
+    { src: '~/plugins/navigation-history.client.ts', mode: 'client' },
+    { src: '~/plugins/error-handler.client.ts', mode: 'client' },
+    
+    // UI plugins
     { src: '~/plugins/bootstrap.client.ts', mode: 'client' },
+    { src: '~/plugins/nprogress.client.ts', mode: 'client' },
+    { src: '~/plugins/toast.client.ts', mode: 'client' },
+    
+    // Configuration validation (load last)
     { src: '~/plugins/config-validation.client.ts', mode: 'client' }
   ],
+
+  // Route rules for error handling and performance
+  routeRules: {
+    // Static pages - cache longer
+    '/': { 
+      prerender: false // Dynamic content with auth
+    },
+    
+    // 404 page - client-side only (uses authentication)
+    '/404': { 
+      prerender: false, // Client-side rendering for auth state
+      headers: { 
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'X-Robots-Tag': 'noindex, nofollow'
+      }
+    },
+    
+    // API routes - never cache, pass through to backend
+    '/api/**': { 
+      cors: true,
+      headers: { 
+        'Cache-Control': 'no-cache, no-store, must-revalidate' 
+      }
+    },
+    
+    // Dynamic pages - short cache
+    '/estimates/**': { 
+      isr: 60, // Incremental static regeneration
+      headers: { 'Cache-Control': 's-maxage=60' }
+    },
+    '/doc/**': { 
+      isr: 60,
+      headers: { 'Cache-Control': 's-maxage=60' }
+    },
+    '/list/**': { 
+      isr: 60,
+      headers: { 'Cache-Control': 's-maxage=60' }
+    }
+  },
+
+  // SSR configuration for error handling
+  ssr: true,
 
   // Optional: If using TypeScript extensively
   typescript: {

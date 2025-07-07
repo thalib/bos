@@ -166,7 +166,8 @@ onMounted(async () => {
 
 // Set page middleware (must be called at top level)
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
+  name: 'dynamic-slug-page'
 })
 </script>
 
