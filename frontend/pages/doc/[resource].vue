@@ -270,7 +270,7 @@ const fetchData = async (
 
     // Update pagination data directly (like in the original list page)
     if (responseMeta && Object.keys(responseMeta).length > 0) {
-      resourcePagination.value = {
+      Object.assign(resourcePagination.value, {
         currentPage: responseMeta.current_page || page,
         totalPages: responseMeta.last_page || Math.ceil((responseMeta.total || 0) / (responseMeta.per_page || perPage)),
         perPage: responseMeta.per_page || perPage,
@@ -283,10 +283,10 @@ const fetchData = async (
         prevPage: (responseMeta.current_page || page) > 1 ? (responseMeta.current_page || 1) - 1 : null,
         from: responseMeta.from || 0,
         to: responseMeta.to || 0
-      };
+      });
     } else {
       // No pagination metadata - single page
-      resourcePagination.value = {
+      Object.assign(resourcePagination.value, {
         currentPage: 1,
         totalPages: 1,
         perPage: responseData.length,
@@ -297,7 +297,7 @@ const fetchData = async (
         prevPage: null,
         from: responseData.length > 0 ? 1 : 0,
         to: responseData.length
-      };
+      });
     }
 
   } catch (err: any) {
