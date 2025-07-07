@@ -283,22 +283,11 @@ const fetchData = async (
     // Map items and add selected property for UI state
     items.value = responseData.map((item: any) => ({ ...item, selected: false }));
 
-    // Debug: Log the response metadata to understand pagination issue
-    console.log('Frontend Debug - fetchData response:', {
-      responseDataLength: responseData.length,
-      responseMeta,
-      responseMetaKeys: Object.keys(responseMeta),
-      responseMetaLength: Object.keys(responseMeta).length,
-      hasPage: responseMeta?.current_page,
-      hasLastPage: responseMeta?.last_page,
-      hasTotal: responseMeta?.total
-    });
-
     // Get columns using utility
     processedColumns.value = await getResourceColumns(resourceName.value, items.value);    // Update pagination data
     if (responseMeta && Object.keys(responseMeta).length > 0) {
       // Update pagination metadata directly on the reactive object to maintain reactivity
-      Object.assign(resourcePagination.value, {
+      const newPaginationData = {
         currentPage: responseMeta.current_page || page,
         totalPages: responseMeta.last_page || 1,
         perPage: responseMeta.per_page || perPage,
@@ -311,10 +300,12 @@ const fetchData = async (
         prevPage: responseMeta.current_page > 1 ? (responseMeta.current_page || 1) - 1 : null,
         from: responseMeta.from || 0,
         to: responseMeta.to || responseData.length
-      });
+      };
+      
+      Object.assign(resourcePagination.value, newPaginationData);
     } else {
       // No pagination metadata - single page
-      Object.assign(resourcePagination.value, {
+      const singlePageData = {
         currentPage: 1,
         totalPages: 1,
         perPage: responseData.length,
@@ -325,7 +316,9 @@ const fetchData = async (
         prevPage: null,
         from: responseData.length > 0 ? 1 : 0,
         to: responseData.length
-      });
+      };
+      
+      Object.assign(resourcePagination.value, singlePageData);
     }
 
     // Pagination data is already updated above - no need to set currentPage/currentPerPage separately
