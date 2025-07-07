@@ -274,23 +274,6 @@ const createApiService = (): ApiService => {
     // Log the error for debugging
     console.error(`API Error (${url}):`, apiError)
     
-    // Integrate with global error handler if available
-    if (import.meta.client && typeof window !== 'undefined') {
-      // Use a non-blocking approach to avoid async issues
-      import('~/composables/useErrorHandler')
-        .then(m => m.useGlobalErrorHandler())
-        .then(({ handleApiError }) => {
-          handleApiError(error, { 
-            url, 
-            method: 'API' 
-          });
-        })
-        .catch(handlerError => {
-          // Silently fail if error handler is not available
-          console.debug('Error handler not available:', handlerError);
-        });
-    }
-    
     return apiError
   }
     /**

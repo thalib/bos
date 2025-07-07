@@ -100,9 +100,8 @@ export default defineNuxtConfig({
     { src: '~/plugins/api.client.ts', mode: 'client' },
     { src: '~/plugins/loading.client.ts', mode: 'client' },
     
-    // Navigation and error handling plugins
+    // Navigation plugins
     { src: '~/plugins/navigation-history.client.ts', mode: 'client' },
-    { src: '~/plugins/error-handler.client.ts', mode: 'client' },
     
     // UI plugins
     { src: '~/plugins/bootstrap.client.ts', mode: 'client' },
