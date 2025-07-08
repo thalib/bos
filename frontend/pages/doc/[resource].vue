@@ -8,7 +8,7 @@ import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import ResourceMasterDetailDoc from '../../components/Resource/MasterDetailDoc.vue';
 import ResourceSearch from '../../components/Resource/Search.vue';
-import ResourcePagination from '../../components/Resource/Pagination.vue';
+import ResourcePagination from '../../components/Resource/PaginationS.vue';
 import ResourceHeader from '../../components/Resource/Header.vue';
 import ResourceFilter from '../../components/Resource/Filter.vue';
 import Toast from '../../components/Toast.vue';

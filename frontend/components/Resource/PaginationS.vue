@@ -1,10 +1,13 @@
 <template>
-  <div v-if="showPagination && !loading && total > 0" class="border-top py-3 mt-3 sticky-bottom bg-body">
+  <div v-if="showPagination && total > 0" class="border-top py-3 mt-3">
     <div class="container-fluid px-3">
       <!-- Mobile View -->
       <div class="d-md-none">
         <div class="row g-2">
           <div class="col-12 text-center small text-muted mb-2">
+            <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </span>
             Showing {{ from }} to {{ to }} of {{ total }} entries
           </div>
           
@@ -14,6 +17,7 @@
               @change="handlePageChange(+($event.target as HTMLSelectElement).value)"
               class="form-select form-select-sm"
               :disabled="loading || totalPages <= 1"
+              aria-label="Select page"
             >
               <option v-for="page in totalPages" :key="page" :value="page">
                 Page {{ page }}
@@ -27,6 +31,7 @@
               @change="handlePerPageChange(+($event.target as HTMLSelectElement).value)"
               class="form-select form-select-sm"
               :disabled="loading"
+              aria-label="Items per page"
             >
               <option v-for="option in perPageOptions" :key="option" :value="option">
                 {{ option }} per page
@@ -47,6 +52,7 @@
             class="form-select form-select-sm"
             style="width: 80px;"
             :disabled="loading"
+            aria-label="Items per page"
           >
             <option v-for="option in perPageOptions" :key="option" :value="option">
               {{ option }}
@@ -80,6 +86,7 @@
               style="width: 70px;"
               :disabled="loading"
               :placeholder="`1-${totalPages}`"
+              aria-label="Jump to page number"
             >
           </div>
           
@@ -95,7 +102,7 @@
                   aria-label="Go to first page"
                   title="First page"
                 >
-                  <i class="bi bi-chevron-double-left"></i>
+                  ⇤
                 </button>
               </li>
               
@@ -108,7 +115,7 @@
                   aria-label="Go to previous page"
                   title="Previous page"
                 >
-                  <i class="bi bi-chevron-left"></i>
+                  ←
                 </button>
               </li>
               
@@ -151,7 +158,7 @@
                   aria-label="Go to next page"
                   title="Next page"
                 >
-                  <i class="bi bi-chevron-right"></i>
+                  →
                 </button>
               </li>
               
@@ -164,7 +171,7 @@
                   aria-label="Go to last page"
                   title="Last page"
                 >
-                  <i class="bi bi-chevron-double-right"></i>
+                  ⇥
                 </button>
               </li>
             </ul>
@@ -178,63 +185,105 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 
-interface Props {
+/**
+ * Props interface for the PaginationS component
+ */
+interface PaginationProps {
+  /** Current active page number (1-based) */
   currentPage: number;
+  /** Total number of pages available */
   totalPages: number;
+  /** Number of items displayed per page */
   perPage: number;
+  /** Total number of items across all pages */
   total: number;
+  /** Whether the component is in loading state */
   loading?: boolean;
+  /** Array of available items per page options */
   perPageOptions?: number[];
+  /** Starting item number for current page (1-based) */
   from?: number;
+  /** Ending item number for current page */
   to?: number;
+  /** Whether there is a next page available */
   hasNextPage?: boolean;
+  /** Whether there is a previous page available */
   hasPrevPage?: boolean;
+  /** Whether to show the pagination component */
   showPagination?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  loading: false,
-  perPageOptions: () => [20, 50, 100],
-  from: 0,
-  to: 0,
-  hasNextPage: false,
-  hasPrevPage: false,
-  showPagination: true
-});
-
-interface Emits {
+/**
+ * Emits interface for the PaginationS component events
+ */
+interface PaginationEmits {
+  /** Emitted when user changes the current page */
   (e: 'page-change', page: number): void;
+  /** Emitted when user changes the items per page */
   (e: 'per-page-change', perPage: number): void;
 }
 
-const emit = defineEmits<Emits>();
+/**
+ * Component props with default values and JSDoc documentation
+ */
+const props = withDefaults(defineProps<PaginationProps>(), {
+  /** @default false - Component is not loading by default */
+  loading: false,
+  /** @default [20, 50, 100] - Standard per page options */
+  perPageOptions: () => [20, 50, 100],
+  /** @default 0 - No items shown from start */
+  from: 0,
+  /** @default 0 - No items shown to end */
+  to: 0,
+  /** @default false - No next page available by default */
+  hasNextPage: false,
+  /** @default false - No previous page available by default */
+  hasPrevPage: false,
+  /** @default true - Show pagination by default */
+  showPagination: true
+});
 
+/**
+ * Component event emitters
+ */
+const emit = defineEmits<PaginationEmits>();
+
+// Reactive references for component state
 const jumpToPageInput = ref<HTMLInputElement>();
 const jumpToPageValue = ref<string>('');
 
+/**
+ * Computed property to calculate visible page numbers with ellipsis logic
+ * @returns Array of page numbers or -1 for ellipsis
+ */
 const visiblePages = computed(() => {
   const current = props.currentPage;
   const total = props.totalPages;
   const pages: (number | -1)[] = [];
   
   if (total <= 7) {
+    // Show all pages if 7 or fewer
     for (let i = 1; i <= total; i++) {
       pages.push(i);
     }
   } else {
+    // Complex logic for large page sets
     pages.push(1);
     
     if (current <= 4) {
+      // Near beginning: show first 5 pages
       for (let i = 2; i <= Math.min(5, total - 1); i++) {
         pages.push(i);
       }
-      if (total > 6) pages.push(-1);
+      if (total > 6) pages.push(-1); // ellipsis
     } else if (current >= total - 3) {
-      if (total > 6) pages.push(-1);
+      // Near end: show last 5 pages
+      if (total > 6) pages.push(-1); // ellipsis
       for (let i = Math.max(total - 4, 2); i <= total - 1; i++) {
         pages.push(i);
       }
     } else {
+      // Middle: show current ± 1 with ellipsis on both sides
       pages.push(-1);
       for (let i = current - 1; i <= current + 1; i++) {
         pages.push(i);
@@ -248,16 +297,27 @@ const visiblePages = computed(() => {
   return pages;
 });
 
+/**
+ * Handles page change events with validation
+ * @param page - Target page number
+ */
 const handlePageChange = (page: number) => {
   if (page < 1 || page > props.totalPages || page === props.currentPage || props.loading) return;
   emit('page-change', page);
 };
 
+/**
+ * Handles per-page change events with validation
+ * @param newPerPage - New items per page value
+ */
 const handlePerPageChange = (newPerPage: number) => {
   if (newPerPage === props.perPage || props.loading) return;
   emit('per-page-change', newPerPage);
 };
 
+/**
+ * Handles jump-to-page functionality with input validation
+ */
 const handleJumpToPage = () => {
   const pageValue = +jumpToPageValue.value;
   
@@ -270,6 +330,10 @@ const handleJumpToPage = () => {
   }
 };
 
+/**
+ * Handles keyboard navigation for accessibility
+ * @param event - Keyboard event
+ */
 const handleKeyboardNavigation = (event: KeyboardEvent) => {
   const activeElement = document.activeElement;
   if (activeElement?.matches('input, select, textarea') || props.loading) return;
@@ -288,6 +352,7 @@ const handleKeyboardNavigation = (event: KeyboardEvent) => {
   }
 };
 
+// Setup and cleanup keyboard event listeners
 watch(() => props.showPagination, (show) => {
   if (show) {
     document.addEventListener('keydown', handleKeyboardNavigation);
@@ -302,9 +367,65 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/**
+ * Responsive styles for mobile optimization
+ */
 @media (max-width: 576px) {
   .form-select-sm {
     font-size: 0.875rem;
   }
 }
+
+/**
+ * Custom styles for pagination buttons to ensure consistent sizing
+ */
+.page-link {
+  min-width: 2.5rem;
+  text-align: center;
+}
 </style>
+
+<!--
+USAGE EXAMPLE:
+
+<template>
+  <div>
+    <PaginationS
+      :current-page="currentPage"
+      :total-pages="totalPages"
+      :per-page="perPage"
+      :total="totalItems"
+      :from="fromItem"
+      :to="toItem"
+      :has-next-page="hasNext"
+      :has-prev-page="hasPrev"
+      :loading="isLoading"
+      :per-page-options="[10, 25, 50, 100]"
+      @page-change="onPageChange"
+      @per-page-change="onPerPageChange"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+const currentPage = ref(1);
+const totalPages = ref(10);
+const perPage = ref(20);
+const totalItems = ref(200);
+const fromItem = ref(1);
+const toItem = ref(20);
+const hasNext = ref(true);
+const hasPrev = ref(false);
+const isLoading = ref(false);
+
+const onPageChange = (page: number) => {
+  currentPage.value = page;
+  // Implement your page change logic
+};
+
+const onPerPageChange = (newPerPage: number) => {
+  perPage.value = newPerPage;
+  // Implement your per-page change logic
+};
+</script>
+-->
