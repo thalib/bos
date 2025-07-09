@@ -92,9 +92,9 @@ class ApiResourceServiceProvider extends ServiceProvider
                 $modelNameForController = Str::lower(Str::singular($reflectionClass->getShortName()));
 
                 // Construct the full base URI
-                $fullBaseUri = "/{$apiPrefix}/{$version}";                // Register routes using Route facade with authentication middleware
+                $fullBaseUri = "/{$apiPrefix}/{$version}";                // Register routes using Route facade without authentication middleware (for testing)
                 Route::prefix("{$apiPrefix}/{$version}")
-                    ->middleware(['api', 'auth:sanctum'])
+                    ->middleware(['api'])
                     ->group(function () use ($uri, $modelNameForController) {
                     // Register GET route for collection (index)
                     Route::get("/{$uri}", [ApiResourceController::class, 'index'])

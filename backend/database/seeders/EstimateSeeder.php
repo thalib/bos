@@ -14,12 +14,12 @@ class EstimateSeeder extends Seeder
     {
         Estimate::factory(10)->create();
         
-        Estimate::factory(3)->draft()->create();
+        Estimate::factory(5)->draft()->create();
         
-        Estimate::factory(2)->sent()->create();
+        Estimate::factory(5)->sent()->create();
         
-        Estimate::factory(1)->accepted()->create();
+        Estimate::factory(5)->accepted()->create();
         
-        Estimate::factory(2)->inactive()->create();
+        Estimate::factory(6)->inactive()->create();
     }
 }

@@ -18,9 +18,12 @@ class EstimateFactory extends Factory
         $roundOff = $this->faker->randomFloat(2, -1, 1);
         $grandTotal = $subtotal + $totalTax + $shippingCharges + $otherCharges + $adjustment + $roundOff;
 
+        $estNumber = date('Y') . '-' . $this->faker->unique()->numberBetween(1000, 9999);
+
         return [
             'type' => 'ESTIMATE',
-            'number' => 'E-' . date('Y') . '-' . $this->faker->unique()->numberBetween(1000, 9999),
+            'name' => 'E' . $estNumber,
+            'number' => $estNumber,
             'date' => $this->faker->dateTimeBetween('-30 days', 'now')->format('Y-m-d'),
             'validity' => $this->faker->numberBetween(5, 30),
             'status' => $this->faker->randomElement(['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'INVOICED']),

@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('estimates', function (Blueprint $table) {
             $table->id();
+            $table->string('name')->unique()->nullable();
             $table->string('type')->default('ESTIMATE');
             $table->string('number')->unique();
             $table->date('date');
