@@ -13,13 +13,13 @@ class EstimateSeeder extends Seeder
     public function run(): void
     {
         Estimate::factory(10)->create();
-        
+
         Estimate::factory(5)->draft()->create();
-        
+
         Estimate::factory(5)->sent()->create();
-        
+
         Estimate::factory(5)->accepted()->create();
-        
+
         Estimate::factory(6)->inactive()->create();
     }
 }

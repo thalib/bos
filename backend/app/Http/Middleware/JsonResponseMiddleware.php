@@ -3,18 +3,14 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class JsonResponseMiddleware
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @return \Symfony\Component\HttpFoundation\Response
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -29,7 +25,7 @@ class JsonResponseMiddleware
         // If it's an API route, ensure it returns JSON
         if (str_starts_with($request->path(), 'api/')) {
             // Check if the response is not already a JSON response
-            if (!($response instanceof JsonResponse) && !str_contains($response->headers->get('Content-Type') ?? '', 'application/json')) {
+            if (! ($response instanceof JsonResponse) && ! str_contains($response->headers->get('Content-Type') ?? '', 'application/json')) {
                 $statusCode = $response->getStatusCode();
                 $message = Response::$statusTexts[$statusCode] ?? 'Unknown error';
 

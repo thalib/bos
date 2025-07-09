@@ -2,11 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Exceptions\PdfGenerationException;
 use App\Services\PdfGeneratorService;
 use App\Services\PdfTemplateService;
-use App\Exceptions\PdfGenerationException;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
 class GeneratePdfCommand extends Command
@@ -46,9 +45,10 @@ class GeneratePdfCommand extends Command
             $isPreview = $this->option('preview');
 
             // Validate template exists
-            if (!$this->templateService->templateExists($template)) {
+            if (! $this->templateService->templateExists($template)) {
                 $this->error("Template '{$template}' not found.");
                 $this->line('Use pdf:list command to see available templates.');
+
                 return self::FAILURE;
             }
 
@@ -64,7 +64,7 @@ class GeneratePdfCommand extends Command
             }
 
             // Validate data against template requirements
-            if (!$this->validateTemplateData($template, $data)) {
+            if (! $this->validateTemplateData($template, $data)) {
                 return self::FAILURE;
             }
 
@@ -83,25 +83,25 @@ class GeneratePdfCommand extends Command
 
         } catch (PdfGenerationException $e) {
             $this->error("PDF Generation Error: {$e->getMessage()}");
-            
+
             if ($this->output->isVerbose()) {
-                $this->line("Context: " . json_encode($e->getContext(), JSON_PRETTY_PRINT));
+                $this->line('Context: '.json_encode($e->getContext(), JSON_PRETTY_PRINT));
             }
-            
+
             Log::error('PDF generation command failed', [
                 'template' => $template ?? null,
                 'error' => $e->getMessage(),
                 'context' => $e->getContext(),
             ]);
-            
+
             return self::FAILURE;
         } catch (\Exception $e) {
             $this->error("Unexpected error: {$e->getMessage()}");
-            
+
             if ($this->output->isVerbose()) {
                 $this->line($e->getTraceAsString());
             }
-            
+
             return self::FAILURE;
         }
     }
@@ -111,22 +111,24 @@ class GeneratePdfCommand extends Command
      */
     private function processDataInput(?string $dataOption): ?array
     {
-        if (!$dataOption) {
+        if (! $dataOption) {
             // Use default sample data based on template
             $template = $this->argument('template');
             $defaultDataFile = storage_path("app/demo-{$template}.json");
-            
+
             if (file_exists($defaultDataFile)) {
                 $this->info("Using default demo data from: {$defaultDataFile}");
                 $content = file_get_contents($defaultDataFile);
                 if ($content === false) {
                     $this->error("Cannot read default data file: {$defaultDataFile}");
+
                     return null;
                 }
                 $dataOption = $content;
             } else {
                 $this->error('Data is required. Use --data option with JSON string or file path.');
                 $this->line("Default data file not found: {$defaultDataFile}");
+
                 return null;
             }
         }
@@ -136,6 +138,7 @@ class GeneratePdfCommand extends Command
             $content = file_get_contents($dataOption);
             if ($content === false) {
                 $this->error("Cannot read data file: {$dataOption}");
+
                 return null;
             }
             $dataOption = $content;
@@ -144,7 +147,8 @@ class GeneratePdfCommand extends Command
         // Parse JSON
         $data = json_decode($dataOption, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            $this->error('Invalid JSON data: ' . json_last_error_msg());
+            $this->error('Invalid JSON data: '.json_last_error_msg());
+
             return null;
         }
 
@@ -159,16 +163,17 @@ class GeneratePdfCommand extends Command
         try {
             $this->templateService->validateTemplateData($template, $data);
             $this->info('✓ Template data validation passed');
+
             return true;
         } catch (PdfGenerationException $e) {
             $this->error('✗ Template data validation failed:');
             $this->line("  {$e->getMessage()}");
-            
+
             $context = $e->getContext();
             if (isset($context['missing_fields'])) {
-                $this->line('  Missing required fields: ' . implode(', ', $context['missing_fields']));
+                $this->line('  Missing required fields: '.implode(', ', $context['missing_fields']));
             }
-            
+
             return false;
         }
     }
@@ -179,20 +184,21 @@ class GeneratePdfCommand extends Command
     private function generatePreview(string $template, array $data, array $options): int
     {
         $this->info('Generating preview...');
-        
+
         $preview = $this->pdfGenerator->generatePreview($template, $data, $options);
-        
+
         $outputPath = $this->getOutputPath($template, 'preview.html');
         $this->ensureOutputDirectory($outputPath);
-        
+
         if (file_put_contents($outputPath, $preview) === false) {
             $this->error("Failed to save preview to: {$outputPath}");
+
             return self::FAILURE;
         }
-        
-        $this->info("✓ Preview generated successfully!");
+
+        $this->info('✓ Preview generated successfully!');
         $this->line("Preview saved to: {$outputPath}");
-        
+
         return self::SUCCESS;
     }
 
@@ -202,27 +208,28 @@ class GeneratePdfCommand extends Command
     private function generatePdf(string $template, array $data, array $options): int
     {
         $this->info('Generating PDF...');
-        
-        $filename = $this->option('filename') ?? $template . '_' . date('Y-m-d_H-i-s');
-        $outputPath = $this->getOutputPath($template, $filename . '.pdf');
-        
+
+        $filename = $this->option('filename') ?? $template.'_'.date('Y-m-d_H-i-s');
+        $outputPath = $this->getOutputPath($template, $filename.'.pdf');
+
         $this->ensureOutputDirectory($outputPath);
-        
+
         $pdf = $this->pdfGenerator->generate($template, $data, $options);
         $success = $this->pdfGenerator->savePdf($pdf, $outputPath);
-        
-        if (!$success) {
+
+        if (! $success) {
             $this->error("Failed to save PDF to: {$outputPath}");
+
             return self::FAILURE;
         }
-        
-        $this->info("✓ PDF generated successfully!");
+
+        $this->info('✓ PDF generated successfully!');
         $this->line("PDF saved to: {$outputPath}");
-        
+
         // Show file size
         $fileSize = $this->formatFileSize(filesize($outputPath));
         $this->line("File size: {$fileSize}");
-        
+
         return self::SUCCESS;
     }
 
@@ -232,7 +239,8 @@ class GeneratePdfCommand extends Command
     private function getOutputPath(string $template, string $filename): string
     {
         $outputDir = $this->option('output') ?? storage_path('app/pdfs');
-        return rtrim($outputDir, '/') . '/' . $filename;
+
+        return rtrim($outputDir, '/').'/'.$filename;
     }
 
     /**
@@ -241,7 +249,7 @@ class GeneratePdfCommand extends Command
     private function ensureOutputDirectory(string $filePath): void
     {
         $directory = dirname($filePath);
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
     }
@@ -253,12 +261,12 @@ class GeneratePdfCommand extends Command
     {
         $units = ['B', 'KB', 'MB', 'GB'];
         $unitIndex = 0;
-        
+
         while ($bytes >= 1024 && $unitIndex < count($units) - 1) {
             $bytes /= 1024;
             $unitIndex++;
         }
-        
-        return round($bytes, 2) . ' ' . $units[$unitIndex];
+
+        return round($bytes, 2).' '.$units[$unitIndex];
     }
 }

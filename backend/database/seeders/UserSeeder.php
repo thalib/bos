@@ -14,7 +14,7 @@ class UserSeeder extends Seeder
     {
         // First clear existing users to avoid conflicts
         User::truncate();
-        
+
         // Create admin user
         User::create([
             'name' => 'Admin User',
@@ -25,7 +25,7 @@ class UserSeeder extends Seeder
             'role' => 'admin',
             'password' => bcrypt('thalib123'),
         ]);
-        
+
         // Create a test user
         User::create([
             'name' => 'Test User',
@@ -36,8 +36,8 @@ class UserSeeder extends Seeder
             'role' => 'user',
             'password' => bcrypt('password'),
         ]);
-        
+
         // Create additional random users for pagination testing
-        //User::factory(50)->create();
+        // User::factory(50)->create();
     }
 }

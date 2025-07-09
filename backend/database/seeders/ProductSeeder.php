@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
@@ -59,7 +58,7 @@ class ProductSeeder extends Seeder
 
         \App\Models\Product::factory(3)
             ->active()
-            ->simple() 
+            ->simple()
             ->outOfStock()
             ->create();
 
@@ -103,26 +102,29 @@ class ProductSeeder extends Seeder
             ->tracked()
             ->state([
                 'stock_quantity' => fake()->numberBetween(500, 2000),
-                'stock_low_threshold' => 50
+                'stock_low_threshold' => 50,
             ])
             ->create();
 
         $this->command->info('Products seeded successfully!');
-        $this->command->info('Total products created: ' . \App\Models\Product::count());
-        $this->command->info('Active products: ' . \App\Models\Product::active()->count());
-        
+        $this->command->info('Total products created: '.\App\Models\Product::count());
+        $this->command->info('Active products: '.\App\Models\Product::active()->count());
+
         // Count featured products using a different approach for SQLite compatibility
         $featuredCount = \App\Models\Product::whereNotNull('meta_data')
             ->get()
             ->filter(function ($product) {
-                if (!$product->meta_data) return false;
+                if (! $product->meta_data) {
+                    return false;
+                }
+
                 return collect($product->meta_data)->contains(function ($item) {
                     return isset($item['key']) && $item['key'] === 'featured' && isset($item['value']) && $item['value'] === true;
                 });
             })
             ->count();
-        
-        $this->command->info('Featured products: ' . $featuredCount);
-        $this->command->info('Products on sale: ' . \App\Models\Product::where('sale_price', '>', 0)->count());
+
+        $this->command->info('Featured products: '.$featuredCount);
+        $this->command->info('Products on sale: '.\App\Models\Product::where('sale_price', '>', 0)->count());
     }
 }

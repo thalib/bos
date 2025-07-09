@@ -2,9 +2,9 @@
 
 namespace App\Providers;
 
+use App\Exceptions\PdfGenerationException;
 use App\Services\PdfGeneratorService;
 use App\Services\PdfTemplateService;
-use App\Exceptions\PdfGenerationException;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -19,7 +19,7 @@ class PdfServiceProvider extends ServiceProvider
     {
         // Register PdfTemplateService as singleton
         $this->app->singleton(PdfTemplateService::class, function ($app) {
-            return new PdfTemplateService();
+            return new PdfTemplateService;
         });
 
         // Register PdfGeneratorService as singleton
@@ -91,10 +91,11 @@ class PdfServiceProvider extends ServiceProvider
             $templateService = $this->app->make(PdfTemplateService::class);
             $pdfViewsPath = resource_path('views/pdf');
 
-            if (!File::exists($pdfViewsPath)) {
+            if (! File::exists($pdfViewsPath)) {
                 Log::info('PDF views directory does not exist, skipping auto-discovery', [
-                    'path' => $pdfViewsPath
+                    'path' => $pdfViewsPath,
                 ]);
+
                 return;
             }
 
@@ -103,7 +104,7 @@ class PdfServiceProvider extends ServiceProvider
 
             foreach ($files as $file) {
                 $templateName = $file->getFilenameWithoutExtension();
-                
+
                 if ($templateName === 'base' || str_starts_with($templateName, '_')) {
                     continue; // Skip base templates and partials
                 }
@@ -117,13 +118,13 @@ class PdfServiceProvider extends ServiceProvider
 
             Log::info('Auto-discovered PDF templates', [
                 'count' => count($templates),
-                'templates' => $templates
+                'templates' => $templates,
             ]);
 
         } catch (\Exception $e) {
             Log::error('Failed to auto-discover PDF templates', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }
@@ -148,8 +149,9 @@ class PdfServiceProvider extends ServiceProvider
         } catch (\Exception $e) {
             Log::warning('Failed to extract required fields from template', [
                 'file' => $filePath,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return [];
         }
     }
@@ -160,7 +162,7 @@ class PdfServiceProvider extends ServiceProvider
     protected function ensureDirectories(array $directories): void
     {
         foreach ($directories as $directory) {
-            if (!File::exists($directory)) {
+            if (! File::exists($directory)) {
                 File::makeDirectory($directory, 0755, true);
                 Log::info('Created directory', ['path' => $directory]);
             }

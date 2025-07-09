@@ -29,9 +29,10 @@ class PdfListCommand extends Command
     public function handle(): int
     {
         $templates = $this->templateService->getAvailableTemplates();
-        
+
         if (empty($templates)) {
             $this->warn('No templates found.');
+
             return self::SUCCESS;
         }
 

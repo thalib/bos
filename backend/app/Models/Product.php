@@ -4,15 +4,15 @@ namespace App\Models;
 
 use App\Attributes\ApiResource;
 use App\Traits\HandlesDatabaseDefaults;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 
 #[ApiResource(uri: 'products', apiPrefix: 'api', version: 'v1')]
 class Product extends Model
 {
     /** @use HasFactory<\Database\Factories\ProductFactory> */
-    use HasFactory, HandlesDatabaseDefaults;
+    use HandlesDatabaseDefaults, HasFactory;
 
     /**
      * The attributes that are mass assignable.
@@ -216,10 +216,10 @@ class Product extends Model
      */
     public function isInStock(): bool
     {
-        if (!$this->stock_track) {
+        if (! $this->stock_track) {
             return true;
         }
-        
+
         return $this->stock_quantity > 0;
     }
 
@@ -228,10 +228,10 @@ class Product extends Model
      */
     public function isLowStock(): bool
     {
-        if (!$this->stock_track) {
+        if (! $this->stock_track) {
             return false;
         }
-        
+
         return $this->stock_quantity <= $this->stock_low_threshold;
     }
 
@@ -251,14 +251,12 @@ class Product extends Model
         if ($this->sale_price <= 0 || $this->price <= 0) {
             return 0;
         }
-        
+
         return round((($this->price - $this->sale_price) / $this->price) * 100, 2);
     }
 
     /**
      * Get the columns to display in the index listing.
-     *
-     * @return array
      */
     public function getIndexColumns(): array
     {
@@ -267,31 +265,29 @@ class Product extends Model
                 'label' => 'Product Name',
                 'sortable' => true,
                 'clickable' => true,
-                'search' => true
+                'search' => true,
             ],
             'cost' => [
                 'label' => 'Cost',
-                'formatter' => 'currency'
+                'formatter' => 'currency',
             ],
             'price' => [
                 'label' => 'Price',
-                'formatter' => 'currency'
+                'formatter' => 'currency',
             ],
             'mrp' => [
                 'label' => 'MRP',
-                'formatter' => 'currency'
+                'formatter' => 'currency',
             ],
             'stock_quantity' => [
                 'label' => 'Stock',
-                'formatter' => 'number'
-            ]
+                'formatter' => 'number',
+            ],
         ];
     }
 
     /**
      * Get the API schema for form generation.
-     *
-     * @return array
      */
     public function getApiSchema(): array
     {
@@ -302,19 +298,19 @@ class Product extends Model
                     'type' => 'checkbox',
                     'label' => 'Active',
                     'required' => false,
-                    'default' => true
+                    'default' => true,
                 ],
                 'name' => [
                     'label' => 'Product Name',
                     'placeholder' => 'Enter product name',
                     'required' => true,
-                    'maxLength' => 255
+                    'maxLength' => 255,
                 ],
                 'slug' => [
                     'label' => 'URL Slug',
                     'placeholder' => 'auto-generated-from-name',
                     'required' => true,
-                    'maxLength' => 255
+                    'maxLength' => 255,
                 ],
                 'type' => [
                     'type' => 'select',
@@ -323,10 +319,10 @@ class Product extends Model
                         ['value' => 'simple', 'label' => 'Simple Product'],
                         ['value' => 'variable', 'label' => 'Variable Product'],
                         ['value' => 'grouped', 'label' => 'Grouped Product'],
-                        ['value' => 'external', 'label' => 'External Product']
+                        ['value' => 'external', 'label' => 'External Product'],
                     ],
                     'required' => true,
-                    'default' => 'simple'
+                    'default' => 'simple',
                 ],
                 'publication_status' => [
                     'type' => 'select',
@@ -335,28 +331,28 @@ class Product extends Model
                         ['value' => 'draft', 'label' => 'Draft'],
                         ['value' => 'published', 'label' => 'Published'],
                         ['value' => 'discontinued', 'label' => 'Discontinued'],
-                        ['value' => 'private', 'label' => 'Private']
+                        ['value' => 'private', 'label' => 'Private'],
                     ],
                     'required' => true,
-                    'default' => 'draft'
+                    'default' => 'draft',
                 ],
                 'sku' => [
                     'label' => 'SKU',
                     'placeholder' => 'Enter SKU code',
                     'required' => false,
-                    'maxLength' => 100
+                    'maxLength' => 100,
                 ],
                 'barcode' => [
                     'label' => 'Barcode',
                     'placeholder' => 'Enter barcode',
                     'required' => false,
-                    'maxLength' => 100
+                    'maxLength' => 100,
                 ],
                 'brand' => [
                     'label' => 'Brand',
                     'placeholder' => 'Enter brand name',
                     'default' => 'ASENSAR',
-                    'required' => false
+                    'required' => false,
                 ],
                 'unit' => [
                     'type' => 'select',
@@ -367,37 +363,37 @@ class Product extends Model
                         ['value' => 'kg', 'label' => 'Kilogram'],
                         ['value' => 'gram', 'label' => 'Gram'],
                         ['value' => 'liter', 'label' => 'Liter'],
-                        ['value' => 'meter', 'label' => 'Meter']
+                        ['value' => 'meter', 'label' => 'Meter'],
                     ],
                     'required' => false,
-                    'default' => 'nos'
+                    'default' => 'nos',
                 ],
                 'categories' => [
                     'type' => 'multiselect',
                     'label' => 'Categories',
                     'required' => false,
-                    'options' => []
+                    'options' => [],
                 ],
                 'image' => [
                     'type' => 'file',
                     'label' => 'Featured Image',
                     'required' => false,
-                    'accept' => 'image/*'
+                    'accept' => 'image/*',
                 ],
                 'images' => [
                     'type' => 'file',
                     'label' => 'Product Images',
                     'required' => false,
                     'multiple' => true,
-                    'accept' => 'image/*'
+                    'accept' => 'image/*',
                 ],
                 'external_url' => [
                     'label' => 'External URL',
                     'placeholder' => 'https://asensar.com',
                     'required' => false,
-                    'maxLength' => 500
-                ]
-            ]
+                    'maxLength' => 500,
+                ],
+            ],
         ];
 
         $priceInventory = [
@@ -410,7 +406,7 @@ class Product extends Model
                     'default' => '0.00',
                     'min' => '0',
                     'step' => '0.01',
-                    'prefix' => '₹'
+                    'prefix' => '₹',
                 ],
                 'mrp' => [
                     'label' => 'MRP',
@@ -419,7 +415,7 @@ class Product extends Model
                     'required' => false,
                     'min' => '0',
                     'step' => '0.01',
-                    'prefix' => '₹'
+                    'prefix' => '₹',
                 ],
                 'price' => [
                     'label' => 'Regular Price',
@@ -428,7 +424,7 @@ class Product extends Model
                     'default' => '0.00',
                     'min' => '0',
                     'step' => '0.01',
-                    'prefix' => '₹'
+                    'prefix' => '₹',
                 ],
                 'sale_price' => [
                     'label' => 'Sale Price',
@@ -437,13 +433,13 @@ class Product extends Model
                     'default' => '0.00',
                     'min' => '0',
                     'step' => '0.01',
-                    'prefix' => '₹'
+                    'prefix' => '₹',
                 ],
                 'stock_track' => [
                     'type' => 'checkbox',
                     'label' => 'Track Stock',
                     'required' => false,
-                    'default' => false
+                    'default' => false,
                 ],
                 'stock_quantity' => [
                     'type' => 'number',
@@ -452,7 +448,7 @@ class Product extends Model
                     'default' => '0',
                     'required' => false,
                     'min' => '0',
-                    'step' => '1'
+                    'step' => '1',
                 ],
                 'stock_low_threshold' => [
                     'type' => 'number',
@@ -461,9 +457,9 @@ class Product extends Model
                     'required' => false,
                     'default' => '0',
                     'min' => '0',
-                    'step' => '1'
-                ]
-            ]
+                    'step' => '1',
+                ],
+            ],
         ];
 
         $tax = [
@@ -473,13 +469,13 @@ class Product extends Model
                     'type' => 'checkbox',
                     'label' => 'Taxable',
                     'required' => false,
-                    'default' => true
+                    'default' => true,
                 ],
                 'tax_hsn_code' => [
                     'label' => 'HSN Code',
                     'placeholder' => 'Enter HSN code',
                     'required' => false,
-                    'maxLength' => 20
+                    'maxLength' => 20,
                 ],
                 'tax_rate' => [
                     'type' => 'number',
@@ -490,15 +486,15 @@ class Product extends Model
                     'min' => '0',
                     'max' => '100',
                     'step' => '0.01',
-                    'suffix' => '%'
+                    'suffix' => '%',
                 ],
                 'tax_inclusive' => [
                     'type' => 'checkbox',
                     'label' => 'Tax Inclusive',
                     'required' => false,
-                    'default' => true
-                ]
-            ]
+                    'default' => true,
+                ],
+            ],
         ];
 
         $shipping = [
@@ -511,7 +507,7 @@ class Product extends Model
                     'required' => false,
                     'min' => '0',
                     'step' => '0.01',
-                    'suffix' => 'cm'
+                    'suffix' => 'cm',
                 ],
                 'width' => [
                     'label' => 'Width',
@@ -520,7 +516,7 @@ class Product extends Model
                     'required' => false,
                     'min' => '0',
                     'step' => '0.01',
-                    'suffix' => 'cm'
+                    'suffix' => 'cm',
                 ],
                 'height' => [
                     'label' => 'Height',
@@ -529,7 +525,7 @@ class Product extends Model
                     'required' => false,
                     'min' => '0',
                     'step' => '0.01',
-                    'suffix' => 'cm'
+                    'suffix' => 'cm',
                 ],
                 'weight' => [
                     'label' => 'Weight',
@@ -538,7 +534,7 @@ class Product extends Model
                     'required' => false,
                     'min' => '0',
                     'step' => '0.01',
-                    'suffix' => 'kg'
+                    'suffix' => 'kg',
                 ],
                 'shipping_weight' => [
                     'label' => 'Shipping Weight',
@@ -546,19 +542,19 @@ class Product extends Model
                     'required' => false,
                     'min' => '0',
                     'step' => '0.01',
-                    'suffix' => 'kg'
+                    'suffix' => 'kg',
                 ],
                 'shipping_required' => [
                     'type' => 'checkbox',
                     'label' => 'Shipping Required',
                     'required' => false,
-                    'default' => true
+                    'default' => true,
                 ],
                 'shipping_taxable' => [
                     'type' => 'checkbox',
                     'label' => 'Shipping Taxable',
                     'required' => false,
-                    'default' => true
+                    'default' => true,
                 ],
                 'shipping_class_id' => [
                     'type' => 'number',
@@ -567,9 +563,9 @@ class Product extends Model
                     'required' => false,
                     'default' => '0',
                     'min' => '0',
-                    'step' => '1'
-                ]
-            ]
+                    'step' => '1',
+                ],
+            ],
         ];
 
         $other = [
@@ -580,52 +576,52 @@ class Product extends Model
                     'label' => 'Description',
                     'placeholder' => 'Enter product description',
                     'required' => false,
-                    'attributes' => ['rows' => 4]
+                    'attributes' => ['rows' => 4],
                 ],
                 'short_description' => [
                     'type' => 'textarea',
                     'label' => 'Short Description',
                     'placeholder' => 'Enter brief description',
                     'required' => false,
-                    'attributes' => ['rows' => 2]
+                    'attributes' => ['rows' => 2],
                 ],
                 'tags' => [
                     'type' => 'tags',
                     'label' => 'Tags',
                     'placeholder' => 'Enter tags separated by commas',
-                    'required' => false
+                    'required' => false,
                 ],
                 'attributes' => [
                     'type' => 'array',
                     'label' => 'Attributes',
-                    'required' => false
+                    'required' => false,
                 ],
                 'variations' => [
                     'type' => 'array',
                     'label' => 'Variations',
-                    'required' => false
+                    'required' => false,
                 ],
                 'related_ids' => [
                     'type' => 'array',
                     'label' => 'Related Ids',
-                    'required' => false
+                    'required' => false,
                 ],
                 'upsell_ids' => [
                     'type' => 'array',
                     'label' => 'Upsell Ids',
-                    'required' => false
+                    'required' => false,
                 ],
                 'cross_sell_ids' => [
                     'type' => 'array',
                     'label' => 'Cross Sell Ids',
-                    'required' => false
+                    'required' => false,
                 ],
                 'meta_data' => [
                     'type' => 'array',
                     'label' => 'Meta Data',
-                    'required' => false
-                ]
-            ]
+                    'required' => false,
+                ],
+            ],
         ];
 
         return [
@@ -633,15 +629,13 @@ class Product extends Model
             $priceInventory,
             $tax,
             $shipping,
-            $other
+            $other,
         ];
     }
 
     /**
      * Get hardcoded defaults for known fields (fallback method).
      * These should match the database migration defaults.
-     *
-     * @return array
      */
     public function getHardcodedDefaults(): array
     {

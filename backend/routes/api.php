@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -28,7 +27,7 @@ Route::prefix('v1')->group(function () {    // Authentication routes
         Route::post('logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->middleware('auth:sanctum');
         Route::get('status', [\App\Http\Controllers\Api\AuthController::class, 'status']);
     });
-    
+
     // Menu routes
     Route::middleware('auth:sanctum')->get('menu', [\App\Http\Controllers\Api\MenuController::class, 'index']);
 

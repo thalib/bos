@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\PdfGenerationException;
 use App\Http\Requests\GeneratePdfRequest;
 use App\Http\Requests\PreviewDocumentRequest;
 use App\Services\PdfGeneratorService;
 use App\Services\PdfTemplateService;
-use App\Exceptions\PdfGenerationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class DocumentController extends Controller
 {
@@ -24,7 +24,6 @@ class DocumentController extends Controller
     /**
      * Generate PDF document
      *
-     * @param GeneratePdfRequest $request
      * @return Response|JsonResponse
      */
     public function generatePdf(GeneratePdfRequest $request)
@@ -33,13 +32,13 @@ class DocumentController extends Controller
             $templateName = $request->input('template');
             $data = $request->input('data', []);
             $options = $request->input('options', []);
-            $filename = $request->input('filename', $templateName . '_' . date('Y-m-d_H-i-s') . '.pdf');
+            $filename = $request->input('filename', $templateName.'_'.date('Y-m-d_H-i-s').'.pdf');
 
             Log::info('PDF generation request', [
                 'user_id' => Auth::id(),
                 'template' => $templateName,
                 'filename' => $filename,
-                'data_keys' => array_keys($data)
+                'data_keys' => array_keys($data),
             ]);
 
             // Generate PDF
@@ -48,11 +47,11 @@ class DocumentController extends Controller
             // Return PDF as download
             return response($pdfContent, 200, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
                 'Content-Length' => strlen($pdfContent),
                 'Cache-Control' => 'no-cache, no-store, must-revalidate',
                 'Pragma' => 'no-cache',
-                'Expires' => '0'
+                'Expires' => '0',
             ]);
 
         } catch (PdfGenerationException $e) {
@@ -60,7 +59,7 @@ class DocumentController extends Controller
                 'user_id' => Auth::id(),
                 'template' => $request->input('template'),
                 'error' => $e->getMessage(),
-                'context' => $e->getContext()
+                'context' => $e->getContext(),
             ]);
 
             return $this->errorResponse($e->getMessage(), $e->getCode(), $e->getContext());
@@ -70,7 +69,7 @@ class DocumentController extends Controller
                 'user_id' => Auth::id(),
                 'template' => $request->input('template'),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return $this->errorResponse('Internal server error', 500);
@@ -79,8 +78,6 @@ class DocumentController extends Controller
 
     /**
      * Get available templates
-     *
-     * @return JsonResponse
      */
     public function getTemplates(): JsonResponse
     {
@@ -92,7 +89,7 @@ class DocumentController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to retrieve templates', [
                 'user_id' => Auth::id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return $this->errorResponse('Failed to retrieve templates', 500);
@@ -101,9 +98,6 @@ class DocumentController extends Controller
 
     /**
      * Generate document preview
-     *
-     * @param PreviewDocumentRequest $request
-     * @return JsonResponse
      */
     public function previewDocument(PreviewDocumentRequest $request): JsonResponse
     {
@@ -114,7 +108,7 @@ class DocumentController extends Controller
             Log::info('Document preview request', [
                 'user_id' => Auth::id(),
                 'template' => $templateName,
-                'data_keys' => array_keys($data)
+                'data_keys' => array_keys($data),
             ]);
 
             // Generate HTML preview
@@ -123,7 +117,7 @@ class DocumentController extends Controller
             return $this->successResponse([
                 'template' => $templateName,
                 'preview' => $preview,
-                'generated_at' => now()->toISOString()
+                'generated_at' => now()->toISOString(),
             ], 'Preview generated successfully');
 
         } catch (PdfGenerationException $e) {
@@ -131,7 +125,7 @@ class DocumentController extends Controller
                 'user_id' => Auth::id(),
                 'template' => $request->input('template'),
                 'error' => $e->getMessage(),
-                'context' => $e->getContext()
+                'context' => $e->getContext(),
             ]);
 
             return $this->errorResponse($e->getMessage(), $e->getCode(), $e->getContext());
@@ -140,7 +134,7 @@ class DocumentController extends Controller
             Log::error('Unexpected error in document preview', [
                 'user_id' => Auth::id(),
                 'template' => $request->input('template'),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return $this->errorResponse('Internal server error', 500);
@@ -149,14 +143,11 @@ class DocumentController extends Controller
 
     /**
      * Get template information
-     *
-     * @param string $template
-     * @return JsonResponse
      */
     public function getTemplateInfo(string $template): JsonResponse
     {
         try {
-            if (!$this->templateService->templateExists($template)) {
+            if (! $this->templateService->templateExists($template)) {
                 return $this->errorResponse("Template '{$template}' not found", 404);
             }
 
@@ -167,7 +158,7 @@ class DocumentController extends Controller
                 'template' => $template,
                 'metadata' => $metadata,
                 'config' => $config,
-                'exists' => true
+                'exists' => true,
             ], 'Template information retrieved successfully');
 
         } catch (PdfGenerationException $e) {
@@ -177,7 +168,7 @@ class DocumentController extends Controller
             Log::error('Failed to retrieve template info', [
                 'user_id' => Auth::id(),
                 'template' => $template,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return $this->errorResponse('Failed to retrieve template information', 500);
@@ -186,9 +177,6 @@ class DocumentController extends Controller
 
     /**
      * Validate template data
-     *
-     * @param GeneratePdfRequest $request
-     * @return JsonResponse
      */
     public function validateTemplateData(GeneratePdfRequest $request): JsonResponse
     {
@@ -201,7 +189,7 @@ class DocumentController extends Controller
             return $this->successResponse([
                 'template' => $templateName,
                 'validation' => $validationResult,
-                'valid' => $validationResult['valid']
+                'valid' => $validationResult['valid'],
             ], 'Template data validation completed');
 
         } catch (PdfGenerationException $e) {
@@ -211,7 +199,7 @@ class DocumentController extends Controller
             Log::error('Template data validation failed', [
                 'user_id' => Auth::id(),
                 'template' => $request->input('template'),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return $this->errorResponse('Validation failed', 500);
@@ -221,10 +209,7 @@ class DocumentController extends Controller
     /**
      * Return success response
      *
-     * @param mixed $data
-     * @param string $message
-     * @param int $code
-     * @return JsonResponse
+     * @param  mixed  $data
      */
     protected function successResponse($data = null, string $message = 'Success', int $code = 200): JsonResponse
     {
@@ -232,17 +217,12 @@ class DocumentController extends Controller
             'success' => true,
             'message' => $message,
             'data' => $data,
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ], $code);
     }
 
     /**
      * Return error response
-     *
-     * @param string $message
-     * @param int $code
-     * @param array $context
-     * @return JsonResponse
      */
     protected function errorResponse(string $message, int $code = 400, array $context = []): JsonResponse
     {
@@ -250,10 +230,10 @@ class DocumentController extends Controller
             'success' => false,
             'message' => $message,
             'error_code' => $code,
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ];
 
-        if (!empty($context)) {
+        if (! empty($context)) {
             $response['context'] = $context;
         }
 

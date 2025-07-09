@@ -8,9 +8,10 @@ use Illuminate\Support\Facades\Log;
 class PdfGenerationException extends Exception
 {
     protected $templateName;
+
     protected $context;
 
-    public function __construct(string $message = "", int $code = 0, ?Exception $previous = null, ?string $templateName = null, array $context = [])
+    public function __construct(string $message = '', int $code = 0, ?Exception $previous = null, ?string $templateName = null, array $context = [])
     {
         parent::__construct($message, $code, $previous);
         $this->templateName = $templateName;

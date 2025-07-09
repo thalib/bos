@@ -8,14 +8,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     /**
      * Handle user login
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function login(Request $request)
@@ -28,45 +26,46 @@ class AuthController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         // First try login with email as username
         $field = filter_var($request->username, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
-          $user = User::where($field, $request->username)->first();
+        $user = User::where($field, $request->username)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json([
-                'message' => 'The provided credentials are incorrect.'
+                'message' => 'The provided credentials are incorrect.',
             ], 401);
         }
 
         // Check if user is active
-        if (!$user->active) {
+        if (! $user->active) {
             return response()->json([
-                'message' => 'Your account is not active. Please contact an administrator.'
+                'message' => 'Your account is not active. Please contact an administrator.',
             ], 403);
         }
 
         // Create access token
         $accessToken = $user->createToken('auth_token')->plainTextToken;
-        
+
         // Create refresh token (store in database with expiry)
-        $refreshToken = $user->createToken('refresh_token', ['refresh'])->plainTextToken;        return response()->json([
+        $refreshToken = $user->createToken('refresh_token', ['refresh'])->plainTextToken;
+
+        return response()->json([
             'access_token' => $accessToken,
             'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
             'expires_in' => null, // Sanctum tokens don't expire by default
             'user' => $user,
-            'message' => 'Successfully logged in'
+            'message' => 'Successfully logged in',
         ]);
     }
 
     /**
      * Refresh access token using refresh token
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function refresh(Request $request)
@@ -78,25 +77,25 @@ class AuthController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         // Extract the actual token from "refresh_token|ACTUAL_TOKEN"
         $refreshToken = explode('|', $request->refreshToken)[1] ?? null;
-        
-        if (!$refreshToken) {
+
+        if (! $refreshToken) {
             return response()->json([
-                'message' => 'Invalid refresh token format'
+                'message' => 'Invalid refresh token format',
             ], 401);
         }
 
         // Find the token in the database
         $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($refreshToken);
 
-        if (!$tokenModel || !$tokenModel->tokenable) {
+        if (! $tokenModel || ! $tokenModel->tokenable) {
             return response()->json([
-                'message' => 'Invalid refresh token'
+                'message' => 'Invalid refresh token',
             ], 401);
         }
 
@@ -105,7 +104,7 @@ class AuthController extends Controller
 
         // Revoke the refresh token
         $tokenModel->delete();
-        
+
         // Create new tokens
         $accessToken = $user->createToken('auth_token')->plainTextToken;
         $newRefreshToken = $user->createToken('refresh_token', ['refresh'])->plainTextToken;
@@ -114,12 +113,13 @@ class AuthController extends Controller
             'user' => $user,
             'accessToken' => $accessToken,
             'refreshToken' => $newRefreshToken,
-            'message' => 'Token refreshed successfully'
+            'message' => 'Token refreshed successfully',
         ]);
-    }    /**
+    }
+
+    /**
      * Handle user logout
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function logout(Request $request)
@@ -130,30 +130,29 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'message' => 'Successfully logged out'
+            'message' => 'Successfully logged out',
         ]);
     }
 
     /**
      * Check authentication status
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function status(Request $request)
     {
         return response()->json([
             'authenticated' => Auth::check(),
-            'user' => Auth::check() ? Auth::user() : null
+            'user' => Auth::check() ? Auth::user() : null,
         ]);
     }
 
     /**
      * Register a new user
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
-     */    public function register(Request $request)
+     */
+    public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -166,7 +165,7 @@ class AuthController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -187,7 +186,7 @@ class AuthController extends Controller
             'message' => 'User registered successfully',
             'user' => $user,
             'accessToken' => $accessToken,
-            'refreshToken' => $refreshToken
+            'refreshToken' => $refreshToken,
         ], 201);
     }
 }

@@ -12,10 +12,6 @@ class DatabaseErrorParser
 {
     /**
      * Parse database error to provide more specific error information.
-     *
-     * @param QueryException $e
-     * @param array $data
-     * @return array
      */
     public static function parse(QueryException $e, array $data = []): array
     {
@@ -53,9 +49,6 @@ class DatabaseErrorParser
 
     /**
      * Parse foreign key constraint errors.
-     *
-     * @param string $errorMessage
-     * @return array
      */
     protected static function parseForeignKeyError(string $errorMessage): array
     {
@@ -67,15 +60,12 @@ class DatabaseErrorParser
             'error_type' => 'foreign_key_constraint',
             'message' => 'Foreign key constraint violation',
             'constraint' => $constraintInfo,
-            'suggestion' => 'Check that referenced IDs exist in related tables'
+            'suggestion' => 'Check that referenced IDs exist in related tables',
         ];
     }
 
     /**
      * Parse NOT NULL constraint errors.
-     *
-     * @param string $errorMessage
-     * @return array
      */
     protected static function parseNotNullError(string $errorMessage): array
     {
@@ -87,16 +77,12 @@ class DatabaseErrorParser
             'error_type' => 'required_field_missing',
             'message' => "Required field '{$fieldName}' cannot be null",
             'field' => $fieldName,
-            'suggestion' => "Provide a value for the '{$fieldName}' field"
+            'suggestion' => "Provide a value for the '{$fieldName}' field",
         ];
     }
 
     /**
      * Parse UNIQUE constraint errors.
-     *
-     * @param string $errorMessage
-     * @param array $data
-     * @return array
      */
     protected static function parseUniqueConstraintError(string $errorMessage, array $data): array
     {
@@ -110,16 +96,12 @@ class DatabaseErrorParser
             'message' => "Duplicate value for field '{$fieldName}'",
             'field' => $fieldName,
             'provided_value' => $providedValue,
-            'suggestion' => "The value '{$providedValue}' already exists. Use a unique value for '{$fieldName}'"
+            'suggestion' => "The value '{$providedValue}' already exists. Use a unique value for '{$fieldName}'",
         ];
     }
 
     /**
      * Parse data too long errors.
-     *
-     * @param string $errorMessage
-     * @param array $data
-     * @return array
      */
     protected static function parseDataTooLongError(string $errorMessage, array $data): array
     {
@@ -134,16 +116,12 @@ class DatabaseErrorParser
             'field' => $fieldName,
             'provided_value' => $providedValue,
             'provided_length' => is_string($providedValue) ? strlen($providedValue) : null,
-            'suggestion' => "Reduce the length of data for field '{$fieldName}'"
+            'suggestion' => "Reduce the length of data for field '{$fieldName}'",
         ];
     }
 
     /**
      * Parse data type mismatch errors.
-     *
-     * @param string $errorMessage
-     * @param array $data
-     * @return array
      */
     protected static function parseDataTypeMismatchError(string $errorMessage, array $data): array
     {
@@ -159,29 +137,25 @@ class DatabaseErrorParser
             'field' => $fieldName,
             'expected_type' => $dataType,
             'provided_value' => $providedValue,
-            'suggestion' => "Provide a valid {$dataType} value for field '{$fieldName}'"
+            'suggestion' => "Provide a valid {$dataType} value for field '{$fieldName}'",
         ];
     }
 
     /**
      * Parse invalid JSON errors.
-     *
-     * @param string $errorMessage
-     * @param array $data
-     * @return array
      */
     protected static function parseInvalidJsonError(string $errorMessage, array $data): array
     {
         // Find which field has invalid JSON
         foreach ($data as $field => $value) {
-            if (is_string($value) && !json_decode($value) && json_last_error() !== JSON_ERROR_NONE) {
+            if (is_string($value) && ! json_decode($value) && json_last_error() !== JSON_ERROR_NONE) {
                 return [
                     'error_type' => 'invalid_json',
                     'message' => "Invalid JSON format for field '{$field}'",
                     'field' => $field,
                     'provided_value' => $value,
                     'json_error' => json_last_error_msg(),
-                    'suggestion' => "Provide valid JSON format for field '{$field}'"
+                    'suggestion' => "Provide valid JSON format for field '{$field}'",
                 ];
             }
         }
@@ -190,16 +164,14 @@ class DatabaseErrorParser
         return [
             'error_type' => 'invalid_json',
             'message' => 'Invalid JSON format detected',
-            'suggestion' => 'Check JSON fields for proper formatting'
+            'suggestion' => 'Check JSON fields for proper formatting',
         ];
     }
 
     /**
      * Parse generic database errors.
      *
-     * @param string $errorMessage
-     * @param mixed $errorCode
-     * @return array
+     * @param  mixed  $errorCode
      */
     protected static function parseGenericError(string $errorMessage, $errorCode): array
     {
@@ -208,17 +180,14 @@ class DatabaseErrorParser
             'message' => 'Database operation failed',
             'raw_error' => $errorMessage,
             'error_code' => $errorCode,
-            'suggestion' => 'Check the data format and constraints'
+            'suggestion' => 'Check the data format and constraints',
         ];
     }
 
     /**
      * Get a user-friendly error message for common database constraint types.
      *
-     * @param string $constraintType
-     * @param string $fieldName
-     * @param mixed $value
-     * @return string
+     * @param  mixed  $value
      */
     public static function getConstraintMessage(string $constraintType, string $fieldName, $value = null): string
     {
@@ -234,29 +203,23 @@ class DatabaseErrorParser
 
     /**
      * Check if an exception is a database constraint violation.
-     *
-     * @param \Throwable $exception
-     * @return bool
      */
     public static function isConstraintViolation(\Throwable $exception): bool
     {
-        if (!$exception instanceof QueryException) {
+        if (! $exception instanceof QueryException) {
             return false;
         }
 
         $message = $exception->getMessage();
-        
-        return str_contains($message, 'constraint') || 
-               str_contains($message, 'UNIQUE') || 
-               str_contains($message, 'NOT NULL') || 
+
+        return str_contains($message, 'constraint') ||
+               str_contains($message, 'UNIQUE') ||
+               str_contains($message, 'NOT NULL') ||
                str_contains($message, 'FOREIGN KEY');
     }
 
     /**
      * Extract field name from database error message.
-     *
-     * @param string $errorMessage
-     * @return string|null
      */
     public static function extractFieldName(string $errorMessage): ?string
     {

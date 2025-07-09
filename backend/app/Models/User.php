@@ -58,8 +58,6 @@ class User extends Authenticatable
 
     /**
      * Get the columns to display in the index listing.
-     *
-     * @return array
      */
     public function getIndexColumns(): array
     {
@@ -68,28 +66,26 @@ class User extends Authenticatable
                 'label' => 'Name',
                 'sortable' => true,
                 'clickable' => true,
-                'search' => true
+                'search' => true,
             ],
             'email' => [
                 'label' => 'Email',
-                'search' => true
+                'search' => true,
             ],
             'whatsapp' => [
                 'label' => 'WhatsApp',
-                'search' => true
+                'search' => true,
             ],
             'role' => [
                 'label' => 'Role',
                 'sortable' => true,
-                'search' => true
-            ]
+                'search' => true,
+            ],
         ];
     }
 
     /**
      * Get the API schema for form generation.
-     *
-     * @return array
      */
     public function getApiSchema(): array
     {
@@ -98,34 +94,34 @@ class User extends Authenticatable
                 'label' => 'Status',
                 'type' => 'checkbox',
                 'required' => false,
-                'default' => true
+                'default' => true,
             ],
             'name' => [
                 'label' => 'Name',
                 'placeholder' => 'Enter your full name',
                 'required' => true,
-                'maxLength' => 255
+                'maxLength' => 255,
             ],
             'username' => [
                 'label' => 'Username',
                 'placeholder' => 'Enter your username',
                 'required' => true,
                 'maxLength' => 255,
-                'unique' => true
+                'unique' => true,
             ],
             'email' => [
                 'label' => 'Email',
                 'placeholder' => 'Enter your email address',
                 'required' => true,
                 'maxLength' => 255,
-                'unique' => true
+                'unique' => true,
             ],
             'whatsapp' => [
                 'label' => 'WhatsApp Number',
                 'placeholder' => 'Enter your WhatsApp number',
                 'required' => true,
                 'pattern' => '^[0-9]{10,15}$',
-                'unique' => true
+                'unique' => true,
             ],
             'role' => [
                 'label' => 'Role',
@@ -133,16 +129,16 @@ class User extends Authenticatable
                 'type' => 'select',
                 'options' => [
                     ['value' => 'admin', 'label' => 'Admin'],
-                    ['value' => 'user', 'label' => 'User']
+                    ['value' => 'user', 'label' => 'User'],
                 ],
-                'default' => 'user'
+                'default' => 'user',
             ],
             'password' => [
                 'label' => 'Password',
                 'placeholder' => 'Enter your password',
                 'required' => false, // Optional for updates
-                'minLength' => 8
-            ]
+                'minLength' => 8,
+            ],
         ];
     }
 
@@ -152,14 +148,14 @@ class User extends Authenticatable
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($user) {
             // Set active to false if password is empty/null
             if (empty($user->password)) {
                 $user->active = false;
             }
         });
-        
+
         static::updating(function ($user) {
             // Set active to false if password is being set to empty/null
             if (empty($user->password)) {

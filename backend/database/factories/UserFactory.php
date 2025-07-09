@@ -27,7 +27,7 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
-            'whatsapp' => '62' . fake()->numberBetween(1000000000, 9999999999),
+            'whatsapp' => '62'.fake()->numberBetween(1000000000, 9999999999),
             'active' => true,
             'role' => fake()->randomElement(['admin', 'user']),
             'email_verified_at' => now(),

@@ -11,6 +11,7 @@ use Illuminate\Validation\ValidationException;
 class StoreResourceRequest extends FormRequest
 {
     protected $modelClass;
+
     protected $model;
 
     /**
@@ -24,11 +25,12 @@ class StoreResourceRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
-     */    public function rules(): array
+     */
+    public function rules(): array
     {
         $this->resolveModel();
 
-        if (!$this->model) {
+        if (! $this->model) {
             return [];
         }
 
@@ -40,12 +42,14 @@ class StoreResourceRequest extends FormRequest
             // Handle password field specially
             if ($field === 'password') {
                 $rules[$field] = 'sometimes|nullable|string|min:8';
+
                 continue;
             }
 
             // Handle email fields
             if (Str::contains($field, 'email')) {
-                $rules[$field] = 'sometimes|email|unique:' . $this->model->getTable() . ',' . $field;
+                $rules[$field] = 'sometimes|email|unique:'.$this->model->getTable().','.$field;
+
                 continue;
             }
 
@@ -83,7 +87,7 @@ class StoreResourceRequest extends FormRequest
                         break;
                 }
             } else {                // No cast defined, infer from field name or default to string
-                if (Str::contains($field, ['quantity', 'count', 'number', 'threshold']) && !Str::contains($field, ['_ids'])) {
+                if (Str::contains($field, ['quantity', 'count', 'number', 'threshold']) && ! Str::contains($field, ['_ids'])) {
                     $rules[$field] = 'sometimes|nullable|integer';
                 } elseif (Str::endsWith($field, '_id') || Str::contains($field, ['class_id'])) {
                     $rules[$field] = 'sometimes|nullable|integer';
@@ -112,7 +116,9 @@ class StoreResourceRequest extends FormRequest
             'email.unique' => 'This email address is already taken.',
             'password.min' => 'Password must be at least 8 characters long.',
         ];
-    }    /**
+    }
+
+    /**
      * Get the validated data from the request with special handling.
      */
     public function validated($key = null, $default = null)
@@ -145,7 +151,7 @@ class StoreResourceRequest extends FormRequest
         $route = $this->route();
         $modelName = $route->defaults['modelName'] ?? null;
 
-        if (!$modelName) {
+        if (! $modelName) {
             return;
         }
 
@@ -153,7 +159,7 @@ class StoreResourceRequest extends FormRequest
         $this->modelClass = "App\\Models\\{$className}";
 
         if (class_exists($this->modelClass) && is_subclass_of($this->modelClass, Model::class)) {
-            $this->model = new $this->modelClass();
+            $this->model = new $this->modelClass;
         }
     }
 
@@ -163,6 +169,7 @@ class StoreResourceRequest extends FormRequest
     public function getModelClass(): ?string
     {
         $this->resolveModel();
+
         return $this->modelClass;
     }
 
@@ -172,6 +179,7 @@ class StoreResourceRequest extends FormRequest
     public function getModel(): ?Model
     {
         $this->resolveModel();
+
         return $this->model;
     }
 
@@ -183,7 +191,7 @@ class StoreResourceRequest extends FormRequest
         throw new ValidationException($validator, response()->json([
             'error' => 'Validation failed',
             'message' => 'The given data was invalid',
-            'errors' => $validator->errors()
+            'errors' => $validator->errors(),
         ], 422));
     }
 }

@@ -131,7 +131,7 @@ return [
     | API-specific configuration options
     |
     */
-    
+
     'api_per_page' => env('API_PER_PAGE', 20),
 
 ];

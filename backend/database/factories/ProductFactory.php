@@ -24,7 +24,7 @@ class ProductFactory extends Factory
 
         return [
             'name' => ucwords($name),
-            'slug' => \Illuminate\Support\Str::slug($name) . '-' . $this->faker->randomNumber(4),
+            'slug' => \Illuminate\Support\Str::slug($name).'-'.$this->faker->randomNumber(4),
             'type' => $this->faker->randomElement(['simple', 'variable', 'grouped', 'external']),
             'publication_status' => $this->faker->randomElement(['draft', 'published', 'discontinued', 'private']),
             'active' => $this->faker->boolean(85),
@@ -38,30 +38,30 @@ class ProductFactory extends Factory
             'price' => $price,
             'sale_price' => $salePrice,
             'taxable' => $this->faker->boolean(90),
-            
+
             // GST Information
             'tax_hsn_code' => $this->faker->optional(0.8)->numerify('####.##'),
             'tax_rate' => $this->faker->randomElement([5, 12, 18, 28]),
             'tax_inclusive' => $this->faker->boolean(70),
-            
+
             // Stock Information
             'stock_track' => $this->faker->boolean(70),
             'stock_quantity' => $this->faker->numberBetween(0, 1000),
             'stock_low_threshold' => $this->faker->numberBetween(5, 50),
-            
+
             // Dimensions
             'length' => $this->faker->optional(0.6)->randomFloat(2, 1, 100),
             'width' => $this->faker->optional(0.6)->randomFloat(2, 1, 100),
             'height' => $this->faker->optional(0.6)->randomFloat(2, 1, 100),
             'weight' => $this->faker->optional(0.7)->randomFloat(2, 0.1, 50),
             'unit' => $this->faker->randomElement(['nos', 'kg', 'ltr', 'mtr', 'pcs', 'box']),
-            
+
             // Shipping
             'shipping_weight' => $this->faker->optional(0.5)->randomFloat(2, 0.1, 60),
             'shipping_required' => $this->faker->boolean(85),
             'shipping_taxable' => $this->faker->boolean(80),
             'shipping_class_id' => $this->faker->numberBetween(0, 5),
-            
+
             // Images and URLs
             'image' => $this->faker->optional(0.8)->imageUrl(640, 480, 'products', true),
             'images' => $this->faker->optional(0.6)->randomElements([
@@ -70,7 +70,7 @@ class ProductFactory extends Factory
                 $this->faker->imageUrl(640, 480, 'products', true),
             ], $this->faker->numberBetween(1, 3)),
             'external_url' => $this->faker->optional(0.2)->url(),
-            
+
             // Relations (stored as JSON arrays)
             'categories' => $this->faker->optional(0.8)->randomElements([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], $this->faker->numberBetween(1, 3)),
             'tags' => $this->faker->optional(0.6)->randomElements([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], $this->faker->numberBetween(1, 4)),

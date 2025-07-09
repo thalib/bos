@@ -125,11 +125,11 @@ class GeneratePdfRequest extends FormRequest
         $validator->after(function ($validator) {
             // Additional custom validation can be added here
             // For example, template-specific data validation
-            
-            if (!$validator->errors()->has('template') && !$validator->errors()->has('data')) {
+
+            if (! $validator->errors()->has('template') && ! $validator->errors()->has('data')) {
                 $template = $this->input('template');
                 $data = $this->input('data', []);
-                
+
                 // You could add template-specific validation here
                 // For now, we'll let the service layer handle it
             }

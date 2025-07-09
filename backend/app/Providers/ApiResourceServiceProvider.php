@@ -39,8 +39,9 @@ class ApiResourceServiceProvider extends ServiceProvider
         $modelsPath = app_path('Models');
 
         // Check if the Models directory exists
-        if (!File::isDirectory($modelsPath)) {
-            Log::warning('Models directory not found at: ' . $modelsPath);
+        if (! File::isDirectory($modelsPath)) {
+            Log::warning('Models directory not found at: '.$modelsPath);
+
             return;
         }
 
@@ -51,12 +52,12 @@ class ApiResourceServiceProvider extends ServiceProvider
             try {
                 // Get the file name without extension
                 $fileName = pathinfo($file->getFilename(), PATHINFO_FILENAME);
-                
+
                 // Construct the full class name
                 $className = "App\\Models\\{$fileName}";
 
                 // Check if the class exists
-                if (!class_exists($className)) {
+                if (! class_exists($className)) {
                     continue;
                 }
 
@@ -96,44 +97,44 @@ class ApiResourceServiceProvider extends ServiceProvider
                 Route::prefix("{$apiPrefix}/{$version}")
                     ->middleware(['api'])
                     ->group(function () use ($uri, $modelNameForController) {
-                    // Register GET route for collection (index)
-                    Route::get("/{$uri}", [ApiResourceController::class, 'index'])
-                        ->defaults('modelName', $modelNameForController)
-                        ->name("{$modelNameForController}.index");
+                        // Register GET route for collection (index)
+                        Route::get("/{$uri}", [ApiResourceController::class, 'index'])
+                            ->defaults('modelName', $modelNameForController)
+                            ->name("{$modelNameForController}.index");
 
-                    // Register POST route for creating new resource (store)
-                    Route::post("/{$uri}", [ApiResourceController::class, 'store'])
-                        ->defaults('modelName', $modelNameForController)
-                        ->name("{$modelNameForController}.store");                    // Register GET route for schema (metadata) - MUST be before parameterized routes
-                    Route::get("/{$uri}/schema", [ApiResourceController::class, 'schema'])
-                        ->defaults('modelName', $modelNameForController)
-                        ->name("{$modelNameForController}.schema");
+                        // Register POST route for creating new resource (store)
+                        Route::post("/{$uri}", [ApiResourceController::class, 'store'])
+                            ->defaults('modelName', $modelNameForController)
+                            ->name("{$modelNameForController}.store");                    // Register GET route for schema (metadata) - MUST be before parameterized routes
+                        Route::get("/{$uri}/schema", [ApiResourceController::class, 'schema'])
+                            ->defaults('modelName', $modelNameForController)
+                            ->name("{$modelNameForController}.schema");
 
-                    // Register GET route for columns (index configuration) - MUST be before parameterized routes
-                    Route::get("/{$uri}/columns", [ApiResourceController::class, 'columns'])
-                        ->defaults('modelName', $modelNameForController)
-                        ->name("{$modelNameForController}.columns");
+                        // Register GET route for columns (index configuration) - MUST be before parameterized routes
+                        Route::get("/{$uri}/columns", [ApiResourceController::class, 'columns'])
+                            ->defaults('modelName', $modelNameForController)
+                            ->name("{$modelNameForController}.columns");
 
-                    // Register GET route for filters (available filters configuration) - MUST be before parameterized routes
-                    Route::get("/{$uri}/filters", [ApiResourceController::class, 'filters'])
-                        ->defaults('modelName', $modelNameForController)
-                        ->name("{$modelNameForController}.filters");// Register GET route for single item (show)
-                    Route::get("/{$uri}/{id}", [ApiResourceController::class, 'show'])
-                        ->defaults('modelName', $modelNameForController)
-                        ->name("{$modelNameForController}.show");
+                        // Register GET route for filters (available filters configuration) - MUST be before parameterized routes
+                        Route::get("/{$uri}/filters", [ApiResourceController::class, 'filters'])
+                            ->defaults('modelName', $modelNameForController)
+                            ->name("{$modelNameForController}.filters"); // Register GET route for single item (show)
+                        Route::get("/{$uri}/{id}", [ApiResourceController::class, 'show'])
+                            ->defaults('modelName', $modelNameForController)
+                            ->name("{$modelNameForController}.show");
 
-                    // Register PUT/PATCH route for updating resource (update)
-                    Route::put("/{$uri}/{id}", [ApiResourceController::class, 'update'])
-                        ->defaults('modelName', $modelNameForController)
-                        ->name("{$modelNameForController}.update");
-                    
-                    Route::patch("/{$uri}/{id}", [ApiResourceController::class, 'update'])
-                        ->defaults('modelName', $modelNameForController)
-                        ->name("{$modelNameForController}.patch");                    // Register DELETE route for deleting resource (destroy)
-                    Route::delete("/{$uri}/{id}", [ApiResourceController::class, 'destroy'])
-                        ->defaults('modelName', $modelNameForController)
-                        ->name("{$modelNameForController}.destroy");
-                });
+                        // Register PUT/PATCH route for updating resource (update)
+                        Route::put("/{$uri}/{id}", [ApiResourceController::class, 'update'])
+                            ->defaults('modelName', $modelNameForController)
+                            ->name("{$modelNameForController}.update");
+
+                        Route::patch("/{$uri}/{id}", [ApiResourceController::class, 'update'])
+                            ->defaults('modelName', $modelNameForController)
+                            ->name("{$modelNameForController}.patch");                    // Register DELETE route for deleting resource (destroy)
+                        Route::delete("/{$uri}/{id}", [ApiResourceController::class, 'destroy'])
+                            ->defaults('modelName', $modelNameForController)
+                            ->name("{$modelNameForController}.destroy");
+                    });
                 // Log successful registration
                 /*
                 Log::info("API Resource registered: {$className}", [
@@ -153,12 +154,12 @@ class ApiResourceServiceProvider extends ServiceProvider
             } catch (ReflectionException $e) {
                 Log::warning("Failed to reflect class from file: {$file->getFilename()}", [
                     'error' => $e->getMessage(),
-                    'file' => $file->getPathname()
+                    'file' => $file->getPathname(),
                 ]);
             } catch (\Exception $e) {
                 Log::error("Error processing model file: {$file->getFilename()}", [
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
+                    'trace' => $e->getTraceAsString(),
                 ]);
             }
         }

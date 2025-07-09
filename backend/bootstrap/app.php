@@ -15,12 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register global middleware that runs on every request
         $middleware->append(\App\Http\Middleware\JsonResponseMiddleware::class);
         $middleware->append(\App\Http\Middleware\Cors::class);
-        
+
         // Register Sanctum middleware
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
-        
+
         // Register middleware aliases
         $middleware->alias([
             'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
@@ -28,7 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,
             'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         ]);
-        
+
         // You can also specify middleware groups or route-specific middleware
         // $middleware->web([...]);
         // $middleware->api([...]);

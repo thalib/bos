@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class MenuController extends Controller
 {
@@ -21,7 +21,7 @@ class MenuController extends Controller
                 'name' => 'Home',
                 'path' => '/',
                 'icon' => 'bi-house',
-                'order' => 1
+                'order' => 1,
             ],
             [
                 'type' => 'section',
@@ -32,9 +32,9 @@ class MenuController extends Controller
                         'id' => 21,
                         'name' => 'Todo',
                         'path' => '/todo',
-                        'icon' => 'bi-check-square'
-                    ]
-                ]
+                        'icon' => 'bi-check-square',
+                    ],
+                ],
             ],
             [
                 'type' => 'section',
@@ -45,13 +45,13 @@ class MenuController extends Controller
                         'id' => 30,
                         'name' => 'Products',
                         'path' => '/list/products',
-                        'icon' => 'bi-calculator'
-                    ]
-                ]
+                        'icon' => 'bi-calculator',
+                    ],
+                ],
             ],
             [
                 'type' => 'divider',
-                'order' => 3
+                'order' => 3,
             ],
             [
                 'type' => 'section',
@@ -62,13 +62,13 @@ class MenuController extends Controller
                         'id' => 40,
                         'name' => 'Estimate',
                         'path' => '/doc/estimates',
-                        'icon' => 'bi-receipt'
-                    ]
-                ]
+                        'icon' => 'bi-receipt',
+                    ],
+                ],
             ],
             [
                 'type' => 'divider',
-                'order' => 5
+                'order' => 5,
             ],
             [
                 'type' => 'section',
@@ -85,19 +85,19 @@ class MenuController extends Controller
                         'id' => 61,
                         'name' => 'Settings',
                         'path' => '/settings',
-                        'icon' => 'bi-gear'
+                        'icon' => 'bi-gear',
                     ],
                     [
                         'id' => 62,
                         'name' => 'Reports',
                         'path' => '/reports',
-                        'icon' => 'bi-file-text'
-                    ]
-                ]
+                        'icon' => 'bi-file-text',
+                    ],
+                ],
             ],
             [
                 'type' => 'divider',
-                'order' => 7
+                'order' => 7,
             ],
             [
                 'type' => 'item',
@@ -105,7 +105,7 @@ class MenuController extends Controller
                 'name' => 'Help',
                 'path' => '/help',
                 'icon' => 'bi-question-circle',
-                'order' => 7
+                'order' => 7,
             ],
             [
                 'type' => 'item',
@@ -113,13 +113,13 @@ class MenuController extends Controller
                 'name' => 'Logout',
                 'path' => '/logout',
                 'icon' => 'bi-box-arrow-right',
-                'order' => 8
-            ]
+                'order' => 8,
+            ],
         ];
 
         return response()->json([
             'data' => $menuItems,
-            'message' => 'Menu items retrieved successfully'
+            'message' => 'Menu items retrieved successfully',
         ]);
     }
 }

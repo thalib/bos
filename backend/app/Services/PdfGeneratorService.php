@@ -23,10 +23,11 @@ class PdfGeneratorService
     /**
      * Generate PDF from template and data
      *
-     * @param string $templateName Template name (e.g., 'invoice', 'report')
-     * @param array $data Data to pass to the template
-     * @param array $options PDF generation options
+     * @param  string  $templateName  Template name (e.g., 'invoice', 'report')
+     * @param  array  $data  Data to pass to the template
+     * @param  array  $options  PDF generation options
      * @return string PDF binary content
+     *
      * @throws PdfGenerationException
      */
     public function generatePdf(string $templateName, array $data, array $options = []): string
@@ -35,11 +36,11 @@ class PdfGeneratorService
             Log::info('Starting PDF generation', [
                 'template' => $templateName,
                 'data_keys' => array_keys($data),
-                'options' => $options
+                'options' => $options,
             ]);
 
             // Validate template exists
-            if (!$this->validateTemplate($templateName)) {
+            if (! $this->validateTemplate($templateName)) {
                 throw new PdfGenerationException(
                     "Template '{$templateName}' not found",
                     404,
@@ -51,7 +52,7 @@ class PdfGeneratorService
 
             // Sanitize and validate data
             $sanitizedData = $this->sanitizeData($data);
-            
+
             // Validate template data
             $this->templateService->validateTemplateData($templateName, $sanitizedData);
 
@@ -59,7 +60,7 @@ class PdfGeneratorService
             $viewPath = "pdf.{$templateName}";
 
             // Check if view exists
-            if (!View::exists($viewPath)) {
+            if (! View::exists($viewPath)) {
                 throw new PdfGenerationException(
                     "Template view '{$viewPath}' not found",
                     404,
@@ -73,7 +74,7 @@ class PdfGeneratorService
 
             // Generate PDF
             $pdf = Pdf::loadView($viewPath, $sanitizedData);
-            
+
             // Apply options
             if (isset($pdfOptions['paper'])) {
                 $pdf->setPaper($pdfOptions['paper'], $pdfOptions['orientation'] ?? 'portrait');
@@ -87,7 +88,7 @@ class PdfGeneratorService
 
             Log::info('PDF generation completed successfully', [
                 'template' => $templateName,
-                'size' => strlen($pdfContent)
+                'size' => strlen($pdfContent),
             ]);
 
             return $pdfContent;
@@ -108,10 +109,11 @@ class PdfGeneratorService
     /**
      * Generate PDF (alias for generatePdf)
      *
-     * @param string $templateName Template name
-     * @param array $data Data to pass to the template
-     * @param array $options PDF generation options
+     * @param  string  $templateName  Template name
+     * @param  array  $data  Data to pass to the template
+     * @param  array  $options  PDF generation options
      * @return string PDF binary content
+     *
      * @throws PdfGenerationException
      */
     public function generate(string $templateName, array $data, array $options = []): string
@@ -122,19 +124,20 @@ class PdfGeneratorService
     /**
      * Generate PDF and save to storage
      *
-     * @param string $templateName Template name
-     * @param array $data Template data
-     * @param string $filename Filename without extension
-     * @param string|null $path Storage path (null for default)
+     * @param  string  $templateName  Template name
+     * @param  array  $data  Template data
+     * @param  string  $filename  Filename without extension
+     * @param  string|null  $path  Storage path (null for default)
      * @return string Full storage path
+     *
      * @throws PdfGenerationException
      */
     public function generateAndSave(string $templateName, array $data, string $filename, ?string $path = null): string
     {
         $pdfContent = $this->generatePdf($templateName, $data);
-        
+
         // Ensure filename has .pdf extension
-        if (!Str::endsWith($filename, '.pdf')) {
+        if (! Str::endsWith($filename, '.pdf')) {
             $filename .= '.pdf';
         }
 
@@ -147,7 +150,7 @@ class PdfGeneratorService
         Log::info('PDF saved to storage', [
             'template' => $templateName,
             'path' => $storagePath,
-            'size' => strlen($pdfContent)
+            'size' => strlen($pdfContent),
         ]);
 
         return $storagePath;
@@ -156,10 +159,10 @@ class PdfGeneratorService
     /**
      * Generate PDF and return download response
      *
-     * @param string $templateName Template name
-     * @param array $data Template data
-     * @param string $filename Download filename
-     * @return Response
+     * @param  string  $templateName  Template name
+     * @param  array  $data  Template data
+     * @param  string  $filename  Download filename
+     *
      * @throws PdfGenerationException
      */
     public function generateAndDownload(string $templateName, array $data, string $filename): Response
@@ -167,7 +170,7 @@ class PdfGeneratorService
         $pdfContent = $this->generatePdf($templateName, $data);
 
         // Ensure filename has .pdf extension
-        if (!Str::endsWith($filename, '.pdf')) {
+        if (! Str::endsWith($filename, '.pdf')) {
             $filename .= '.pdf';
         }
 
@@ -177,17 +180,18 @@ class PdfGeneratorService
             'Content-Length' => strlen($pdfContent),
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
             'Pragma' => 'no-cache',
-            'Expires' => '0'
+            'Expires' => '0',
         ]);
     }
 
     /**
      * Generate HTML preview of template
      *
-     * @param string $templateName Template name
-     * @param array $data Data to pass to the template
-     * @param array $options Preview options
+     * @param  string  $templateName  Template name
+     * @param  array  $data  Data to pass to the template
+     * @param  array  $options  Preview options
      * @return string HTML content
+     *
      * @throws PdfGenerationException
      */
     public function generatePreview(string $templateName, array $data, array $options = []): string
@@ -198,15 +202,15 @@ class PdfGeneratorService
     /**
      * Save PDF content to file
      *
-     * @param string $pdfContent PDF binary content
-     * @param string $filePath File path to save to
+     * @param  string  $pdfContent  PDF binary content
+     * @param  string  $filePath  File path to save to
      * @return bool Success status
      */
     public function savePdf(string $pdfContent, string $filePath): bool
     {
         try {
             $directory = dirname($filePath);
-            if (!is_dir($directory)) {
+            if (! is_dir($directory)) {
                 mkdir($directory, 0755, true);
             }
 
@@ -214,8 +218,9 @@ class PdfGeneratorService
         } catch (\Exception $e) {
             Log::error('Failed to save PDF', [
                 'file_path' => $filePath,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -223,25 +228,23 @@ class PdfGeneratorService
     /**
      * Validate if template exists
      *
-     * @param string $templateName Template name
-     * @return bool
+     * @param  string  $templateName  Template name
      */
     public function validateTemplate(string $templateName): bool
     {
         $viewPath = "pdf.{$templateName}";
+
         return View::exists($viewPath);
     }
 
     /**
      * Get list of available templates
-     *
-     * @return array
      */
     public function getAvailableTemplates(): array
     {
         $templatesPath = resource_path('views/pdf');
-        
-        if (!File::isDirectory($templatesPath)) {
+
+        if (! File::isDirectory($templatesPath)) {
             return [];
         }
 
@@ -251,7 +254,7 @@ class PdfGeneratorService
         foreach ($files as $file) {
             if ($file->getExtension() === 'php') {
                 $templateName = $file->getFilenameWithoutExtension();
-                
+
                 // Skip layouts directory
                 if ($templateName === 'layouts') {
                     continue;
@@ -261,7 +264,7 @@ class PdfGeneratorService
                     'name' => $templateName,
                     'path' => "pdf.{$templateName}",
                     'file' => $file->getPathname(),
-                    'config' => $this->templateService->getTemplateConfig($templateName)
+                    'config' => $this->templateService->getTemplateConfig($templateName),
                 ];
             }
         }
@@ -270,7 +273,7 @@ class PdfGeneratorService
         $directories = File::directories($templatesPath);
         foreach ($directories as $directory) {
             $dirName = basename($directory);
-            
+
             // Skip layouts directory
             if ($dirName === 'layouts') {
                 continue;
@@ -284,7 +287,7 @@ class PdfGeneratorService
                         'name' => $templateName,
                         'path' => "pdf.{$templateName}",
                         'file' => $file->getPathname(),
-                        'config' => $this->templateService->getTemplateConfig($templateName)
+                        'config' => $this->templateService->getTemplateConfig($templateName),
                     ];
                 }
             }
@@ -296,7 +299,7 @@ class PdfGeneratorService
     /**
      * Sanitize input data
      *
-     * @param array $data Raw input data
+     * @param  array  $data  Raw input data
      * @return array Sanitized data
      */
     public function sanitizeData(array $data): array
@@ -307,7 +310,7 @@ class PdfGeneratorService
     /**
      * Configure PDF options with defaults
      *
-     * @param array $options User options
+     * @param  array  $options  User options
      * @return array Configured options
      */
     protected function configurePdfOptions(array $options): array
@@ -326,14 +329,14 @@ class PdfGeneratorService
                 'debugLayoutBlocks' => false,
                 'debugLayoutInline' => false,
                 'debugLayoutPaddingBox' => false,
-            ]
+            ],
         ], $options);
     }
 
     /**
      * Recursively sanitize array data
      *
-     * @param array $data Data to sanitize
+     * @param  array  $data  Data to sanitize
      * @return array Sanitized data
      */
     protected function sanitizeArrayRecursive(array $data): array

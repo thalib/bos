@@ -17,10 +17,10 @@ class JsonMiddleware
     {
         // Force Accept header to application/json
         $request->headers->set('Accept', 'application/json');
-        
+
         // Process the request
         $response = $next($request);
-        
+
         // Return JSON response
         return $response;
     }
