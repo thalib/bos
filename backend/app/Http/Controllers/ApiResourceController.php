@@ -69,7 +69,7 @@ class ApiResourceController extends Controller
             // Apply sorting if sort parameter is present
             if ($request->has('sort')) {
                 $sortFields = explode(',', $request->input('sort'));
-                $directions = explode(',', $request->input('direction', 'asc'));
+                $directions = explode(',', $request->input('sort_dir', 'asc'));
 
                 // Create model instance to get available fields for validation
                 $model = new $modelClass();
@@ -103,20 +103,13 @@ class ApiResourceController extends Controller
             }
 
             // Prepare metadata
-            $metadata = $this->buildResponseMetadata($request, $query, $appliedFilters);            // Return paginated results if page parameter is present
-            if ($request->has('page')) {
-                // Get per_page parameter with fallback to default of 15
-                $perPage = $request->input('per_page', 15);
-                $paginatedResults = $query->paginate($perPage);
+            $metadata = $this->buildResponseMetadata($request, $query, $appliedFilters);
 
-                return $this->paginatedResponse($paginatedResults, $metadata);
-            }
+            // Always return paginated results for index requests
+            $perPage = $request->input('per_page', 15);
+            $paginatedResults = $query->paginate($perPage);
 
-            // For simple requests without pagination, return data with metadata
-            $data = $query->get();
-
-            // Always return data in consistent format
-            return $this->successResponse($data, null, 200, $metadata);
+            return $this->paginatedResponse($paginatedResults, $metadata);
         } catch (\Exception $e) {
             Log::error("Error fetching " . ($modelName ?? 'unknown model') . " resources", [
                 'error' => $e->getMessage(),
@@ -1106,104 +1099,91 @@ class ApiResourceController extends Controller
     {
         $metadata = [];
 
-        // Add search metadata
-        if ($request->has('search') && !empty($request->input('search'))) {
-            $metadata['search'] = [
-                'query' => $request->input('search'),
-                'fields' => $this->getSearchableFields(new ($query->getModel()::class))
-            ];
-        }
-
-        // Get model instance for filter information
+        // Get model instance for filter and search information
         $model = new ($query->getModel()::class);
         
-        // Build comprehensive filter metadata
-        $filterData = [
-            'filter_policy' => 'single_filter_only',
-            'available_filters' => $this->getAvailableFilterFields($model),
-            'active_filter' => null,
-            'rejected_filters' => []
+        // Build filters object with required format according to DESIGN.md
+        $availableFilterOptions = $this->getAvailableFilterFields($model);
+        $filtersData = [
+            'applied' => null,
+            'availableOptions' => $availableFilterOptions
         ];
 
         // Handle filter data from applyFilters
         if (!empty($appliedFilters)) {
-            if (isset($appliedFilters['applied'])) {
+            if (isset($appliedFilters['applied']) && !empty($appliedFilters['applied'])) {
                 // New format with enhanced metadata
-                if (!empty($appliedFilters['applied'])) {
-                    $filterStrings = [];
-                    foreach ($appliedFilters['applied'] as $field => $config) {
-                        $filterStrings[] = $config['label'] . ': ' . $config['value'];
+                $activeFilters = [];
+                foreach ($appliedFilters['applied'] as $field => $config) {
+                    // Skip empty or invalid filter values
+                    $filterValue = $config['value'] ?? null;
+                    if ($filterValue !== null && $filterValue !== [] && $filterValue !== '') {
+                        $activeFilters[] = [
+                            'field' => $field,
+                            'value' => $filterValue
+                        ];
                     }
-                    
-                    $filterData['applied'] = $appliedFilters['applied'];
-                    $filterData['summary'] = implode(', ', $filterStrings);
                 }
                 
-                if (!empty($appliedFilters['rejected'])) {
-                    $filterData['rejected_filters'] = $appliedFilters['rejected'];
+                // Set the first applied filter as the active one (since we use single filter policy)
+                if (!empty($activeFilters)) {
+                    $filtersData['applied'] = $activeFilters[0];
                 }
-                
-                if (isset($appliedFilters['active_filter'])) {
-                    $filterData['active_filter'] = $appliedFilters['active_filter'];
-                }
-                
-                if (isset($appliedFilters['cleared_by'])) {
-                    $filterData['cleared_by'] = $appliedFilters['cleared_by'];
-                    $filterData['summary'] = 'All filters cleared';
-                }
-                
-                $metadata['filters'] = $filterData;
-            } else {
+            } elseif (!empty($appliedFilters)) {
                 // Legacy format support - convert to new format
-                $filterStrings = [];
-                foreach ($appliedFilters as $field => $config) {
-                    $filterStrings[] = $config['label'] . ': ' . $config['value'];
-                }
+                $field = array_key_first($appliedFilters);
+                $config = $appliedFilters[$field];
+                $filterValue = $config['value'] ?? $config ?? null;
                 
-                // Convert legacy format to new format
-                $filterData['applied'] = $appliedFilters;
-                $filterData['summary'] = implode(', ', $filterStrings);
-                
-                // Try to determine active filter from legacy data
-                if (!empty($appliedFilters)) {
-                    $firstFilter = array_key_first($appliedFilters);
-                    $filterConfig = $appliedFilters[$firstFilter];
-                    $filterData['active_filter'] = [
-                        'field' => $firstFilter,
-                        'value' => $filterConfig['value'],
-                        'label' => $filterConfig['label'] . ': ' . $filterConfig['value']
+                // Only set applied filter if there's a valid value
+                if ($filterValue !== null && $filterValue !== [] && $filterValue !== '') {
+                    $filtersData['applied'] = [
+                        'field' => $field,
+                        'value' => $filterValue
                     ];
                 }
-                
-                $metadata['filters'] = $filterData;
             }
-        } else {
-            // No filters applied - still include filter metadata
-            $metadata['filters'] = $filterData;
         }
 
-        // Add sorting metadata
+        $metadata['filters'] = $filtersData;
+
+        // Add search as string value or null (DESIGN.md format)
+        $metadata['search'] = ($request->has('search') && !empty($request->input('search'))) 
+            ? $request->input('search') 
+            : null;
+
+        // Add sorting metadata - always present at root level
+        $sortMetadata = null;
         if ($request->has('sort')) {
             $sortFields = explode(',', $request->input('sort'));
-            $directions = explode(',', $request->input('direction', 'asc'));
+            $directions = explode(',', $request->input('sort_dir', 'asc'));
 
-            $sortMetadata = [];
+            $sortArray = [];
             foreach ($sortFields as $index => $sortField) {
                 $sortField = trim($sortField);
                 $direction = isset($directions[$index]) ? trim($directions[$index]) : 'asc';
-                $sortMetadata[] = [
+                $sortArray[] = [
                     'field' => $sortField,
                     'direction' => $direction
                 ];
             }
+            $sortMetadata = $sortArray;
+        }
+        
+        $metadata['sort'] = $sortMetadata;
 
-            $metadata['sort'] = $sortMetadata;
+        // Add schema data (same as schema endpoint)
+        $schemaData = $this->getSchemaData($model);
+        if ($schemaData !== null) {
+            $metadata['schema'] = $schemaData;
         }
 
-        // Add total count (only for non-paginated requests with filters/search)
-        if (!$request->has('page') && ($request->has('search') || $request->has('sort') || !empty($appliedFilters))) {
-            $metadata['total'] = $query->count();
+        // Add columns data (same as columns endpoint)
+        $columnsData = $this->getColumnsData($model);
+        if ($columnsData !== null) {
+            $metadata['columns'] = $columnsData;
         }
+
         return $metadata;
     }
 
@@ -1373,12 +1353,46 @@ class ApiResourceController extends Controller
             $response['message'] = $message;
         }
 
+        // Return data array directly at top level (not nested)
         if ($data !== null) {
             $response['data'] = $data;
         }
 
+        // Include pagination object at top level for paginated responses
+        if (!empty($meta['pagination'])) {
+            $response['pagination'] = $meta['pagination'];
+        }
+
+        // Include search at top level - string value or null (DESIGN.md format)
+        $response['search'] = $meta['search'] ?? null;
+
+        // Include filters object at top level for filtered responses
+        if (!empty($meta['filters'])) {
+            $response['filters'] = $meta['filters'];
+        }
+
+        // Include schema object at top level
+        if (!empty($meta['schema'])) {
+            $response['schema'] = $meta['schema'];
+        }
+
+        // Include columns object at top level
+        if (!empty($meta['columns'])) {
+            $response['columns'] = $meta['columns'];
+        }
+
+        // Include any remaining metadata (sort, total)
         if (!empty($meta)) {
-            $response['meta'] = $meta;
+            $filteredMeta = array_diff_key($meta, [
+                'pagination' => true, 
+                'filters' => true, 
+                'schema' => true, 
+                'columns' => true,
+                'search' => true
+            ]);
+            if (!empty($filteredMeta)) {
+                $response['meta'] = $filteredMeta;
+            }
         }
 
         return response()->json($response, $statusCode);
@@ -1428,26 +1442,106 @@ class ApiResourceController extends Controller
             'success' => true,
             'data' => $paginatedResults->items(),
             'pagination' => [
-                'current_page' => $paginatedResults->currentPage(),
-                'last_page' => $paginatedResults->lastPage(),
-                'per_page' => $paginatedResults->perPage(),
-                'total' => $paginatedResults->total(),
-                'from' => $paginatedResults->firstItem(),
-                'to' => $paginatedResults->lastItem(),
-                'has_more_pages' => $paginatedResults->hasMorePages(),
-                'path' => $paginatedResults->path(),
-                'first_page_url' => $paginatedResults->url(1),
-                'last_page_url' => $paginatedResults->url($paginatedResults->lastPage()),
-                'next_page_url' => $paginatedResults->nextPageUrl(),
-                'prev_page_url' => $paginatedResults->previousPageUrl(),
+                'totalItems' => $paginatedResults->total(),
+                'currentPage' => $paginatedResults->currentPage(),
+                'itemsPerPage' => $paginatedResults->perPage(),
+                'totalPages' => $paginatedResults->lastPage(),
+                'urlPath' => $this->buildPaginationUrlPath($paginatedResults),
+                'urlQuery' => $this->buildPaginationUrlQuery($paginatedResults),
+                'nextPage' => $paginatedResults->nextPageUrl(),
+                'prevPage' => $paginatedResults->previousPageUrl(),
             ]
         ];
 
+        // Include search at top level - string value or null (DESIGN.md format)
+        $response['search'] = $meta['search'] ?? null;
+
+        // Include sort at top level - array or null (always present)
+        $response['sort'] = $meta['sort'] ?? null;
+
+        // Include filters object at top level for filtered responses
+        if (!empty($meta['filters'])) {
+            $response['filters'] = $meta['filters'];
+        }
+
+        // Include schema object at top level
+        if (!empty($meta['schema'])) {
+            $response['schema'] = $meta['schema'];
+        }
+
+        // Include columns object at top level
+        if (!empty($meta['columns'])) {
+            $response['columns'] = $meta['columns'];
+        }
+
+        // Include any remaining metadata (excluding moved fields)
         if (!empty($meta)) {
-            $response['meta'] = $meta;
+            $filteredMeta = array_diff_key($meta, [
+                'filters' => true, 
+                'schema' => true, 
+                'columns' => true,
+                'search' => true,
+                'sort' => true
+            ]);
+            if (!empty($filteredMeta)) {
+                $response['meta'] = $filteredMeta;
+            }
         }
 
         return response()->json($response);
+    }
+
+    /**
+     * Build pagination URL path for generating page URLs.
+     *
+     * @param \Illuminate\Pagination\LengthAwarePaginator $paginatedResults
+     * @return string
+     */
+    protected function buildPaginationUrlPath($paginatedResults): string
+    {
+        // Get the current URL with all query parameters
+        $currentUrl = request()->fullUrl();
+        
+        // Parse URL components
+        $parsedUrl = parse_url($currentUrl);
+        $baseUrl = $parsedUrl['scheme'] . '://' . $parsedUrl['host'];
+        
+        if (isset($parsedUrl['port'])) {
+            $baseUrl .= ':' . $parsedUrl['port'];
+        }
+        
+        $baseUrl .= $parsedUrl['path'];
+        
+        return $baseUrl;
+    }
+
+    /**
+     * Build pagination URL query string for generating page URLs.
+     *
+     * @param \Illuminate\Pagination\LengthAwarePaginator $paginatedResults
+     * @return string|null
+     */
+    protected function buildPaginationUrlQuery($paginatedResults): ?string
+    {
+        // Get the current URL with all query parameters
+        $currentUrl = request()->fullUrl();
+        
+        // Parse URL components
+        $parsedUrl = parse_url($currentUrl);
+        
+        // Parse query parameters and remove 'page' parameter
+        $queryParams = [];
+        if (isset($parsedUrl['query'])) {
+            parse_str($parsedUrl['query'], $queryParams);
+            unset($queryParams['page']);
+        }
+        
+        // Return query string without page parameter (frontend will add it)
+        if (!empty($queryParams)) {
+            return http_build_query($queryParams);
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -1456,285 +1550,151 @@ class ApiResourceController extends Controller
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param Request $request
      * @param Model $model
-     * @return array Applied filters metadata
+     * @return array
      */
     protected function applyFilters($query, Request $request, Model $model): array
     {
         $appliedFilters = [];
-        $rejectedFilters = [];
-        $activeFilter = null;
-        $hasAppliedFilter = false;
-        $attemptedFilters = [];
-
-        // Debug: Log incoming request parameters
-        Log::info('Filter Debug - Request parameters:', $request->all());
 
         // Check if model has custom API filters
         if (method_exists($model, 'getApiFilters')) {
             $apiFilters = $model->getApiFilters();
-            Log::info('Filter Debug - Available API filters:', $apiFilters);
             
-            // Collect all attempted filter parameters
             foreach ($apiFilters as $field => $config) {
-                $requestValue = $request->input($field);
-                if ($requestValue !== null && $requestValue !== '') {
-                    $attemptedFilters[] = [
-                        'field' => $field,
-                        'value' => $requestValue,
-                        'config' => $config
+                $filterParam = $request->input($field);
+                if ($filterParam && in_array($filterParam, $config['values'])) {
+                    $appliedFilters[$field] = [
+                        'value' => $filterParam,
+                        'label' => $config['label'] ?? ucfirst($field)
                     ];
-                }
-            }
-            
-            // Log multiple filter attempts if detected
-            if (count($attemptedFilters) > 1) {
-                Log::warning('Filter Debug - Multiple filters attempted (single filter policy active):', [
-                    'attempted_filters' => $attemptedFilters,
-                    'policy' => 'single_filter_only'
-                ]);
-            }
-            
-            // First pass: Check for 'all' values to clear all filters
-            foreach ($apiFilters as $field => $config) {
-                $requestValue = $request->input($field);
-                if ($requestValue === 'all') {
-                    Log::info("Filter Debug - 'all' value found for field '{$field}', clearing all filters");
-                    // When 'all' is found, clear everything and return empty filters
-                    return [
-                        'applied' => [],
-                        'rejected' => [],
-                        'active_filter' => null,
-                        'cleared_by' => $field,
-                        'attempted_filters' => $attemptedFilters
-                    ];
-                }
-            }
-            
-            // Second pass: Apply only the first valid filter (single filter policy)
-            foreach ($apiFilters as $field => $config) {
-                $requestValue = $request->input($field);
-                Log::info("Filter Debug - Checking field: {$field}, value: {$requestValue}");
-                
-                if ($requestValue !== null && $requestValue !== '') {
-                    $allowedValues = $config['values'] ?? [];
                     
-                    // Check if this is a valid filter value
-                    if (in_array($requestValue, $allowedValues)) {
-                        if (!$hasAppliedFilter) {
-                            // Apply this filter (first valid one found)
-                            Log::info("Filter Debug - Applying filter: {$field} = {$requestValue}");
-                            $query->where($field, $requestValue);
-                            
-                            $appliedFilters[$field] = [
-                                'label' => $config['label'] ?? ucfirst($field),
-                                'value' => $requestValue
-                            ];
-                            
-                            $activeFilter = [
-                                'field' => $field,
-                                'value' => $requestValue,
-                                'label' => ($config['label'] ?? ucfirst($field)) . ': ' . $requestValue
-                            ];
-                            
-                            $hasAppliedFilter = true;
-                        } else {
-                            // Reject this filter due to single filter policy
-                            Log::warning("Filter Debug - Rejecting filter '{$field}={$requestValue}' due to single filter policy");
-                            $rejectedFilters[] = [
-                                'field' => $field,
-                                'value' => $requestValue,
-                                'reason' => 'single_filter_policy',
-                                'label' => ($config['label'] ?? ucfirst($field)) . ': ' . $requestValue
-                            ];
-                        }
+                    // Apply the filter to the query
+                    if ($field === 'status') {
+                        $query->where('status', $filterParam);
+                    } elseif ($field === 'channel') {
+                        $query->where('channel', $filterParam);
                     } else {
-                        Log::warning("Filter Debug - Value '{$requestValue}' not in allowed values for field '{$field}':", $allowedValues);
-                        $rejectedFilters[] = [
-                            'field' => $field,
-                            'value' => $requestValue,
-                            'reason' => 'invalid_value',
-                            'allowed_values' => $allowedValues,
-                            'label' => ($config['label'] ?? ucfirst($field)) . ': ' . $requestValue
-                        ];
+                        $query->where($field, $filterParam);
                     }
-                } else {
-                    Log::info("Filter Debug - No value or empty value for field: {$field}");
                 }
             }
         } else {
-            // Fallback to default active filter logic
-            if ($request->has('filter') && !empty($request->input('filter'))) {
-                $filterValue = $request->input('filter');
-                $fillableFields = $model->getFillable();
-                
-                // Check for 'all' value first
-                if ($filterValue === 'all') {
-                    Log::info("Filter Debug - 'all' value found in legacy filter, clearing all filters");
-                    return [
-                        'applied' => [],
-                        'rejected' => [],
-                        'active_filter' => null,
-                        'cleared_by' => 'filter',
-                        'attempted_filters' => [['field' => 'filter', 'value' => $filterValue]]
-                    ];
-                }
-                
-                // Only apply active filter if the model has an 'active' field
-                if (in_array('active', $fillableFields)) {
-                    switch ($filterValue) {
+            // Fallback: Legacy active filter if model has 'active' field
+            $fillableFields = $model->getFillable();
+            if (in_array('active', $fillableFields)) {
+                $filterParam = $request->input('filter');
+                if ($filterParam) {
+                    switch ($filterParam) {
                         case 'active':
                             $query->where('active', true);
-                            $appliedFilters['active'] = [
-                                'label' => 'Status',
-                                'value' => 'Active'
-                            ];
-                            $activeFilter = [
-                                'field' => 'active',
-                                'value' => 'active',
-                                'label' => 'Status: Active'
-                            ];
+                            $appliedFilters['active'] = ['value' => 'Active'];
                             break;
                         case 'inactive':
                             $query->where('active', false);
-                            $appliedFilters['active'] = [
-                                'label' => 'Status',
-                                'value' => 'Inactive'
-                            ];
-                            $activeFilter = [
-                                'field' => 'active',
-                                'value' => 'inactive',
-                                'label' => 'Status: Inactive'
-                            ];
+                            $appliedFilters['active'] = ['value' => 'Inactive'];
                             break;
                         default:
-                            // No filter applied - show all records
-                            Log::info("Filter Debug - Unknown legacy filter value: {$filterValue}");
+                            // 'all' or any other value - no filter applied
                             break;
                     }
                 }
             }
         }
 
-        // Log final filter state
-        Log::info('Filter Debug - Final filter state:', [
-            'applied_filters' => $appliedFilters,
-            'rejected_filters' => $rejectedFilters,
-            'active_filter' => $activeFilter,
-            'total_attempted' => count($attemptedFilters)
-        ]);
-
-        // Return enhanced filter metadata
-        return [
-            'applied' => $appliedFilters,
-            'rejected' => $rejectedFilters,
-            'active_filter' => $activeFilter,
-            'attempted_filters' => $attemptedFilters
-        ];
-    }
-
-    /**
-     * Get available filters for the resource.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function filters(Request $request): JsonResponse
-    {
-        $modelName = null;
-        try {
-            // Get model name from route defaults
-            $route = $request->route();
-            $modelName = $route->defaults['modelName'] ?? null;
-
-            // Validate that we have a model name
-            if (!$modelName) {
-                return $this->errorResponse(
-                    'BAD_REQUEST',
-                    'Model name not found in route defaults',
-                    400
-                );
-            }
-
-            // Convert model name to proper class name (e.g., 'user' -> 'User', 'user-profiles' -> 'UserProfile')
-            $className = Str::studly(Str::singular($modelName));
-            $modelClass = "App\\Models\\{$className}";
-
-            // Validate that the class exists and is a Model
-            if (!class_exists($modelClass) || !is_subclass_of($modelClass, Model::class)) {
-                return $this->errorResponse(
-                    'RESOURCE_NOT_FOUND',
-                    "Model '{$className}' not found or is not a valid Eloquent model",
-                    404
-                );
-            }
-
-            // Create model instance for introspection
-            $model = new $modelClass();
-
-            // Check if model has custom API filters
-            if (method_exists($model, 'getApiFilters')) {
-                $filters = $model->getApiFilters();
-                return $this->successResponse($filters);
-            } else {
-                // Fallback to legacy active/inactive filter if model has 'active' field
-                $fillableFields = $model->getFillable();
-                if (in_array('active', $fillableFields)) {
-                    $filters = [
-                        'filter' => [
-                            'type' => 'select',
-                            'label' => 'Status',
-                            'values' => ['all', 'active', 'inactive'],
-                            'labels' => [
-                                'all' => 'All',
-                                'active' => 'Active',
-                                'inactive' => 'Inactive'
-                            ]
-                        ]
-                    ];
-                    return $this->successResponse($filters);
-                } else {
-                    // No filters available
-                    return $this->successResponse([]);
-                }
-            }
-        } catch (\Exception $e) {
-            Log::error("Error fetching filters for " . ($modelName ?? 'unknown model'), [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return $this->errorResponse(
-                'INTERNAL_SERVER_ERROR',
-                'An error occurred while fetching filters',
-                500
-            );
-        }
+        return $appliedFilters;
     }
 
     /**
      * Get available filter fields for a model.
      *
      * @param Model $model
-     * @return array
+     * @return array|null
      */
-    protected function getAvailableFilterFields(Model $model): array
+    protected function getAvailableFilterFields(Model $model): ?array
     {
-        $availableFilters = [];
-        
-        // Check if model has custom API filters
+        // Only check if model has custom API filters
         if (method_exists($model, 'getApiFilters')) {
             $apiFilters = $model->getApiFilters();
+            
+            // Return null if no filters defined or empty
+            if (empty($apiFilters)) {
+                return null;
+            }
+            
+            $availableFilters = [];
             foreach ($apiFilters as $field => $config) {
-                $availableFilters[] = $field;
+                $availableFilters[] = [
+                    'field' => $field,
+                    'value' => $config['values'] ?? []
+                ];
             }
-        } else {
-            // Fallback to legacy active filter if model has 'active' field
-            $fillableFields = $model->getFillable();
-            if (in_array('active', $fillableFields)) {
-                $availableFilters[] = 'filter'; // Legacy filter parameter
-            }
+            
+            return $availableFilters;
         }
         
-        return $availableFilters;
+        // Return null if getApiFilters method is not defined
+        return null;
+    }
+
+    /**
+     * Get schema data for a model.
+     *
+     * @param Model $model
+     * @return array|null
+     */
+    protected function getSchemaData(Model $model): ?array
+    {
+        try {
+            // Check if model has custom schema method
+            if (method_exists($model, 'getApiSchema')) {
+                return $model->getApiSchema();
+            }
+
+            // Fallback: Auto-generate base schema from model introspection
+            $autoSchema = $this->generateAutoSchema($model);
+            
+            return [
+                [
+                    'group' => 'General Information',
+                    'fields' => $autoSchema
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error("Error generating schema data for model", [
+                'model' => get_class($model),
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Get columns data for a model.
+     *
+     * @param Model $model
+     * @return array|null
+     */
+    protected function getColumnsData(Model $model): ?array
+    {
+        try {
+            // Check if model has custom index columns method
+            $customColumns = [];
+            if (method_exists($model, 'getIndexColumns')) {
+                $customColumns = $model->getIndexColumns();
+            }
+
+            // If no custom columns defined, auto-generate from model
+            if (empty($customColumns)) {
+                $customColumns = $this->generateAutoIndexColumns($model);
+            }
+
+            return $customColumns;
+        } catch (\Exception $e) {
+            Log::error("Error generating columns data for model", [
+                'model' => get_class($model),
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
     }
 }
