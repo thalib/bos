@@ -95,8 +95,6 @@ class Estimate extends Model
 
     /**
      * Get the columns to display in the index listing.
-     *
-     * @return array
      */
     public function getIndexColumns(): array
     {
@@ -105,7 +103,7 @@ class Estimate extends Model
                 'label' => 'Estimate Number',
                 'sortable' => true,
                 'clickable' => true,
-                'search' => true
+                'search' => true,
             ],
             'date' => [
                 'label' => 'Date',
@@ -125,14 +123,12 @@ class Estimate extends Model
             ],
             'validity' => [
                 'label' => 'Validity (Days)',
-            ]
+            ],
         ];
     }
 
     /**
      * Get the API schema for form generation.
-     *
-     * @return array
      */
     public function getApiSchema(): array
     {
@@ -143,21 +139,21 @@ class Estimate extends Model
                 'required' => true,
                 'options' => [
                     ['value' => 'ESTIMATE', 'label' => 'Estimate'],
-                    ['value' => 'QUOTE', 'label' => 'Quote']
+                    ['value' => 'QUOTE', 'label' => 'Quote'],
                 ],
-                'default' => 'ESTIMATE'
+                'default' => 'ESTIMATE',
             ],
             'number' => [
                 'label' => 'Estimate Number',
                 'placeholder' => 'E-2025-0001',
                 'required' => true,
                 'maxLength' => 50,
-                'unique' => true
+                'unique' => true,
             ],
             'date' => [
                 'label' => 'Date',
                 'type' => 'date',
-                'required' => true
+                'required' => true,
             ],
             'validity' => [
                 'label' => 'Validity (Days)',
@@ -165,7 +161,7 @@ class Estimate extends Model
                 'required' => true,
                 'min' => 1,
                 'max' => 365,
-                'default' => 30
+                'default' => 30,
             ],
             'status' => [
                 'label' => 'Status',
@@ -176,39 +172,39 @@ class Estimate extends Model
                     ['value' => 'SENT', 'label' => 'Sent'],
                     ['value' => 'ACCEPTED', 'label' => 'Accepted'],
                     ['value' => 'REJECTED', 'label' => 'Rejected'],
-                    ['value' => 'EXPIRED', 'label' => 'Expired']
+                    ['value' => 'EXPIRED', 'label' => 'Expired'],
                 ],
-                'default' => 'DRAFT'
+                'default' => 'DRAFT',
             ],
             'active' => [
                 'label' => 'Active',
                 'type' => 'checkbox',
                 'required' => false,
-                'default' => true
+                'default' => true,
             ],
             'refrence' => [
                 'label' => 'Reference',
                 'placeholder' => 'PO-2025-0001',
                 'required' => false,
-                'maxLength' => 100
+                'maxLength' => 100,
             ],
             'customer_id' => [
                 'label' => 'Customer ID',
                 'placeholder' => 'CUST001',
                 'required' => true,
-                'maxLength' => 50
+                'maxLength' => 50,
             ],
             'salesperson' => [
                 'label' => 'Salesperson',
                 'placeholder' => 'Enter salesperson name',
                 'required' => true,
-                'maxLength' => 100
+                'maxLength' => 100,
             ],
             'branch_id' => [
                 'label' => 'Branch ID',
                 'placeholder' => 'CHN001',
                 'required' => false,
-                'maxLength' => 50
+                'maxLength' => 50,
             ],
             'channel' => [
                 'label' => 'Channel',
@@ -218,37 +214,37 @@ class Estimate extends Model
                     ['value' => 'Online', 'label' => 'Online'],
                     ['value' => 'Offline', 'label' => 'Offline'],
                     ['value' => 'Phone', 'label' => 'Phone'],
-                    ['value' => 'Email', 'label' => 'Email']
-                ]
+                    ['value' => 'Email', 'label' => 'Email'],
+                ],
             ],
             'tax_inclusive' => [
                 'label' => 'Tax Inclusive',
                 'type' => 'checkbox',
                 'required' => false,
-                'default' => false
+                'default' => false,
             ],
             'show_bank_details' => [
                 'label' => 'Show Bank Details',
                 'type' => 'checkbox',
                 'required' => false,
-                'default' => true
+                'default' => true,
             ],
             'bank_id' => [
                 'label' => 'Bank ID',
                 'placeholder' => 'BANK001',
-                'maxLength' => 50
+                'maxLength' => 50,
             ],
             'show_signature' => [
                 'label' => 'Show Signature',
                 'type' => 'checkbox',
                 'required' => false,
-                'default' => true
+                'default' => true,
             ],
             'show_upi_qr' => [
                 'label' => 'Show UPI QR',
                 'type' => 'checkbox',
                 'required' => false,
-                'default' => true
+                'default' => true,
             ],
             'customer_billing' => [
                 'label' => 'Billing Address',
@@ -258,44 +254,44 @@ class Estimate extends Model
                     'name' => [
                         'label' => 'Company Name',
                         'required' => true,
-                        'maxLength' => 255
+                        'maxLength' => 255,
                     ],
                     'address' => [
                         'label' => 'Address',
                         'required' => true,
-                        'maxLength' => 500
+                        'maxLength' => 500,
                     ],
                     'city' => [
                         'label' => 'City',
                         'required' => true,
-                        'maxLength' => 100
+                        'maxLength' => 100,
                     ],
                     'state' => [
                         'label' => 'State',
                         'required' => true,
-                        'maxLength' => 100
+                        'maxLength' => 100,
                     ],
                     'pincode' => [
                         'label' => 'Pincode',
                         'required' => true,
-                        'pattern' => '^[0-9]{6}$'
+                        'pattern' => '^[0-9]{6}$',
                     ],
                     'state_code' => [
                         'label' => 'State Code',
                         'required' => true,
-                        'pattern' => '^[0-9]{2}$'
+                        'pattern' => '^[0-9]{2}$',
                     ],
                     'gstin' => [
                         'label' => 'GSTIN',
                         'required' => false,
-                        'pattern' => '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$'
+                        'pattern' => '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$',
                     ],
                     'phone' => [
                         'label' => 'Phone',
                         'required' => false,
-                        'pattern' => '^[+][0-9-]{10,15}$'
-                    ]
-                ]
+                        'pattern' => '^[+][0-9-]{10,15}$',
+                    ],
+                ],
             ],
             'customer_shipping' => [
                 'label' => 'Shipping Address',
@@ -305,44 +301,44 @@ class Estimate extends Model
                     'name' => [
                         'label' => 'Company Name',
                         'required' => true,
-                        'maxLength' => 255
+                        'maxLength' => 255,
                     ],
                     'address' => [
                         'label' => 'Address',
                         'required' => true,
-                        'maxLength' => 500
+                        'maxLength' => 500,
                     ],
                     'city' => [
                         'label' => 'City',
                         'required' => true,
-                        'maxLength' => 100
+                        'maxLength' => 100,
                     ],
                     'state' => [
                         'label' => 'State',
                         'required' => true,
-                        'maxLength' => 100
+                        'maxLength' => 100,
                     ],
                     'pincode' => [
                         'label' => 'Pincode',
                         'required' => true,
-                        'pattern' => '^[0-9]{6}$'
+                        'pattern' => '^[0-9]{6}$',
                     ],
                     'state_code' => [
                         'label' => 'State Code',
                         'required' => true,
-                        'pattern' => '^[0-9]{2}$'
+                        'pattern' => '^[0-9]{2}$',
                     ],
                     'gstin' => [
                         'label' => 'GSTIN',
                         'required' => false,
-                        'pattern' => '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$'
+                        'pattern' => '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$',
                     ],
                     'phone' => [
                         'label' => 'Phone',
                         'required' => false,
-                        'pattern' => '^[+][0-9-]{10,15}$'
-                    ]
-                ]
+                        'pattern' => '^[+][0-9-]{10,15}$',
+                    ],
+                ],
             ],
             'items' => [
                 'label' => 'Items',
@@ -353,162 +349,158 @@ class Estimate extends Model
                     'name' => [
                         'label' => 'Item Name',
                         'required' => true,
-                        'maxLength' => 255
+                        'maxLength' => 255,
                     ],
                     'description' => [
                         'label' => 'Description',
                         'required' => false,
-                        'maxLength' => 1000
+                        'maxLength' => 1000,
                     ],
                     'hsn_sac' => [
                         'label' => 'HSN/SAC Code',
                         'required' => false,
-                        'maxLength' => 20
+                        'maxLength' => 20,
                     ],
                     'quantity' => [
                         'label' => 'Quantity',
                         'type' => 'number',
                         'required' => true,
-                        'min' => 0.01
+                        'min' => 0.01,
                     ],
                     'unit' => [
                         'label' => 'Unit',
                         'required' => true,
-                        'maxLength' => 50
+                        'maxLength' => 50,
                     ],
                     'cost' => [
                         'label' => 'Cost',
                         'type' => 'number',
                         'required' => true,
-                        'min' => 0
+                        'min' => 0,
                     ],
                     'rate' => [
                         'label' => 'Rate',
                         'type' => 'number',
                         'required' => true,
-                        'min' => 0
+                        'min' => 0,
                     ],
                     'tax_rate' => [
                         'label' => 'Tax Rate (%)',
                         'type' => 'number',
                         'required' => true,
                         'min' => 0,
-                        'max' => 100
+                        'max' => 100,
                     ],
                     'total_amount' => [
                         'label' => 'Total Amount',
                         'type' => 'number',
                         'required' => true,
-                        'min' => 0
-                    ]
-                ]
+                        'min' => 0,
+                    ],
+                ],
             ],
             'subtotal' => [
                 'label' => 'Subtotal',
                 'type' => 'number',
                 'required' => true,
-                'min' => 0
+                'min' => 0,
             ],
             'total_cost' => [
                 'label' => 'Total Cost',
                 'type' => 'number',
                 'required' => true,
-                'min' => 0
+                'min' => 0,
             ],
             'taxable_amount' => [
                 'label' => 'Taxable Amount',
                 'type' => 'number',
                 'required' => true,
-                'min' => 0
+                'min' => 0,
             ],
             'total_tax' => [
                 'label' => 'Total Tax',
                 'type' => 'number',
                 'required' => true,
-                'min' => 0
+                'min' => 0,
             ],
             'shipping_charges' => [
                 'label' => 'Shipping Charges',
                 'type' => 'number',
                 'required' => false,
                 'min' => 0,
-                'default' => 0
+                'default' => 0,
             ],
             'other_charges' => [
                 'label' => 'Other Charges',
                 'type' => 'number',
                 'required' => false,
                 'min' => 0,
-                'default' => 0
+                'default' => 0,
             ],
             'adjustment' => [
                 'label' => 'Adjustment',
                 'type' => 'number',
                 'required' => false,
-                'default' => 0
+                'default' => 0,
             ],
             'round_off' => [
                 'label' => 'Round Off',
                 'type' => 'number',
                 'required' => false,
-                'default' => 0
+                'default' => 0,
             ],
             'grand_total' => [
                 'label' => 'Grand Total',
                 'type' => 'number',
                 'required' => true,
-                'min' => 0
+                'min' => 0,
             ],
             'terms' => [
                 'label' => 'Terms & Conditions',
                 'type' => 'textarea',
                 'required' => false,
-                'maxLength' => 2000
+                'maxLength' => 2000,
             ],
             'notes' => [
                 'label' => 'Notes',
                 'type' => 'textarea',
                 'required' => false,
-                'maxLength' => 1000
+                'maxLength' => 1000,
             ],
             'created_by' => [
                 'label' => 'Created By',
                 'placeholder' => 'USER001',
                 'required' => true,
-                'maxLength' => 50
+                'maxLength' => 50,
             ],
             'updated_by' => [
                 'label' => 'Updated By',
                 'placeholder' => 'USER001',
                 'required' => true,
-                'maxLength' => 50
-            ]
+                'maxLength' => 50,
+            ],
         ];
     }
 
     /**
      * Get the API filters for this model.
-     *
-     * @return array
      */
-    public static function getApiFilters(): array
+    public function getApiFilters(): array
     {
         return [
             'status' => [
                 'label' => 'Status',
-                'values' => ['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'INVOICED']
+                'values' => ['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'INVOICED'],
             ],
             'channel' => [
                 'label' => 'Channel',
-                'values' => ['Online', 'Offline']
-            ]
+                'values' => ['Online', 'Offline'],
+            ],
         ];
     }
 
     /**
      * Get the grand total from totals JSON.
-     *
-     * @return float|null
      */
     public function getGrandTotalAttribute(): ?float
     {
@@ -517,8 +509,6 @@ class Estimate extends Model
 
     /**
      * Get the formatted date.
-     *
-     * @return string
      */
     public function getFormattedDateAttribute(): string
     {

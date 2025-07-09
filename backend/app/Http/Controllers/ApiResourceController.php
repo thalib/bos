@@ -6,8 +6,6 @@ use App\Http\Requests\StoreResourceRequest;
 use App\Http\Requests\UpdateResourceRequest;
 use App\Http\Responses\ApiResponseTrait;
 use App\Services\DatabaseErrorParser;
-use App\Services\ResourceSchemaService;
-use App\Services\ResourceFilterService;
 use App\Services\ResourceLogger;
 use App\Services\ResourceMetadataService;
 use Illuminate\Database\Eloquent\Model;
@@ -22,17 +20,10 @@ class ApiResourceController extends Controller
 {
     use ApiResponseTrait;
     
-    protected ResourceSchemaService $schemaService;
-    protected ResourceFilterService $filterService;
     protected ResourceMetadataService $metadataService;
 
-    public function __construct(
-        ResourceSchemaService $schemaService, 
-        ResourceFilterService $filterService,
-        ResourceMetadataService $metadataService
-    ) {
-        $this->schemaService = $schemaService;
-        $this->filterService = $filterService;
+    public function __construct(ResourceMetadataService $metadataService)
+    {
         $this->metadataService = $metadataService;
     }
     /**
@@ -73,45 +64,40 @@ class ApiResourceController extends Controller
             $model = new $modelClass();
 
             // Apply search filtering using the filter service
-            $this->filterService->applySearch($query, $request, $model);
+            $this->applySearch($query, $request, $model);
 
             // Apply filters based on model's getApiFilters or fallback to default active filter
-            $appliedFilters = $this->filterService->applyFilters($query, $request, $model);
+            $appliedFilters = $this->applyFilters($query, $request, $model);
 
             // Apply sorting if sort parameter is present
             if ($request->has('sort')) {
-                $sortFields = explode(',', $request->input('sort'));
-                $directions = explode(',', $request->input('sort_dir', 'asc'));
+                $sortData = $request->input('sort');
+                
+                // Handle the new sort format: {"column": "field_name", "dir": "asc|desc"}
+                // Silently ignore invalid sort parameters instead of returning errors
+                if (is_array($sortData) && isset($sortData['column'])) {
+                    $sortField = trim($sortData['column']);
+                    $direction = isset($sortData['dir']) ? trim($sortData['dir']) : 'asc';
 
-                // Create model instance to get available fields for validation
-                $model = new $modelClass();
-                $fillableFields = $model->getFillable();
-                $commonFields = ['id', 'created_at', 'updated_at'];
-                $allowedSortFields = array_merge($fillableFields, $commonFields);
+                    // Create model instance to get available fields for validation
+                    $model = new $modelClass();
+                    $fillableFields = $model->getFillable();
+                    $commonFields = ['id', 'created_at', 'updated_at'];
+                    $allowedSortFields = array_merge($fillableFields, $commonFields);
 
-                foreach ($sortFields as $index => $sortField) {
-                    $sortField = trim($sortField);
-                    $direction = isset($directions[$index]) ? trim($directions[$index]) : 'asc';                    // Validate sort field
+                    // Validate sort field - if invalid, silently ignore the sort
                     if (!in_array($sortField, $allowedSortFields)) {
-                        return $this->errorResponse(
-                            'INVALID_SORT_FIELD',
-                            "Sort field '{$sortField}' is not allowed",
-                            400,
-                            ['allowed_fields' => $allowedSortFields]
-                        );
-                    }
+                        // Silently ignore invalid sort field, continue without sorting
+                    } else {
+                        // Validate direction - if invalid, default to 'asc'
+                        if (!in_array(strtolower($direction), ['asc', 'desc'])) {
+                            $direction = 'asc';
+                        }
 
-                    // Validate direction
-                    if (!in_array(strtolower($direction), ['asc', 'desc'])) {
-                        return $this->errorResponse(
-                            'INVALID_SORT_DIRECTION',
-                            "Sort direction '{$direction}' is not allowed",
-                            400,
-                            ['allowed_directions' => ['asc', 'desc']]
-                        );
+                        $query->orderBy($sortField, $direction);
                     }
-                    $query->orderBy($sortField, $direction);
                 }
+                // Silently ignore invalid sort format (not an object or missing column)
             }
 
             // Prepare metadata
@@ -611,7 +597,7 @@ class ApiResourceController extends Controller
             $model = new $modelClass();
 
             // Use metadata service to get schema data
-            $schemaData = $this->metadataService->getSchemaData($model);
+            $schemaData = $this->metadataService->buildSchemaMetadata($model);
             
             if ($schemaData === null) {
                 return $this->errorResponse(
@@ -688,7 +674,7 @@ class ApiResourceController extends Controller
             $model = new $modelClass();
 
             // Use metadata service to get columns data
-            $columnsData = $this->metadataService->getColumnsData($model);
+            $columnsData = $this->metadataService->buildColumnsMetadata($model);
             
             if ($columnsData === null) {
                 return $this->errorResponse(
@@ -711,5 +697,134 @@ class ApiResourceController extends Controller
                 500
             );
         }
+    }
+
+    /**
+     * Apply search filtering to a query based on request parameters.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param Request $request
+     * @param Model $model
+     * @return void
+     */
+    protected function applySearch($query, Request $request, Model $model): void
+    {
+        if ($request->has('search') && !empty($request->input('search'))) {
+            $searchTerm = $request->input('search');
+            $searchableFields = $this->getSearchableFields($model);
+
+            if (!empty($searchableFields)) {
+                $query->where(function ($q) use ($searchableFields, $searchTerm) {
+                    foreach ($searchableFields as $field) {
+                        $q->orWhere($field, 'LIKE', "%{$searchTerm}%");
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * Apply filters based on model's getApiFilters method or fallback to default active filter.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param Request $request
+     * @param Model $model
+     * @return array
+     */
+    protected function applyFilters($query, Request $request, Model $model): array
+    {
+        $appliedFilters = [];
+
+        // Get available filters from model
+        $availableFilters = [];
+        if (method_exists($model, 'getApiFilters')) {
+            $availableFilters = $model->getApiFilters();
+        }
+
+        // If model has API filters, apply them
+        if (!empty($availableFilters)) {
+            foreach ($availableFilters as $field => $config) {
+                if ($request->has($field)) {
+                    $filterValue = $request->input($field);
+                    
+                    // Skip empty values
+                    if ($filterValue !== null && $filterValue !== '' && $filterValue !== []) {
+                        $this->applyFilterToQuery($query, $field, $filterValue, $model);
+                        $appliedFilters[$field] = [
+                            'field' => $field,
+                            'value' => $filterValue
+                        ];
+                    }
+                }
+            }
+        } else {
+            // Fallback: Apply default 'active' filter if no custom filters defined
+            if ($request->has('active') && in_array('active', $model->getFillable())) {
+                $activeValue = $request->input('active');
+                if ($activeValue !== null && $activeValue !== '') {
+                    // Convert string 'true'/'false' to boolean for active filter
+                    $boolValue = filter_var($activeValue, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                    if ($boolValue !== null) {
+                        $query->where('active', $boolValue);
+                        $appliedFilters['active'] = [
+                            'field' => 'active',
+                            'value' => $boolValue
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $appliedFilters;
+    }
+
+    /**
+     * Apply a specific filter to the query using Eloquent scopes when available.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $field
+     * @param mixed $value
+     * @param Model $model
+     * @return void
+     */
+    protected function applyFilterToQuery($query, string $field, $value, Model $model): void
+    {
+        // Check if model has a scope for this filter
+        $scopeMethod = 'scope' . ucfirst(Str::camel($field));
+        
+        if (method_exists($model, $scopeMethod)) {
+            // Use the model's scope if available
+            $query->{Str::camel($field)}($value);
+        } else {
+            // Default: Apply direct where clause
+            $query->where($field, $value);
+        }
+    }
+
+    /**
+     * Get searchable fields from model.
+     *
+     * @param Model $model
+     * @return array
+     */
+    protected function getSearchableFields(Model $model): array
+    {
+        // Check if model has custom searchable fields
+        if (method_exists($model, 'getSearchableFields')) {
+            return $model->getSearchableFields();
+        }
+
+        // Fallback: Auto-detect searchable fields
+        $fillable = $model->getFillable();
+        $searchableFields = [];
+
+        foreach ($fillable as $field) {
+            // Include fields that are likely to contain searchable text
+            if (Str::contains(strtolower($field), ['name', 'title', 'description', 'email', 'username', 'slug'])) {
+                $searchableFields[] = $field;
+            }
+        }
+
+        return $searchableFields;
     }
 }
