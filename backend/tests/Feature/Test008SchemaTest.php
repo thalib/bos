@@ -21,7 +21,7 @@ class Test008SchemaTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_null_schema_when_no_getApiSchema_method()
+    public function it_returns_null_schema_when_no_get_api_schema_method()
     {
         Product::factory()->count(3)->create();
 
@@ -29,7 +29,7 @@ class Test008SchemaTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         // Product model DOES have getApiSchema(), so schema should NOT be null
         // This test should actually test a model without getApiSchema()
         // For now, we expect the grouped schema structure
@@ -48,31 +48,31 @@ class Test008SchemaTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'schema' // Should be array of groups
+                'schema', // Should be array of groups
             ]);
 
         $schema = $response->json('schema');
-        
+
         if ($schema !== null) {
             $this->assertIsArray($schema);
-            
+
             // Test grouped schema structure
             foreach ($schema as $group) {
                 $this->assertArrayHasKey('group', $group);
                 $this->assertArrayHasKey('fields', $group);
                 $this->assertIsString($group['group']);
                 $this->assertIsArray($group['fields']);
-                
+
                 // Test each field in the group (now array-based)
                 foreach ($group['fields'] as $field) {
                     $this->assertIsArray($field);
-                    
+
                     // Required field properties
                     $this->assertArrayHasKey('field', $field);
                     $this->assertArrayHasKey('label', $field);
                     $this->assertArrayHasKey('type', $field);
                     $this->assertArrayHasKey('required', $field);
-                    
+
                     $this->assertIsString($field['field']);
                     $this->assertIsString($field['label']);
                     $this->assertIsString($field['type']);
@@ -91,15 +91,15 @@ class Test008SchemaTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $schema = $response->json('schema');
-        
+
         if ($schema !== null) {
             $validTypes = [
                 'string', 'number', 'decimal', 'boolean', 'date', 'text',
-                'select', 'checkbox', 'textarea', 'object', 'array', 'file', 'tags', 'multiselect'
+                'select', 'checkbox', 'textarea', 'object', 'array', 'file', 'tags', 'multiselect',
             ];
-            
+
             // Test grouped schema structure
             foreach ($schema as $group) {
                 foreach ($group['fields'] as $field) {
@@ -118,9 +118,9 @@ class Test008SchemaTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $schema = $response->json('schema');
-        
+
         if ($schema !== null) {
             // Test grouped schema structure
             foreach ($schema as $group) {
@@ -129,45 +129,45 @@ class Test008SchemaTest extends TestCase
                     if (isset($field['placeholder'])) {
                         $this->assertIsString($field['placeholder']);
                     }
-                    
+
                     if (isset($field['pattern'])) {
                         $this->assertIsString($field['pattern']);
                     }
-                    
+
                     // Validate optional boolean properties
                     if (isset($field['unique'])) {
                         $this->assertIsBool($field['unique']);
                     }
-                    
+
                     // Validate optional numeric properties
                     if (isset($field['maxLength'])) {
                         $this->assertIsInt($field['maxLength']);
                         $this->assertGreaterThan(0, $field['maxLength']);
                     }
-                    
+
                     if (isset($field['min'])) {
                         $this->assertIsNumeric($field['min']);
                     }
-                    
+
                     if (isset($field['max'])) {
                         $this->assertIsNumeric($field['max']);
                     }
-                    
+
                     if (isset($field['minItems'])) {
                         $this->assertIsInt($field['minItems']);
                         $this->assertGreaterThanOrEqual(0, $field['minItems']);
                     }
-                    
+
                     if (isset($field['maxItems'])) {
                         $this->assertIsInt($field['maxItems']);
                         $this->assertGreaterThan(0, $field['maxItems']);
                     }
-                    
+
                     // Validate options array for select fields
                     if (isset($field['options'])) {
                         $this->assertIsArray($field['options']);
                     }
-                    
+
                     // Validate properties object for object/array types
                     if (isset($field['properties'])) {
                         $this->assertIsArray($field['properties']);
@@ -186,16 +186,16 @@ class Test008SchemaTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $schema = $response->json('schema');
-        
+
         if ($schema !== null) {
             // Test grouped schema structure
             foreach ($schema as $group) {
                 foreach ($group['fields'] as $field) {
                     if ($field['type'] === 'select' && isset($field['options'])) {
                         $this->assertIsArray($field['options']);
-                        
+
                         foreach ($field['options'] as $option) {
                             // Options can be simple values or objects with value/label
                             if (is_array($option)) {
@@ -218,16 +218,16 @@ class Test008SchemaTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $schema = $response->json('schema');
-        
+
         if ($schema !== null) {
             // Test grouped schema structure
             foreach ($schema as $group) {
                 foreach ($group['fields'] as $field) {
                     if ($field['type'] === 'object' && isset($field['properties'])) {
                         $this->assertIsArray($field['properties']);
-                        
+
                         // Properties should define nested field structure
                         foreach ($field['properties'] as $property) {
                             if (is_array($property)) {
@@ -250,9 +250,9 @@ class Test008SchemaTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $schema = $response->json('schema');
-        
+
         if ($schema !== null) {
             // Test grouped schema structure
             foreach ($schema as $group) {
@@ -262,7 +262,7 @@ class Test008SchemaTest extends TestCase
                         if (isset($field['minItems']) && isset($field['maxItems'])) {
                             $this->assertLessThanOrEqual($field['maxItems'], $field['minItems']);
                         }
-                        
+
                         // Array fields might have properties defining item structure
                         if (isset($field['properties'])) {
                             $this->assertIsArray($field['properties']);
@@ -282,9 +282,9 @@ class Test008SchemaTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $schema = $response->json('schema');
-        
+
         if ($schema !== null) {
             // Test grouped schema structure
             foreach ($schema as $group) {
@@ -309,19 +309,19 @@ class Test008SchemaTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $schema = $response->json('schema');
-        
+
         if ($schema !== null) {
             $allFieldNames = [];
-            
+
             // Collect all field names from all groups
             foreach ($schema as $group) {
                 foreach ($group['fields'] as $field) {
                     $allFieldNames[] = $field['field'];
                 }
             }
-            
+
             $this->assertEquals(count($allFieldNames), count(array_unique($allFieldNames)), 'Schema field names must be unique across all groups');
         }
     }
@@ -335,9 +335,9 @@ class Test008SchemaTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $schema = $response->json('schema');
-        
+
         if ($schema !== null) {
             // Test grouped schema structure
             foreach ($schema as $group) {
@@ -382,16 +382,16 @@ class Test008SchemaTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $schema = $response->json('schema');
-        
+
         if ($schema !== null) {
             // Test grouped schema structure
             foreach ($schema as $group) {
                 foreach ($group['fields'] as $field) {
                     if (isset($field['pattern'])) {
                         // Test that the pattern is a valid regex
-                        $testResult = @preg_match('/' . $field['pattern'] . '/', 'test');
+                        $testResult = @preg_match('/'.$field['pattern'].'/', 'test');
                         $this->assertNotFalse($testResult, "Pattern '{$field['pattern']}' should be a valid regex");
                     }
                 }

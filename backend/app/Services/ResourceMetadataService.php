@@ -48,7 +48,7 @@ class ResourceMetadataService
     public function buildFiltersMetadata(Request $request, Model $model, array $appliedFilters = []): ?array
     {
         // Return null if model doesn't have getApiFilters method
-        if (!method_exists($model, 'getApiFilters')) {
+        if (! method_exists($model, 'getApiFilters')) {
             return null;
         }
 
@@ -179,8 +179,8 @@ class ResourceMetadataService
                 'clickable' => true,
                 'search' => false,
                 'format' => 'text',
-                'align' => 'left'
-            ]
+                'align' => 'left',
+            ],
         ];
     }
 

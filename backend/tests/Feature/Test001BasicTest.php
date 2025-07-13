@@ -43,7 +43,7 @@ class Test001BasicTest extends TestCase
                         'slug',
                         'created_at',
                         'updated_at',
-                    ]
+                    ],
                 ],
                 'pagination' => [
                     'totalItems',
@@ -78,7 +78,7 @@ class Test001BasicTest extends TestCase
             ->getJson('/api/v1/products?search=iPhone');
 
         $response->assertStatus(200);
-        
+
         $data = $response->json('data');
         if (count($data) > 0) {
             $iphoneProducts = collect($data)->filter(function ($product) {
@@ -106,6 +106,4 @@ class Test001BasicTest extends TestCase
         $this->assertEquals(20, $pagination['totalItems']);
         $this->assertCount(5, $response->json('data'));
     }
-
-    
 }

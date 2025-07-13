@@ -58,7 +58,7 @@ class StoreResourceRequest extends FormRequest
             if ($castType) {
                 // Handle cast types with precision (e.g., 'decimal:2')
                 $baseCastType = explode(':', $castType)[0];
-                
+
                 switch ($baseCastType) {
                     case 'boolean':
                     case 'bool':
@@ -206,8 +206,8 @@ class StoreResourceRequest extends FormRequest
             'error' => [
                 'code' => 'VALIDATION_FAILED',
                 'message' => 'The given data was invalid',
-                'details' => $validator->errors()
-            ]
+                'details' => $validator->errors(),
+            ],
         ], 422));
     }
 }

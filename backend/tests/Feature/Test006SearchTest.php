@@ -29,7 +29,7 @@ class Test006SearchTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $this->assertNull($response->json('search'));
     }
 
@@ -44,7 +44,7 @@ class Test006SearchTest extends TestCase
             ->getJson('/api/v1/products?search=iPhone');
 
         $response->assertStatus(200);
-        
+
         $this->assertEquals('iPhone', $response->json('search'));
     }
 
@@ -59,10 +59,10 @@ class Test006SearchTest extends TestCase
             ->getJson('/api/v1/products?search=iPhone');
 
         $response->assertStatus(200);
-        
+
         $data = $response->json('data');
         $this->assertGreaterThan(0, count($data));
-        
+
         // Check that returned products contain the search term
         foreach ($data as $product) {
             $this->assertStringContainsStringIgnoringCase('iPhone', $product['name']);
@@ -74,20 +74,20 @@ class Test006SearchTest extends TestCase
     {
         Product::factory()->create([
             'name' => 'Smartphone',
-            'description' => 'Latest iPhone technology with advanced features'
+            'description' => 'Latest iPhone technology with advanced features',
         ]);
         Product::factory()->create([
             'name' => 'Tablet',
-            'description' => 'Android tablet with premium display'
+            'description' => 'Android tablet with premium display',
         ]);
 
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?search=iPhone');
 
         $response->assertStatus(200);
-        
+
         $data = $response->json('data');
-        
+
         if (count($data) > 0) {
             // At least one product should match the search term in description
             $found = false;
@@ -111,7 +111,7 @@ class Test006SearchTest extends TestCase
             ->getJson('/api/v1/products?search=iphone');
 
         $response->assertStatus(200);
-        
+
         $data = $response->json('data');
         $this->assertGreaterThan(0, count($data));
         $this->assertStringContainsStringIgnoringCase('iPhone', $data[0]['name']);
@@ -127,7 +127,7 @@ class Test006SearchTest extends TestCase
             ->getJson('/api/v1/products?search=NonExistentProduct');
 
         $response->assertStatus(200);
-        
+
         $this->assertEquals('NonExistentProduct', $response->json('search'));
         $this->assertCount(0, $response->json('data'));
     }
@@ -143,14 +143,14 @@ class Test006SearchTest extends TestCase
             ->getJson('/api/v1/products?search=Smart');
 
         $response->assertStatus(200);
-        
+
         $data = $response->json('data');
         $this->assertGreaterThan(0, count($data));
-        
+
         // Should find both "Smartphone" and "Smart Watch"
         $foundSmartphone = false;
         $foundSmartWatch = false;
-        
+
         foreach ($data as $product) {
             if (stripos($product['name'], 'Smartphone') !== false) {
                 $foundSmartphone = true;
@@ -159,7 +159,7 @@ class Test006SearchTest extends TestCase
                 $foundSmartWatch = true;
             }
         }
-        
+
         $this->assertTrue($foundSmartphone || $foundSmartWatch, 'Should find products with partial word matches');
     }
 
@@ -175,8 +175,8 @@ class Test006SearchTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
     }
 
@@ -187,10 +187,10 @@ class Test006SearchTest extends TestCase
         Product::factory()->create(['name' => 'Normal Product']);
 
         $response = $this->actingAs($this->user, 'sanctum')
-            ->getJson('/api/v1/products?search=' . urlencode('special characters'));
+            ->getJson('/api/v1/products?search='.urlencode('special characters'));
 
         $response->assertStatus(200);
-        
+
         $this->assertEquals('special characters', $response->json('search'));
     }
 
@@ -201,7 +201,7 @@ class Test006SearchTest extends TestCase
         for ($i = 1; $i <= 25; $i++) {
             Product::factory()->create(['name' => "iPhone Model $i"]);
         }
-        
+
         // Create products that don't match
         Product::factory()->count(10)->create(['name' => 'Samsung Galaxy']);
 
@@ -209,10 +209,10 @@ class Test006SearchTest extends TestCase
             ->getJson('/api/v1/products?search=iPhone&per_page=10&page=1');
 
         $response->assertStatus(200);
-        
+
         $this->assertEquals('iPhone', $response->json('search'));
         $this->assertCount(10, $response->json('data'));
-        
+
         $pagination = $response->json('pagination');
         $this->assertEquals(25, $pagination['totalItems']); // Should only count matching items
         $this->assertEquals(3, $pagination['totalPages']); // 25 items / 10 per page
@@ -229,9 +229,9 @@ class Test006SearchTest extends TestCase
             ->getJson('/api/v1/products?search=iPhone&sort=name&dir=asc');
 
         $response->assertStatus(200);
-        
+
         $this->assertEquals('iPhone', $response->json('search'));
-        
+
         $data = $response->json('data');
         $this->assertCount(2, $data);
         $this->assertEquals('iPhone A Model', $data[0]['name']);

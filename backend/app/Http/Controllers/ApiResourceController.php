@@ -64,7 +64,7 @@ class ApiResourceController extends Controller
 
             // Apply search filtering using the filter service
             $searchErrors = $this->applySearchWithValidation($query, $request, $model);
-            if (!empty($searchErrors)) {
+            if (! empty($searchErrors)) {
                 return $this->errorResponse(
                     $searchErrors['error'],
                     $searchErrors['message'],
@@ -76,7 +76,7 @@ class ApiResourceController extends Controller
             // Apply filters based on model's getApiFilters or fallback to default active filter
             $appliedFilters = [];
             $filteringErrors = $this->applyFiltersWithValidation($query, $request, $model, $appliedFilters);
-            if (!empty($filteringErrors)) {
+            if (! empty($filteringErrors)) {
                 return $this->errorResponse(
                     $filteringErrors['error'],
                     $filteringErrors['message'],
@@ -87,7 +87,7 @@ class ApiResourceController extends Controller
 
             // Apply sorting if sort parameter is present
             $sortingErrors = $this->applySorting($query, $request, $model);
-            if (!empty($sortingErrors)) {
+            if (! empty($sortingErrors)) {
                 return $this->errorResponse(
                     $sortingErrors['error'],
                     $sortingErrors['message'],
@@ -101,7 +101,7 @@ class ApiResourceController extends Controller
 
             // Validate pagination parameters
             $validationErrors = $this->validatePaginationParameters($request);
-            if (!empty($validationErrors)) {
+            if (! empty($validationErrors)) {
                 return $this->errorResponse(
                     'INVALID_PARAMETERS',
                     'Invalid pagination parameters',
@@ -266,7 +266,7 @@ class ApiResourceController extends Controller
 
             // Check if this is a validation-type error that should return 422
             $validationErrors = ['required_field_missing', 'unique_constraint_violation', 'invalid_data_type'];
-            $isValidationError = isset($specificError['error_type']) && 
+            $isValidationError = isset($specificError['error_type']) &&
                 in_array($specificError['error_type'], $validationErrors);
 
             if ($isValidationError) {
@@ -612,12 +612,13 @@ class ApiResourceController extends Controller
     {
         // Validate search parameter
         $searchValidation = $this->validateSearchParameter($request);
-        if (!empty($searchValidation)) {
+        if (! empty($searchValidation)) {
             return $searchValidation;
         }
 
         // Apply search if validation passes
         $this->applySearch($query, $request, $model);
+
         return [];
     }
 
@@ -628,9 +629,9 @@ class ApiResourceController extends Controller
     {
         if ($request->has('search')) {
             $searchTerm = $request->input('search');
-            
+
             // Check if search term is not empty and meets minimum length requirement
-            if (!empty($searchTerm) && strlen(trim($searchTerm)) < 2) {
+            if (! empty($searchTerm) && strlen(trim($searchTerm)) < 2) {
                 return [
                     'error' => 'INVALID_PARAMETERS',
                     'message' => 'Search term must be at least 2 characters long.',
@@ -638,8 +639,8 @@ class ApiResourceController extends Controller
                     'details' => [
                         'search_term' => $searchTerm,
                         'current_length' => strlen(trim($searchTerm)),
-                        'minimum_length' => 2
-                    ]
+                        'minimum_length' => 2,
+                    ],
                 ];
             }
         }
@@ -654,6 +655,7 @@ class ApiResourceController extends Controller
     {
         try {
             $appliedFilters = $this->applyFilters($query, $request, $model);
+
             return [];
         } catch (\InvalidArgumentException $e) {
             return [
@@ -661,8 +663,8 @@ class ApiResourceController extends Controller
                 'message' => $e->getMessage(),
                 'status' => 400,
                 'details' => [
-                    'exception' => $e->getMessage()
-                ]
+                    'exception' => $e->getMessage(),
+                ],
             ];
         }
     }
@@ -680,8 +682,8 @@ class ApiResourceController extends Controller
                 'status' => 400,
                 'details' => [
                     'filter_param' => $filterParam,
-                    'expected_format' => 'field:value'
-                ]
+                    'expected_format' => 'field:value',
+                ],
             ];
         }
 
@@ -693,34 +695,36 @@ class ApiResourceController extends Controller
         // Check if model has getApiFilters method
         if (method_exists($model, 'getApiFilters')) {
             $availableFilters = $model->getApiFilters();
-            
+
             // Validate that the field is in available filters
-            if (!array_key_exists($field, $availableFilters)) {
+            if (! array_key_exists($field, $availableFilters)) {
                 $availableFields = array_keys($availableFilters);
+
                 return [
                     'error' => 'INVALID_PARAMETERS',
-                    'message' => "Invalid filter field '{$field}'. Available fields: " . implode(', ', $availableFields),
+                    'message' => "Invalid filter field '{$field}'. Available fields: ".implode(', ', $availableFields),
                     'status' => 400,
                     'details' => [
                         'filter_field' => $field,
-                        'available_fields' => $availableFields
-                    ]
+                        'available_fields' => $availableFields,
+                    ],
                 ];
             }
 
             // Validate that the value is in allowed values (if specified)
-            if (isset($availableFilters[$field]['values']) && !empty($availableFilters[$field]['values'])) {
-                if (!in_array($value, $availableFilters[$field]['values'])) {
+            if (isset($availableFilters[$field]['values']) && ! empty($availableFilters[$field]['values'])) {
+                if (! in_array($value, $availableFilters[$field]['values'])) {
                     $allowedValues = $availableFilters[$field]['values'];
+
                     return [
                         'error' => 'INVALID_PARAMETERS',
-                        'message' => "Invalid filter value '{$value}' for field '{$field}'. Allowed values: " . implode(', ', $allowedValues),
+                        'message' => "Invalid filter value '{$value}' for field '{$field}'. Allowed values: ".implode(', ', $allowedValues),
                         'status' => 400,
                         'details' => [
                             'filter_field' => $field,
                             'filter_value' => $value,
-                            'allowed_values' => $allowedValues
-                        ]
+                            'allowed_values' => $allowedValues,
+                        ],
                     ];
                 }
             }
@@ -728,12 +732,12 @@ class ApiResourceController extends Controller
             // If model doesn't have getApiFilters, reject any filter attempts
             return [
                 'error' => 'INVALID_PARAMETERS',
-                'message' => "Filtering is not supported for this resource",
+                'message' => 'Filtering is not supported for this resource',
                 'status' => 400,
                 'details' => [
                     'filter_field' => $field,
-                    'resource' => class_basename($model)
-                ]
+                    'resource' => class_basename($model),
+                ],
             ];
         }
 
@@ -752,10 +756,10 @@ class ApiResourceController extends Controller
         // Handle single filter parameter with field:value format
         if ($request->has('filter')) {
             $filterParam = $request->input('filter');
-            
+
             // Validate filter format
             $filterValidation = $this->validateFilterParameter($filterParam, $model);
-            if (!empty($filterValidation)) {
+            if (! empty($filterValidation)) {
                 throw new \InvalidArgumentException($filterValidation['message']);
             }
 
@@ -871,13 +875,13 @@ class ApiResourceController extends Controller
         // Validate per_page parameter
         if ($request->has('per_page')) {
             $perPage = $request->input('per_page');
-            
+
             // Check if it's numeric
-            if (!is_numeric($perPage)) {
+            if (! is_numeric($perPage)) {
                 $errors['per_page'] = 'The per_page parameter must be a number.';
             } else {
                 $perPage = (int) $perPage;
-                
+
                 // Check if it's within valid range (1-100)
                 if ($perPage <= 0) {
                     $errors['per_page'] = 'The per_page parameter must be greater than 0.';
@@ -890,13 +894,13 @@ class ApiResourceController extends Controller
         // Validate page parameter
         if ($request->has('page')) {
             $page = $request->input('page');
-            
+
             // Check if it's numeric
-            if (!is_numeric($page)) {
+            if (! is_numeric($page)) {
                 $errors['page'] = 'The page parameter must be a number.';
             } else {
                 $page = (int) $page;
-                
+
                 // Check if it's a positive number
                 if ($page <= 0) {
                     $errors['page'] = 'The page parameter must be greater than 0.';
@@ -913,7 +917,7 @@ class ApiResourceController extends Controller
      */
     protected function applySorting($query, Request $request, Model $model): array
     {
-        if (!$request->has('sort')) {
+        if (! $request->has('sort')) {
             return [];
         }
 
@@ -921,37 +925,37 @@ class ApiResourceController extends Controller
         $direction = trim($request->input('dir', 'asc'));
 
         // Validate sort direction
-        if (!in_array(strtolower($direction), ['asc', 'desc'])) {
+        if (! in_array(strtolower($direction), ['asc', 'desc'])) {
             return [
                 'error' => 'INVALID_PARAMETERS',
                 'message' => 'Invalid sort direction. Must be "asc" or "desc".',
                 'status' => 400,
                 'details' => [
                     'sort_direction' => $direction,
-                    'allowed_directions' => ['asc', 'desc']
-                ]
+                    'allowed_directions' => ['asc', 'desc'],
+                ],
             ];
         }
 
         // Get sortable columns from the model
         $sortableColumns = $this->getSortableColumns($model);
-        
+
         // Validate sort field - must be in sortable columns
-        if (!in_array($sortField, $sortableColumns)) {
+        if (! in_array($sortField, $sortableColumns)) {
             return [
                 'error' => 'INVALID_PARAMETERS',
-                'message' => "Invalid sort column '{$sortField}'. Allowed columns: " . implode(', ', $sortableColumns),
+                'message' => "Invalid sort column '{$sortField}'. Allowed columns: ".implode(', ', $sortableColumns),
                 'status' => 400,
                 'details' => [
                     'sort_column' => $sortField,
-                    'allowed_columns' => $sortableColumns
-                ]
+                    'allowed_columns' => $sortableColumns,
+                ],
             ];
         }
 
         // Apply the sorting
         $query->orderBy($sortField, strtolower($direction));
-        
+
         return [];
     }
 
@@ -964,7 +968,7 @@ class ApiResourceController extends Controller
 
         if (method_exists($model, 'getIndexColumns')) {
             $indexColumns = $model->getIndexColumns();
-            
+
             foreach ($indexColumns as $column) {
                 if (isset($column['sortable']) && $column['sortable'] === true && isset($column['field'])) {
                     $sortableColumns[] = $column['field'];

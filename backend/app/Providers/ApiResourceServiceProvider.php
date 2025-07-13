@@ -40,7 +40,7 @@ class ApiResourceServiceProvider extends ServiceProvider
 
         // Check if the Models directory exists
         if (! File::isDirectory($modelsPath)) {
-            Log::warning('Models directory not found at: ' . $modelsPath);
+            Log::warning('Models directory not found at: '.$modelsPath);
 
             return;
         }
@@ -95,7 +95,7 @@ class ApiResourceServiceProvider extends ServiceProvider
                 // Construct the full base URI
                 $fullBaseUri = "/{$apiPrefix}/{$version}";                // Register routes using Route facade without authentication middleware (for testing)
                 Route::prefix("{$apiPrefix}/{$version}")
-                    //->middleware(['api']) 
+                    // ->middleware(['api'])
                     ->middleware(['api', 'auth:sanctum'])
                     ->group(function () use ($uri, $modelNameForController) {
                         // Register GET route for collection (index)

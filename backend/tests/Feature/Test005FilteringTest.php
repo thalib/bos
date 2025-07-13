@@ -21,7 +21,7 @@ class Test005FilteringTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_null_filters_when_no_getApiFilters_method()
+    public function it_returns_null_filters_when_no_get_api_filters_method()
     {
         Product::factory()->count(3)->create();
 
@@ -29,7 +29,7 @@ class Test005FilteringTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         // According to spec, filters should be null when model doesn't define getApiFilters()
         $this->assertNull($response->json('filters'));
     }
@@ -39,7 +39,7 @@ class Test005FilteringTest extends TestCase
     {
         // This test assumes the Product model will have getApiFilters() method implemented
         // For now, we test the expected structure based on the API spec
-        
+
         Product::factory()->create(['categories' => ['Electronics']]);
         Product::factory()->create(['categories' => ['Books']]);
 
@@ -48,11 +48,11 @@ class Test005FilteringTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'filters' // Should be null or have the correct structure
+                'filters', // Should be null or have the correct structure
             ]);
 
         $filters = $response->json('filters');
-        
+
         if ($filters !== null) {
             $this->assertArrayHasKey('applied', $filters);
             $this->assertArrayHasKey('available', $filters);
@@ -74,7 +74,7 @@ class Test005FilteringTest extends TestCase
         // For now, we expect this to work or return an appropriate error
         // The actual behavior will depend on the implementation
         $this->assertContains($response->status(), [200, 400]);
-        
+
         if ($response->status() === 200) {
             $filters = $response->json('filters');
             if ($filters !== null && isset($filters['applied'])) {
@@ -96,8 +96,8 @@ class Test005FilteringTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
     }
 
@@ -113,8 +113,8 @@ class Test005FilteringTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
     }
 
@@ -129,7 +129,7 @@ class Test005FilteringTest extends TestCase
 
         // Should either apply the last filter or return an error
         $this->assertContains($response->status(), [200, 400]);
-        
+
         if ($response->status() === 200) {
             $filters = $response->json('filters');
             if ($filters !== null && isset($filters['applied'])) {
@@ -149,12 +149,12 @@ class Test005FilteringTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $filters = $response->json('filters');
-        
+
         if ($filters !== null && isset($filters['available'])) {
             $this->assertIsArray($filters['available']);
-            
+
             foreach ($filters['available'] as $filter) {
                 $this->assertArrayHasKey('field', $filter);
                 $this->assertArrayHasKey('label', $filter);
@@ -179,7 +179,7 @@ class Test005FilteringTest extends TestCase
             ->getJson('/api/v1/products?filter=categories:Books');
 
         $this->assertContains($response2->status(), [200, 400]);
-        
+
         if ($response2->status() === 200) {
             $filters = $response2->json('filters');
             if ($filters !== null && isset($filters['applied'])) {

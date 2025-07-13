@@ -14,7 +14,7 @@ class TestModel extends Model
     protected $fillable = [
         'name',
         'description',
-        'active'
+        'active',
     ];
 
     protected $casts = [

@@ -48,7 +48,7 @@ trait ApiResponseTrait
         // Always include columns field (never null, fallback to ID column)
         if (isset($meta['columns'])) {
             $response['columns'] = $meta['columns'];
-        } elseif ($data !== null && is_array($data) && !empty($data)) {
+        } elseif ($data !== null && is_array($data) && ! empty($data)) {
             // Only include default columns for list responses
             $response['columns'] = $this->getDefaultColumns();
         }
@@ -115,11 +115,11 @@ trait ApiResponseTrait
             'itemsPerPage' => $paginatedResults->perPage(),
             'totalPages' => $paginatedResults->lastPage(),
             'urlPath' => $paginatedResults->path(),
-            'urlQuery' => !empty($queryParams) ? $queryParams : null,
-            'nextPage' => $paginatedResults->hasMorePages() ? (string)($paginatedResults->currentPage() + 1) : null,
-            'prevPage' => $paginatedResults->currentPage() > 1 ? (string)($paginatedResults->currentPage() - 1) : null,
+            'urlQuery' => ! empty($queryParams) ? $queryParams : null,
+            'nextPage' => $paginatedResults->hasMorePages() ? (string) ($paginatedResults->currentPage() + 1) : null,
+            'prevPage' => $paginatedResults->currentPage() > 1 ? (string) ($paginatedResults->currentPage() - 1) : null,
         ];
-        
+
         $response['pagination'] = $pagination;
 
         // Include search at top level - string value or null

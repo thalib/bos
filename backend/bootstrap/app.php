@@ -49,14 +49,14 @@ return Application::configure(basePath: dirname(__DIR__))
                             'error' => [
                                 'code' => 'INVALID_JSON',
                                 'message' => 'Invalid JSON payload',
-                                'details' => []
-                            ]
+                                'details' => [],
+                            ],
                         ], 400);
                     }
                 }
 
                 // Handle malformed JSON requests
-                if ($e instanceof \JsonException || 
+                if ($e instanceof \JsonException ||
                     ($e instanceof \UnexpectedValueException && str_contains($e->getMessage(), 'JSON'))) {
                     return response()->json([
                         'success' => false,
@@ -64,8 +64,8 @@ return Application::configure(basePath: dirname(__DIR__))
                         'error' => [
                             'code' => 'INVALID_JSON',
                             'message' => 'Invalid JSON payload',
-                            'details' => []
-                        ]
+                            'details' => [],
+                        ],
                     ], 400);
                 }
 
@@ -77,8 +77,8 @@ return Application::configure(basePath: dirname(__DIR__))
                         'error' => [
                             'code' => 'UNAUTHORIZED',
                             'message' => 'Authentication required',
-                            'details' => []
-                        ]
+                            'details' => [],
+                        ],
                     ], 401);
                 }
 
@@ -90,8 +90,8 @@ return Application::configure(basePath: dirname(__DIR__))
                         'error' => [
                             'code' => 'ACCESS_DENIED',
                             'message' => 'Access denied',
-                            'details' => []
-                        ]
+                            'details' => [],
+                        ],
                     ], 403);
                 }
 
@@ -103,8 +103,8 @@ return Application::configure(basePath: dirname(__DIR__))
                         'error' => [
                             'code' => 'RESOURCE_NOT_FOUND',
                             'message' => 'Resource not found',
-                            'details' => []
-                        ]
+                            'details' => [],
+                        ],
                     ], 404);
                 }
 
@@ -116,8 +116,8 @@ return Application::configure(basePath: dirname(__DIR__))
                         'error' => [
                             'code' => 'METHOD_NOT_ALLOWED',
                             'message' => 'Method not allowed',
-                            'details' => []
-                        ]
+                            'details' => [],
+                        ],
                     ], 405);
                 }
 
@@ -129,8 +129,8 @@ return Application::configure(basePath: dirname(__DIR__))
                         'error' => [
                             'code' => 'NOT_FOUND',
                             'message' => 'Endpoint not found',
-                            'details' => []
-                        ]
+                            'details' => [],
+                        ],
                     ], 404);
                 }
 
@@ -142,15 +142,15 @@ return Application::configure(basePath: dirname(__DIR__))
                         'error' => [
                             'code' => 'VALIDATION_FAILED',
                             'message' => 'Validation failed',
-                            'details' => $e->errors()
-                        ]
+                            'details' => $e->errors(),
+                        ],
                     ], 422);
                 }
 
                 // Handle all other exceptions with a generic error response
-                Log::error('API Exception: ' . $e->getMessage(), [
+                Log::error('API Exception: '.$e->getMessage(), [
                     'exception' => $e,
-                    'request' => $request->all()
+                    'request' => $request->all(),
                 ]);
 
                 return response()->json([
@@ -159,8 +159,8 @@ return Application::configure(basePath: dirname(__DIR__))
                     'error' => [
                         'code' => 'INTERNAL_SERVER_ERROR',
                         'message' => 'Internal server error',
-                        'details' => []
-                    ]
+                        'details' => [],
+                    ],
                 ], 500);
             }
 

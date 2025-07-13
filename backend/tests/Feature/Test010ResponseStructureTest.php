@@ -37,15 +37,15 @@ class Test010ResponseStructureTest extends TestCase
                         'id',
                         'name',
                         'created_at',
-                        'updated_at'
-                    ]
+                        'updated_at',
+                    ],
                 ],
                 'pagination' => [
                     'totalItems',
                     'currentPage',
                     'itemsPerPage',
-                    'totalPages'
-                ]
+                    'totalPages',
+                ],
             ]);
 
         $this->assertTrue($response->json('success'));
@@ -68,8 +68,8 @@ class Test010ResponseStructureTest extends TestCase
                     'id',
                     'name',
                     'created_at',
-                    'updated_at'
-                ]
+                    'updated_at',
+                ],
             ]);
 
         $this->assertTrue($response->json('success'));
@@ -84,7 +84,7 @@ class Test010ResponseStructureTest extends TestCase
             'slug' => 'test-product',
             'type' => 'simple',
             'price' => 99.99,
-            'publication_status' => 'published'
+            'publication_status' => 'published',
         ];
 
         $response = $this->actingAs($this->user, 'sanctum')
@@ -98,8 +98,8 @@ class Test010ResponseStructureTest extends TestCase
                     'id',
                     'name',
                     'created_at',
-                    'updated_at'
-                ]
+                    'updated_at',
+                ],
             ]);
 
         $this->assertTrue($response->json('success'));
@@ -123,8 +123,8 @@ class Test010ResponseStructureTest extends TestCase
                     'id',
                     'name',
                     'created_at',
-                    'updated_at'
-                ]
+                    'updated_at',
+                ],
             ]);
 
         $this->assertTrue($response->json('success'));
@@ -155,9 +155,9 @@ class Test010ResponseStructureTest extends TestCase
                 'schema' => [
                     '*' => [
                         'group',
-                        'fields'
-                    ]
-                ]
+                        'fields',
+                    ],
+                ],
             ]);
 
         $this->assertTrue($response->json('success'));
@@ -191,8 +191,8 @@ class Test010ResponseStructureTest extends TestCase
                 'error' => [
                     'code',
                     'message',
-                    'details'
-                ]
+                    'details',
+                ],
             ]);
 
         $this->assertFalse($response->json('success'));
@@ -215,8 +215,8 @@ class Test010ResponseStructureTest extends TestCase
                 'message',
                 'error' => [
                     'code',
-                    'details'
-                ]
+                    'details',
+                ],
             ]);
 
         $this->assertFalse($response->json('success'));
@@ -239,7 +239,7 @@ class Test010ResponseStructureTest extends TestCase
             'date', 'datetime', 'time',
             'select', 'radio', 'multiselect',
             'file', 'image',
-            'array', 'object', 'json', 'textarea', 'tags'
+            'array', 'object', 'json', 'textarea', 'tags',
         ];
         $this->assertContains($field['type'], $allowedTypes, "Invalid field type: {$field['type']}");
 
@@ -248,11 +248,11 @@ class Test010ResponseStructureTest extends TestCase
             'field', 'label', 'placeholder', 'help', 'required', 'readonly',
             'default', 'min', 'max', 'step', 'minlength', 'maxlength', 'maxLength',
             'pattern', 'options', 'multiple', 'accept', 'properties', 'unique',
-            'minItems', 'maxItems', 'prefix', 'suffix', 'order', 'attributes'
+            'minItems', 'maxItems', 'prefix', 'suffix', 'order', 'attributes',
         ];
 
         foreach ($field as $key => $value) {
-            if (!in_array($key, ['type']) && !in_array($key, $optionalProperties)) {
+            if (! in_array($key, ['type']) && ! in_array($key, $optionalProperties)) {
                 $this->fail("Unexpected field property: {$key}");
             }
         }

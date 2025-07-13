@@ -32,8 +32,8 @@ class Test004SortingTest extends TestCase
             ->assertJsonStructure([
                 'sort' => [
                     'column',
-                    'dir'
-                ]
+                    'dir',
+                ],
             ]);
 
         $sort = $response->json('sort');
@@ -52,7 +52,7 @@ class Test004SortingTest extends TestCase
             ->getJson('/api/v1/products?sort=name&dir=asc');
 
         $response->assertStatus(200);
-        
+
         $data = $response->json('data');
         $this->assertEquals('Alpha Product', $data[0]['name']);
         $this->assertEquals('Beta Product', $data[1]['name']);
@@ -70,7 +70,7 @@ class Test004SortingTest extends TestCase
             ->getJson('/api/v1/products?sort=name&dir=desc');
 
         $response->assertStatus(200);
-        
+
         $data = $response->json('data');
         $this->assertEquals('Zebra Product', $data[0]['name']);
         $this->assertEquals('Beta Product', $data[1]['name']);
@@ -88,7 +88,7 @@ class Test004SortingTest extends TestCase
             ->getJson('/api/v1/products?sort=price&dir=asc');
 
         $response->assertStatus(200);
-        
+
         $data = $response->json('data');
         $this->assertEquals(100.00, $data[0]['price']);
         $this->assertEquals(200.00, $data[1]['price']);
@@ -106,7 +106,7 @@ class Test004SortingTest extends TestCase
             ->getJson('/api/v1/products?sort=created_at&dir=desc');
 
         $response->assertStatus(200);
-        
+
         $data = $response->json('data');
         $this->assertEquals($product2->id, $data[0]['id']); // Most recent
         $this->assertEquals($product3->id, $data[1]['id']); // Middle
@@ -123,10 +123,10 @@ class Test004SortingTest extends TestCase
             ->getJson('/api/v1/products?sort=name');
 
         $response->assertStatus(200);
-        
+
         $sort = $response->json('sort');
         $this->assertEquals('asc', $sort['dir']);
-        
+
         $data = $response->json('data');
         $this->assertEquals('Alpha Product', $data[0]['name']);
     }
@@ -140,7 +140,7 @@ class Test004SortingTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         // According to spec, sort should be null when no sorting is applied
         $this->assertNull($response->json('sort'));
     }
@@ -157,8 +157,8 @@ class Test004SortingTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
     }
 
@@ -174,8 +174,8 @@ class Test004SortingTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
     }
 
@@ -192,8 +192,8 @@ class Test004SortingTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
     }
 }

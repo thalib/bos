@@ -67,7 +67,7 @@ class Test002successTest extends TestCase
             'description' => 'A test product description',
             'price' => 99.99,
             'categories' => ['Electronics'],
-            'slug' => 'test-product'
+            'slug' => 'test-product',
         ];
 
         $response = $this->actingAs($this->user, 'sanctum')

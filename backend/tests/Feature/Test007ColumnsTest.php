@@ -33,9 +33,9 @@ class Test007ColumnsTest extends TestCase
                 'columns' => [
                     '*' => [
                         'field',
-                        'label'
-                    ]
-                ]
+                        'label',
+                    ],
+                ],
             ]);
 
         $columns = $response->json('columns');
@@ -44,7 +44,7 @@ class Test007ColumnsTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_default_id_column_when_no_getIndexColumns_method()
+    public function it_returns_default_id_column_when_no_get_index_columns_method()
     {
         Product::factory()->count(3)->create();
 
@@ -52,9 +52,9 @@ class Test007ColumnsTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $columns = $response->json('columns');
-        
+
         // If Product model doesn't have getIndexColumns(), should return default ID column
         if (count($columns) === 1 && $columns[0]['field'] === 'id') {
             $this->assertEquals('id', $columns[0]['field']);
@@ -76,32 +76,32 @@ class Test007ColumnsTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $columns = $response->json('columns');
-        
+
         foreach ($columns as $column) {
             $this->assertArrayHasKey('field', $column);
             $this->assertArrayHasKey('label', $column);
             $this->assertIsString($column['field']);
             $this->assertIsString($column['label']);
-            
+
             // Optional properties should have default values if not specified
             if (isset($column['sortable'])) {
                 $this->assertIsBool($column['sortable']);
             }
-            
+
             if (isset($column['clickable'])) {
                 $this->assertIsBool($column['clickable']);
             }
-            
+
             if (isset($column['search'])) {
                 $this->assertIsBool($column['search']);
             }
-            
+
             if (isset($column['format'])) {
                 $this->assertIsString($column['format']);
             }
-            
+
             if (isset($column['align'])) {
                 $this->assertContains($column['align'], ['left', 'center', 'right']);
             }
@@ -117,15 +117,15 @@ class Test007ColumnsTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $columns = $response->json('columns');
         $columnFields = collect($columns)->pluck('field')->toArray();
-        
+
         // If Product model has getIndexColumns() method, check for expected columns
         if (count($columns) > 1) {
             // Expect common product columns
             $expectedColumns = ['name', 'price', 'categories', 'status'];
-            
+
             foreach ($expectedColumns as $expectedColumn) {
                 if (in_array($expectedColumn, $columnFields)) {
                     $columnConfig = collect($columns)->firstWhere('field', $expectedColumn);
@@ -145,20 +145,20 @@ class Test007ColumnsTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $columns = $response->json('columns');
         $priceColumn = collect($columns)->firstWhere('field', 'price');
-        
+
         if ($priceColumn) {
             // Price column should ideally have currency format and right alignment
             if (isset($priceColumn['format'])) {
                 $this->assertEquals('currency', $priceColumn['format']);
             }
-            
+
             if (isset($priceColumn['align'])) {
                 $this->assertEquals('right', $priceColumn['align']);
             }
-            
+
             if (isset($priceColumn['sortable'])) {
                 $this->assertTrue($priceColumn['sortable']);
             }
@@ -174,23 +174,23 @@ class Test007ColumnsTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $columns = $response->json('columns');
         $nameColumn = collect($columns)->firstWhere('field', 'name');
-        
+
         if ($nameColumn) {
             // Name column should ideally be sortable, clickable, and searchable
             $this->assertEquals('name', $nameColumn['field']);
             $this->assertIsString($nameColumn['label']);
-            
+
             if (isset($nameColumn['sortable'])) {
                 $this->assertTrue($nameColumn['sortable']);
             }
-            
+
             if (isset($nameColumn['clickable'])) {
                 $this->assertTrue($nameColumn['clickable']);
             }
-            
+
             if (isset($nameColumn['search'])) {
                 $this->assertTrue($nameColumn['search']);
             }
@@ -206,9 +206,9 @@ class Test007ColumnsTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $columns = $response->json('columns');
-        
+
         foreach ($columns as $column) {
             if (isset($column['type'])) {
                 $validTypes = ['string', 'number', 'boolean', 'date', 'datetime', 'text', 'select'];
@@ -226,14 +226,14 @@ class Test007ColumnsTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $columns = $response->json('columns');
-        
+
         foreach ($columns as $column) {
             if (isset($column['format'])) {
                 $validFormats = [
-                    'text', 'currency', 'number', 'date', 'datetime', 
-                    'percentage', 'boolean', 'email', 'url'
+                    'text', 'currency', 'number', 'date', 'datetime',
+                    'percentage', 'boolean', 'email', 'url',
                 ];
                 $this->assertContains($column['format'], $validFormats);
             }
@@ -249,10 +249,10 @@ class Test007ColumnsTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $columns = $response->json('columns');
         $fields = collect($columns)->pluck('field')->toArray();
-        
+
         $this->assertEquals(count($fields), count(array_unique($fields)), 'Column fields must be unique');
     }
 
@@ -265,9 +265,9 @@ class Test007ColumnsTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $columns = $response->json('columns');
-        
+
         foreach ($columns as $column) {
             if (isset($column['width'])) {
                 $this->assertIsString($column['width']);
@@ -286,9 +286,9 @@ class Test007ColumnsTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $columns = $response->json('columns');
-        
+
         foreach ($columns as $column) {
             if (isset($column['hidden'])) {
                 $this->assertIsBool($column['hidden']);

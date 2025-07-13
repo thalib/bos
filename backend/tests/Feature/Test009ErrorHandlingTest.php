@@ -31,16 +31,16 @@ class Test009ErrorHandlingTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'UNAUTHORIZED'
-                ]
+                    'code' => 'UNAUTHORIZED',
+                ],
             ])
             ->assertJsonStructure([
                 'success',
                 'message',
                 'error' => [
                     'code',
-                    'details'
-                ]
+                    'details',
+                ],
             ]);
 
         $this->assertFalse($response->json('success'));
@@ -57,8 +57,8 @@ class Test009ErrorHandlingTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'NOT_FOUND'
-                ]
+                    'code' => 'NOT_FOUND',
+                ],
             ]);
 
         $this->assertFalse($response->json('success'));
@@ -76,13 +76,13 @@ class Test009ErrorHandlingTest extends TestCase
 
         // Should be either 405 Method Not Allowed or 404 if route doesn't exist
         $this->assertContains($response->status(), [404, 405]);
-        
+
         if ($response->status() === 405) {
             $response->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'METHOD_NOT_ALLOWED'
-                ]
+                    'code' => 'METHOD_NOT_ALLOWED',
+                ],
             ]);
         }
     }
@@ -95,16 +95,16 @@ class Test009ErrorHandlingTest extends TestCase
         // Send invalid JSON to a POST endpoint
         $response = $this->actingAs($this->user, 'sanctum')
             ->postJson('/api/v1/products', ['invalid' => 'data'], [
-                'Content-Type' => 'application/json'
+                'Content-Type' => 'application/json',
             ]);
 
         // Should return validation error or bad request
         $this->assertContains($response->status(), [400, 422]);
-        
+
         $response->assertJson([
-            'success' => false
+            'success' => false,
         ]);
-        
+
         $this->assertFalse($response->json('success'));
     }
 
@@ -121,8 +121,8 @@ class Test009ErrorHandlingTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
 
         $this->assertFalse($response->json('success'));
@@ -142,8 +142,8 @@ class Test009ErrorHandlingTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
 
         $error = $response->json('error');
@@ -164,8 +164,8 @@ class Test009ErrorHandlingTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
 
         $this->assertIsArray($response->json('error.details'));
@@ -184,8 +184,8 @@ class Test009ErrorHandlingTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
 
         $this->assertIsArray($response->json('error.details'));
@@ -204,8 +204,8 @@ class Test009ErrorHandlingTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
 
         $this->assertIsArray($response->json('error.details'));
@@ -224,8 +224,8 @@ class Test009ErrorHandlingTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
 
         $this->assertIsArray($response->json('error.details'));
@@ -236,7 +236,7 @@ class Test009ErrorHandlingTest extends TestCase
     {
         // This test is tricky to implement without actually breaking the database
         // For now, we'll test that the error structure is correct when errors occur
-        
+
         Product::factory()->count(3)->create();
 
         // Test with a request that should work normally
@@ -247,10 +247,10 @@ class Test009ErrorHandlingTest extends TestCase
             $response->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INTERNAL_SERVER_ERROR'
-                ]
+                    'code' => 'INTERNAL_SERVER_ERROR',
+                ],
             ]);
-            
+
             $this->assertFalse($response->json('success'));
             $this->assertIsString($response->json('message'));
         } else {
@@ -264,14 +264,14 @@ class Test009ErrorHandlingTest extends TestCase
     {
         // Test various error scenarios to ensure consistent structure
         $errorResponses = [];
-        
+
         // Unauthorized error
         $errorResponses[] = $this->getJson('/api/v1/products');
-        
+
         // Invalid parameter error
         $errorResponses[] = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?per_page=invalid');
-        
+
         foreach ($errorResponses as $response) {
             if ($response->status() >= 400) {
                 $response->assertJsonStructure([
@@ -279,10 +279,10 @@ class Test009ErrorHandlingTest extends TestCase
                     'message',
                     'error' => [
                         'code',
-                        'details'
-                    ]
+                        'details',
+                    ],
                 ]);
-                
+
                 $this->assertFalse($response->json('success'));
                 $this->assertIsString($response->json('message'));
                 $this->assertIsString($response->json('error.code'));
@@ -302,7 +302,7 @@ class Test009ErrorHandlingTest extends TestCase
 
         if ($response->status() >= 500) {
             $responseBody = $response->getContent();
-            
+
             // Ensure no stack traces, file paths, or sensitive information is exposed
             $this->assertStringNotContainsStringIgnoringCase('stack trace', $responseBody);
             $this->assertStringNotContainsStringIgnoringCase('vendor/', $responseBody);
@@ -325,7 +325,7 @@ class Test009ErrorHandlingTest extends TestCase
             $message = $response->json('message');
             $this->assertIsString($message);
             $this->assertNotEmpty($message);
-            
+
             // Message should be user-friendly, not contain technical terms
             $this->assertStringNotContainsStringIgnoringCase('validation failed', $message);
             $this->assertStringNotContainsStringIgnoringCase('exception', $message);

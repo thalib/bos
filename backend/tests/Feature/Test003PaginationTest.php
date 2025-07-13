@@ -40,7 +40,7 @@ class Test003PaginationTest extends TestCase
                     'urlQuery',
                     'nextPage',
                     'prevPage',
-                ]
+                ],
             ]);
 
         $pagination = $response->json('pagination');
@@ -63,7 +63,7 @@ class Test003PaginationTest extends TestCase
             ->getJson('/api/v1/products?page=2&per_page=10');
 
         $response->assertStatus(200);
-        
+
         $pagination = $response->json('pagination');
         $this->assertEquals(2, $pagination['currentPage']);
         $this->assertNotNull($pagination['nextPage']);
@@ -80,7 +80,7 @@ class Test003PaginationTest extends TestCase
             ->getJson('/api/v1/products?per_page=5');
 
         $response->assertStatus(200);
-        
+
         $pagination = $response->json('pagination');
         $this->assertEquals(5, $pagination['itemsPerPage']);
         $this->assertEquals(4, $pagination['totalPages']);
@@ -99,8 +99,8 @@ class Test003PaginationTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
     }
 
@@ -113,7 +113,7 @@ class Test003PaginationTest extends TestCase
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200);
-        
+
         $pagination = $response->json('pagination');
         $this->assertEquals(1, $pagination['currentPage']);
         $this->assertEquals(15, $pagination['itemsPerPage']); // Default per_page
@@ -132,8 +132,8 @@ class Test003PaginationTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
     }
 
@@ -149,8 +149,8 @@ class Test003PaginationTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'error' => [
-                    'code' => 'INVALID_PARAMETERS'
-                ]
+                    'code' => 'INVALID_PARAMETERS',
+                ],
             ]);
     }
 
@@ -163,7 +163,7 @@ class Test003PaginationTest extends TestCase
             ->getJson('/api/v1/products?page=10&per_page=10');
 
         $response->assertStatus(200);
-        
+
         $this->assertCount(0, $response->json('data'));
         $pagination = $response->json('pagination');
         $this->assertEquals(10, $pagination['currentPage']);
