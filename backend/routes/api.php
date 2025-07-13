@@ -13,11 +13,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Simple test route
-Route::get('/test', function () {
-    return response()->json(['message' => 'API test route is working']);
-});
-
 // V1 API Routes
 Route::prefix('v1')->group(function () {    // Authentication routes
     Route::prefix('auth')->group(function () {
@@ -28,8 +23,11 @@ Route::prefix('v1')->group(function () {    // Authentication routes
         Route::get('status', [\App\Http\Controllers\Api\AuthController::class, 'status']);
     });
 
-    // Menu routes
-    Route::middleware('auth:sanctum')->get('menu', [\App\Http\Controllers\Api\MenuController::class, 'index']);
+    // App routes
+    Route::prefix('app')->group(function () {
+        // Menu routes
+        Route::middleware('auth:sanctum')->get('menu', [\App\Http\Controllers\Api\MenuController::class, 'index']);
+    });
 
     // Document routes
     Route::prefix('documents')->middleware('auth:sanctum')->group(function () {
