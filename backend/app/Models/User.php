@@ -62,24 +62,43 @@ class User extends Authenticatable
     public function getIndexColumns(): array
     {
         return [
-            'name' => [
+            [
+                'field' => 'name',
                 'label' => 'Name',
                 'sortable' => true,
                 'clickable' => true,
                 'search' => true,
             ],
-            'email' => [
+            [
+                'field' => 'username',
+                'label' => 'Username',
+                'sortable' => true,
+                'search' => true,
+            ],
+            [
+                'field' => 'email',
                 'label' => 'Email',
+                'sortable' => true,
                 'search' => true,
             ],
-            'whatsapp' => [
+            [
+                'field' => 'whatsapp',
                 'label' => 'WhatsApp',
+                'sortable' => true,
                 'search' => true,
             ],
-            'role' => [
+            [
+                'field' => 'role',
                 'label' => 'Role',
                 'sortable' => true,
                 'search' => true,
+            ],
+            [
+                'field' => 'active',
+                'label' => 'Status',
+                'sortable' => true,
+                'format' => 'boolean',
+                'align' => 'center',
             ],
         ];
     }
@@ -90,54 +109,81 @@ class User extends Authenticatable
     public function getApiSchema(): array
     {
         return [
-            'active' => [
-                'label' => 'Status',
-                'type' => 'checkbox',
-                'required' => false,
-                'default' => true,
-            ],
-            'name' => [
-                'label' => 'Name',
-                'placeholder' => 'Enter your full name',
-                'required' => true,
-                'maxLength' => 255,
-            ],
-            'username' => [
-                'label' => 'Username',
-                'placeholder' => 'Enter your username',
-                'required' => true,
-                'maxLength' => 255,
-                'unique' => true,
-            ],
-            'email' => [
-                'label' => 'Email',
-                'placeholder' => 'Enter your email address',
-                'required' => true,
-                'maxLength' => 255,
-                'unique' => true,
-            ],
-            'whatsapp' => [
-                'label' => 'WhatsApp Number',
-                'placeholder' => 'Enter your WhatsApp number',
-                'required' => true,
-                'pattern' => '^[0-9]{10,15}$',
-                'unique' => true,
-            ],
-            'role' => [
-                'label' => 'Role',
-                'required' => true,
-                'type' => 'select',
-                'options' => [
-                    ['value' => 'admin', 'label' => 'Admin'],
-                    ['value' => 'user', 'label' => 'User'],
+            [
+                'group' => 'Basic Information',
+                'fields' => [
+                    [
+                        'field' => 'active',
+                        'label' => 'Status',
+                        'type' => 'checkbox',
+                        'required' => false,
+                        'default' => true,
+                    ],
+                    [
+                        'field' => 'name',
+                        'label' => 'Name',
+                        'type' => 'string',
+                        'placeholder' => 'Enter your full name',
+                        'required' => true,
+                        'maxLength' => 255,
+                    ],
+                    [
+                        'field' => 'username',
+                        'label' => 'Username',
+                        'type' => 'string',
+                        'placeholder' => 'Enter your username',
+                        'required' => true,
+                        'maxLength' => 255,
+                        'unique' => true,
+                    ],
+                    [
+                        'field' => 'email',
+                        'label' => 'Email',
+                        'type' => 'string',
+                        'placeholder' => 'Enter your email address',
+                        'required' => true,
+                        'maxLength' => 255,
+                        'unique' => true,
+                    ],
                 ],
-                'default' => 'user',
             ],
-            'password' => [
-                'label' => 'Password',
-                'placeholder' => 'Enter your password',
-                'required' => false, // Optional for updates
-                'minLength' => 8,
+            [
+                'group' => 'Contact Information',
+                'fields' => [
+                    [
+                        'field' => 'whatsapp',
+                        'label' => 'WhatsApp Number',
+                        'type' => 'string',
+                        'placeholder' => 'Enter your WhatsApp number',
+                        'required' => true,
+                        'pattern' => '^[0-9]{10,15}$',
+                        'unique' => true,
+                    ],
+                ],
+            ],
+            [
+                'group' => 'Account Settings',
+                'fields' => [
+                    [
+                        'field' => 'role',
+                        'label' => 'Role',
+                        'type' => 'select',
+                        'required' => true,
+                        'options' => [
+                            ['value' => 'admin', 'label' => 'Admin'],
+                            ['value' => 'user', 'label' => 'User'],
+                        ],
+                        'default' => 'user',
+                    ],
+                    [
+                        'field' => 'password',
+                        'label' => 'Password',
+                        'type' => 'string',
+                        'placeholder' => 'Enter your password',
+                        'required' => false, // Optional for updates
+                        'minLength' => 8,
+                    ],
+                ],
             ],
         ];
     }

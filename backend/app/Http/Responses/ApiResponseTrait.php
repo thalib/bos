@@ -36,22 +36,21 @@ trait ApiResponseTrait
             $response['pagination'] = $meta['pagination'];
         }
 
-        // Include search at top level - string value or null (DESIGN.md format)
+        // Include search at top level - string value or null
         $response['search'] = $meta['search'] ?? null;
 
-        // Include filters object at top level for filtered responses
-        if (! empty($meta['filters'])) {
-            $response['filters'] = $meta['filters'];
-        }
+        // Always include filters field (null if no filters available)
+        $response['filters'] = $meta['filters'] ?? null;
 
-        // Include schema object at top level
-        if (! empty($meta['schema'])) {
-            $response['schema'] = $meta['schema'];
-        }
+        // Always include schema field (null if not available)
+        $response['schema'] = $meta['schema'] ?? null;
 
-        // Include columns object at top level
-        if (! empty($meta['columns'])) {
+        // Always include columns field (never null, fallback to ID column)
+        if (isset($meta['columns'])) {
             $response['columns'] = $meta['columns'];
+        } elseif ($data !== null && is_array($data) && !empty($data)) {
+            // Only include default columns for list responses
+            $response['columns'] = $this->getDefaultColumns();
         }
 
         // Include any remaining metadata (sort, total)
@@ -78,15 +77,12 @@ trait ApiResponseTrait
     {
         $response = [
             'success' => false,
+            'message' => $message,
             'error' => [
                 'code' => $code,
-                'message' => $message,
+                'details' => $details,
             ],
         ];
-
-        if (! empty($details)) {
-            $response['error']['details'] = $details;
-        }
 
         if (! empty($errors)) {
             $response['error']['validation_errors'] = $errors;
@@ -98,43 +94,48 @@ trait ApiResponseTrait
     /**
      * Return a paginated response with standardized format.
      */
-    protected function paginatedResponse(LengthAwarePaginator $paginatedResults, array $meta = []): JsonResponse
+    protected function paginatedResponse(LengthAwarePaginator $paginatedResults, array $meta = [], ?string $message = null): JsonResponse
     {
         $response = [
             'success' => true,
-            'data' => $paginatedResults->items(),
-            'pagination' => [
-                'totalItems' => $paginatedResults->total(),
-                'currentPage' => $paginatedResults->currentPage(),
-                'itemsPerPage' => $paginatedResults->perPage(),
-                'totalPages' => $paginatedResults->lastPage(),
-                'urlPath' => $this->buildPaginationUrlPath($paginatedResults),
-                'urlQuery' => $this->buildPaginationUrlQuery($paginatedResults),
-                'nextPage' => $paginatedResults->nextPageUrl(),
-                'prevPage' => $paginatedResults->previousPageUrl(),
-            ],
         ];
 
-        // Include search at top level - string value or null (DESIGN.md format)
+        // Add optional message field at root level
+        if ($message) {
+            $response['message'] = $message;
+        }
+
+        $response['data'] = $paginatedResults->items();
+
+        // Complete pagination structure with urlPath and urlQuery
+        $queryParams = request()->except(['page', 'per_page']);
+        $pagination = [
+            'totalItems' => $paginatedResults->total(),
+            'currentPage' => $paginatedResults->currentPage(),
+            'itemsPerPage' => $paginatedResults->perPage(),
+            'totalPages' => $paginatedResults->lastPage(),
+            'urlPath' => $paginatedResults->path(),
+            'urlQuery' => !empty($queryParams) ? $queryParams : null,
+            'nextPage' => $paginatedResults->hasMorePages() ? (string)($paginatedResults->currentPage() + 1) : null,
+            'prevPage' => $paginatedResults->currentPage() > 1 ? (string)($paginatedResults->currentPage() - 1) : null,
+        ];
+        
+        $response['pagination'] = $pagination;
+
+        // Include search at top level - string value or null
         $response['search'] = $meta['search'] ?? null;
 
-        // Include sort at top level - array or null (always present)
+        // Include sort at top level - array or null
         $response['sort'] = $meta['sort'] ?? null;
 
-        // Include filters object at top level for filtered responses
-        if (! empty($meta['filters'])) {
-            $response['filters'] = $meta['filters'];
-        }
+        // Always include filters field (null if no filters available)
+        $response['filters'] = $meta['filters'] ?? null;
 
-        // Include schema object at top level
-        if (! empty($meta['schema'])) {
-            $response['schema'] = $meta['schema'];
-        }
+        // Always include schema field (null if not available)
+        $response['schema'] = $meta['schema'] ?? null;
 
-        // Include columns object at top level
-        if (! empty($meta['columns'])) {
-            $response['columns'] = $meta['columns'];
-        }
+        // Always include columns field (never null, fallback to ID column)
+        $response['columns'] = $meta['columns'] ?? $this->getDefaultColumns();
 
         // Include any remaining metadata (excluding moved fields)
         if (! empty($meta)) {
@@ -154,49 +155,10 @@ trait ApiResponseTrait
     }
 
     /**
-     * Build pagination URL path for generating page URLs.
+     * Get default columns configuration for fallback.
      */
-    protected function buildPaginationUrlPath(LengthAwarePaginator $paginatedResults): string
+    protected function getDefaultColumns(): array
     {
-        // Get the current URL with all query parameters
-        $currentUrl = request()->fullUrl();
-
-        // Parse URL components
-        $parsedUrl = parse_url($currentUrl);
-        $baseUrl = $parsedUrl['scheme'].'://'.$parsedUrl['host'];
-
-        if (isset($parsedUrl['port'])) {
-            $baseUrl .= ':'.$parsedUrl['port'];
-        }
-
-        $baseUrl .= $parsedUrl['path'];
-
-        return $baseUrl;
-    }
-
-    /**
-     * Build pagination URL query string for generating page URLs.
-     */
-    protected function buildPaginationUrlQuery(LengthAwarePaginator $paginatedResults): ?string
-    {
-        // Get the current URL with all query parameters
-        $currentUrl = request()->fullUrl();
-
-        // Parse URL components
-        $parsedUrl = parse_url($currentUrl);
-
-        // Parse query parameters and remove 'page' parameter
-        $queryParams = [];
-        if (isset($parsedUrl['query'])) {
-            parse_str($parsedUrl['query'], $queryParams);
-            unset($queryParams['page']);
-        }
-
-        // Return query string without page parameter (frontend will add it)
-        if (! empty($queryParams)) {
-            return http_build_query($queryParams);
-        } else {
-            return null;
-        }
+        return \App\Services\ResourceMetadataService::getDefaultColumns();
     }
 }

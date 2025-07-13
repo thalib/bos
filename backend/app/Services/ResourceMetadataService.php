@@ -24,7 +24,7 @@ class ResourceMetadataService
         // Get model instance for filter and search information
         $model = new ($query->getModel()::class);
 
-        // Build filters object
+        // Build filters object - always return (null if model has no getApiFilters method)
         $metadata['filters'] = $this->buildFiltersMetadata($request, $model, $appliedFilters);
 
         // Add search as string value or null (DESIGN.md format)
@@ -33,17 +33,11 @@ class ResourceMetadataService
         // Add sorting metadata - always present at root level
         $metadata['sort'] = $this->buildSortMetadata($request);
 
-        // Add schema data (same as schema endpoint)
-        $schemaData = $this->buildSchemaMetadata($model);
-        if ($schemaData !== null) {
-            $metadata['schema'] = $schemaData;
-        }
+        // Add schema data - always return (null if model has no getApiSchema method)
+        $metadata['schema'] = $this->buildSchemaMetadata($model);
 
-        // Add columns data (same as columns endpoint)
-        $columnsData = $this->buildColumnsMetadata($model);
-        if ($columnsData !== null) {
-            $metadata['columns'] = $columnsData;
-        }
+        // Add columns data - always return (never null, fallback to default ID column)
+        $metadata['columns'] = $this->buildColumnsMetadata($model);
 
         return $metadata;
     }
@@ -51,12 +45,32 @@ class ResourceMetadataService
     /**
      * Build filters metadata from request and model.
      */
-    public function buildFiltersMetadata(Request $request, Model $model, array $appliedFilters = []): array
+    public function buildFiltersMetadata(Request $request, Model $model, array $appliedFilters = []): ?array
     {
-        $availableFilterOptions = $this->getAvailableFilterFields($model);
+        // Return null if model doesn't have getApiFilters method
+        if (!method_exists($model, 'getApiFilters')) {
+            return null;
+        }
+
+        // Get available filter fields directly inline
+        $apiFilters = $model->getApiFilters();
+
+        // Return null if no filters defined or empty
+        if (empty($apiFilters)) {
+            return null;
+        }
+
+        $availableFilterOptions = [];
+        foreach ($apiFilters as $field => $config) {
+            $availableFilterOptions[] = [
+                'field' => $field,
+                'value' => $config['values'] ?? [],
+            ];
+        }
+
         $filtersData = [
             'applied' => null,
-            'availableOptions' => $availableFilterOptions,
+            'available' => $availableFilterOptions,
         ];
 
         // Handle filter data from applyFilters
@@ -99,35 +113,6 @@ class ResourceMetadataService
     }
 
     /**
-     * Get available filter fields from model.
-     */
-    protected function getAvailableFilterFields(Model $model): ?array
-    {
-        // Only check if model has custom API filters
-        if (method_exists($model, 'getApiFilters')) {
-            $apiFilters = $model->getApiFilters();
-
-            // Return null if no filters defined or empty
-            if (empty($apiFilters)) {
-                return null;
-            }
-
-            $availableFilters = [];
-            foreach ($apiFilters as $field => $config) {
-                $availableFilters[] = [
-                    'field' => $field,
-                    'value' => $config['values'] ?? [],
-                ];
-            }
-
-            return $availableFilters;
-        }
-
-        // Return null if getApiFilters method is not defined
-        return null;
-    }
-
-    /**
      * Build search metadata for API responses.
      */
     public function buildSearchMetadata(Request $request): ?string
@@ -146,20 +131,13 @@ class ResourceMetadataService
             return null;
         }
 
-        $sortFields = explode(',', $request->input('sort'));
-        $directions = explode(',', $request->input('sort_dir', 'asc'));
+        $sortColumn = trim($request->input('sort'));
+        $direction = trim($request->input('dir', 'asc'));
 
-        $sortArray = [];
-        foreach ($sortFields as $index => $sortField) {
-            $sortField = trim($sortField);
-            $direction = isset($directions[$index]) ? trim($directions[$index]) : 'asc';
-            $sortArray[] = [
-                'field' => $sortField,
-                'direction' => $direction,
-            ];
-        }
-
-        return $sortArray;
+        return [
+            'column' => $sortColumn,
+            'dir' => strtolower($direction),
+        ];
     }
 
     /**
@@ -189,38 +167,50 @@ class ResourceMetadataService
     }
 
     /**
-     * Build columns metadata for a model.
-     * Returns default ID column if model doesn't define getIndexColumns() or returns null.
+     * Get default columns configuration for fallback.
      */
-    public function buildColumnsMetadata(Model $model): ?array
+    public static function getDefaultColumns(): array
+    {
+        return [
+            [
+                'field' => 'id',
+                'label' => 'ID',
+                'sortable' => true,
+                'clickable' => true,
+                'search' => false,
+                'format' => 'text',
+                'align' => 'left'
+            ]
+        ];
+    }
+
+    /**
+     * Build columns metadata for a model.
+     * Never returns null - always provides fallback to default ID column.
+     */
+    public function buildColumnsMetadata(Model $model): array
     {
         try {
             // Check if model has custom index columns method
             if (method_exists($model, 'getIndexColumns')) {
                 $customColumns = $model->getIndexColumns();
 
-                // If custom columns are defined and not empty, return them
+                // If custom columns are defined and not empty, return them directly
                 if (! empty($customColumns)) {
                     return $customColumns;
                 }
             }
 
-            // Default to ID column if no custom columns defined
-            return [
-                'id' => [
-                    'label' => 'ID',
-                    'sortable' => true,
-                    'clickable' => true,
-                    'search' => true,
-                ],
-            ];
+            // Default to ID column array format if no custom columns defined
+            return self::getDefaultColumns();
         } catch (\Exception $e) {
             Log::error('Error generating columns data for model', [
                 'model' => get_class($model),
                 'error' => $e->getMessage(),
             ]);
 
-            return null;
+            // Even in error case, return default ID column (never null)
+            return self::getDefaultColumns();
         }
     }
 }

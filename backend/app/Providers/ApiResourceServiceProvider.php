@@ -40,7 +40,7 @@ class ApiResourceServiceProvider extends ServiceProvider
 
         // Check if the Models directory exists
         if (! File::isDirectory($modelsPath)) {
-            Log::warning('Models directory not found at: '.$modelsPath);
+            Log::warning('Models directory not found at: ' . $modelsPath);
 
             return;
         }
@@ -95,7 +95,8 @@ class ApiResourceServiceProvider extends ServiceProvider
                 // Construct the full base URI
                 $fullBaseUri = "/{$apiPrefix}/{$version}";                // Register routes using Route facade without authentication middleware (for testing)
                 Route::prefix("{$apiPrefix}/{$version}")
-                    ->middleware(['api'])
+                    //->middleware(['api']) 
+                    ->middleware(['api', 'auth:sanctum'])
                     ->group(function () use ($uri, $modelNameForController) {
                         // Register GET route for collection (index)
                         Route::get("/{$uri}", [ApiResourceController::class, 'index'])
@@ -105,20 +106,9 @@ class ApiResourceServiceProvider extends ServiceProvider
                         // Register POST route for creating new resource (store)
                         Route::post("/{$uri}", [ApiResourceController::class, 'store'])
                             ->defaults('modelName', $modelNameForController)
-                            ->name("{$modelNameForController}.store");                    // Register GET route for schema (metadata) - MUST be before parameterized routes
-                        Route::get("/{$uri}/schema", [ApiResourceController::class, 'schema'])
-                            ->defaults('modelName', $modelNameForController)
-                            ->name("{$modelNameForController}.schema");
+                            ->name("{$modelNameForController}.store");
 
-                        // Register GET route for columns (index configuration) - MUST be before parameterized routes
-                        Route::get("/{$uri}/columns", [ApiResourceController::class, 'columns'])
-                            ->defaults('modelName', $modelNameForController)
-                            ->name("{$modelNameForController}.columns");
-
-                        // Register GET route for filters (available filters configuration) - MUST be before parameterized routes
-                        Route::get("/{$uri}/filters", [ApiResourceController::class, 'filters'])
-                            ->defaults('modelName', $modelNameForController)
-                            ->name("{$modelNameForController}.filters"); // Register GET route for single item (show)
+                        // Register GET route for single item (show)
                         Route::get("/{$uri}/{id}", [ApiResourceController::class, 'show'])
                             ->defaults('modelName', $modelNameForController)
                             ->name("{$modelNameForController}.show");
@@ -141,8 +131,6 @@ class ApiResourceServiceProvider extends ServiceProvider
                     'routes' => [
                         'index' => "GET {$fullBaseUri}/{$uri}",
                         'store' => "POST {$fullBaseUri}/{$uri}",
-                        'schema' => "GET {$fullBaseUri}/{$uri}/schema",
-                        'columns' => "GET {$fullBaseUri}/{$uri}/columns",
                         'show' => "GET {$fullBaseUri}/{$uri}/{id}",
                         'update' => "PUT/PATCH {$fullBaseUri}/{$uri}/{id}",
                         'destroy' => "DELETE {$fullBaseUri}/{$uri}/{id}"
@@ -150,7 +138,6 @@ class ApiResourceServiceProvider extends ServiceProvider
                     'controller_model_name' => $modelNameForController
                 ]);
                 */
-
             } catch (ReflectionException $e) {
                 Log::warning("Failed to reflect class from file: {$file->getFilename()}", [
                     'error' => $e->getMessage(),

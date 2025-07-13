@@ -61,7 +61,10 @@ class UpdateResourceRequest extends FormRequest
 
             // Set validation rules based on cast type
             if ($castType) {
-                switch ($castType) {
+                // Handle cast types with precision (e.g., 'decimal:2')
+                $baseCastType = explode(':', $castType)[0];
+                
+                switch ($baseCastType) {
                     case 'boolean':
                     case 'bool':
                         $rules[$field] = 'sometimes|nullable|boolean';
@@ -74,7 +77,12 @@ class UpdateResourceRequest extends FormRequest
                     case 'float':
                     case 'double':
                     case 'real':
-                        $rules[$field] = 'sometimes|nullable|numeric';
+                        // Price-related fields should be non-negative
+                        if (Str::contains($field, ['price', 'cost', 'amount', 'rate'])) {
+                            $rules[$field] = 'sometimes|nullable|numeric|min:0';
+                        } else {
+                            $rules[$field] = 'sometimes|nullable|numeric';
+                        }
                         break;
                     case 'array':
                     case 'json':
@@ -98,7 +106,12 @@ class UpdateResourceRequest extends FormRequest
                 } elseif (Str::endsWith($field, '_id') || Str::contains($field, ['class_id'])) {
                     $rules[$field] = 'sometimes|nullable|integer';
                 } elseif (Str::contains($field, ['price', 'cost', 'amount', 'rate', 'weight', 'length', 'width', 'height'])) {
-                    $rules[$field] = 'sometimes|nullable|numeric';
+                    // Price-related fields should be non-negative, others just numeric
+                    if (Str::contains($field, ['price', 'cost', 'amount', 'rate'])) {
+                        $rules[$field] = 'sometimes|nullable|numeric|min:0';
+                    } else {
+                        $rules[$field] = 'sometimes|nullable|numeric';
+                    }
                 } elseif (Str::contains($field, ['enabled', 'active', 'track', 'required', 'taxable', 'inclusive'])) {
                     $rules[$field] = 'sometimes|nullable|boolean';
                 } elseif (Str::endsWith($field, ['_ids', 'categories', 'tags', 'attributes', 'variations', 'images', 'meta_data'])) {
@@ -195,9 +208,12 @@ class UpdateResourceRequest extends FormRequest
     protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
     {
         throw new ValidationException($validator, response()->json([
-            'error' => 'Validation failed',
-            'message' => 'The given data was invalid',
-            'errors' => $validator->errors(),
+            'success' => false,
+            'error' => [
+                'code' => 'VALIDATION_FAILED',
+                'message' => 'The given data was invalid',
+                'details' => $validator->errors()
+            ]
         ], 422));
     }
 }

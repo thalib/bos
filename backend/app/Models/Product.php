@@ -261,27 +261,59 @@ class Product extends Model
     public function getIndexColumns(): array
     {
         return [
-            'name' => [
+            [
+                'field' => 'name',
                 'label' => 'Product Name',
                 'sortable' => true,
                 'clickable' => true,
                 'search' => true,
             ],
-            'cost' => [
+            [
+                'field' => 'sku',
+                'label' => 'SKU',
+                'sortable' => true,
+                'search' => true,
+            ],
+            [
+                'field' => 'type',
+                'label' => 'Type',
+                'sortable' => true,
+                'search' => true,
+            ],
+            [
+                'field' => 'cost',
                 'label' => 'Cost',
-                'formatter' => 'currency',
+                'sortable' => true,
+                'format' => 'currency',
+                'align' => 'right',
             ],
-            'price' => [
+            [
+                'field' => 'price',
                 'label' => 'Price',
-                'formatter' => 'currency',
+                'sortable' => true,
+                'format' => 'currency',
+                'align' => 'right',
             ],
-            'mrp' => [
+            [
+                'field' => 'mrp',
                 'label' => 'MRP',
-                'formatter' => 'currency',
+                'sortable' => true,
+                'format' => 'currency',
+                'align' => 'right',
             ],
-            'stock_quantity' => [
+            [
+                'field' => 'stock_quantity',
                 'label' => 'Stock',
-                'formatter' => 'number',
+                'sortable' => true,
+                'format' => 'number',
+                'align' => 'center',
+            ],
+            [
+                'field' => 'active',
+                'label' => 'Status',
+                'sortable' => true,
+                'format' => 'boolean',
+                'align' => 'center',
             ],
         ];
     }
@@ -294,25 +326,31 @@ class Product extends Model
         $general = [
             'group' => 'General Information',
             'fields' => [
-                'active' => [
+                [
+                    'field' => 'active',
                     'type' => 'checkbox',
                     'label' => 'Active',
                     'required' => false,
                     'default' => true,
                 ],
-                'name' => [
+                [
+                    'field' => 'name',
+                    'type' => 'string',
                     'label' => 'Product Name',
                     'placeholder' => 'Enter product name',
                     'required' => true,
                     'maxLength' => 255,
                 ],
-                'slug' => [
+                [
+                    'field' => 'slug',
+                    'type' => 'string',
                     'label' => 'URL Slug',
                     'placeholder' => 'auto-generated-from-name',
                     'required' => true,
                     'maxLength' => 255,
                 ],
-                'type' => [
+                [
+                    'field' => 'type',
                     'type' => 'select',
                     'label' => 'Product Type',
                     'options' => [
@@ -324,7 +362,8 @@ class Product extends Model
                     'required' => true,
                     'default' => 'simple',
                 ],
-                'publication_status' => [
+                [
+                    'field' => 'publication_status',
                     'type' => 'select',
                     'label' => 'Publication Status',
                     'options' => [
@@ -336,25 +375,32 @@ class Product extends Model
                     'required' => true,
                     'default' => 'draft',
                 ],
-                'sku' => [
+                [
+                    'field' => 'sku',
+                    'type' => 'string',
                     'label' => 'SKU',
                     'placeholder' => 'Enter SKU code',
                     'required' => false,
                     'maxLength' => 100,
                 ],
-                'barcode' => [
+                [
+                    'field' => 'barcode',
+                    'type' => 'string',
                     'label' => 'Barcode',
                     'placeholder' => 'Enter barcode',
                     'required' => false,
                     'maxLength' => 100,
                 ],
-                'brand' => [
+                [
+                    'field' => 'brand',
+                    'type' => 'string',
                     'label' => 'Brand',
                     'placeholder' => 'Enter brand name',
                     'default' => 'ASENSAR',
                     'required' => false,
                 ],
-                'unit' => [
+                [
+                    'field' => 'unit',
                     'type' => 'select',
                     'label' => 'Unit',
                     'options' => [
@@ -368,26 +414,31 @@ class Product extends Model
                     'required' => false,
                     'default' => 'nos',
                 ],
-                'categories' => [
+                [
+                    'field' => 'categories',
                     'type' => 'multiselect',
                     'label' => 'Categories',
                     'required' => false,
                     'options' => [],
                 ],
-                'image' => [
+                [
+                    'field' => 'image',
                     'type' => 'file',
                     'label' => 'Featured Image',
                     'required' => false,
                     'accept' => 'image/*',
                 ],
-                'images' => [
+                [
+                    'field' => 'images',
                     'type' => 'file',
                     'label' => 'Product Images',
                     'required' => false,
                     'multiple' => true,
                     'accept' => 'image/*',
                 ],
-                'external_url' => [
+                [
+                    'field' => 'external_url',
+                    'type' => 'string',
                     'label' => 'External URL',
                     'placeholder' => 'https://asensar.com',
                     'required' => false,
@@ -399,49 +450,55 @@ class Product extends Model
         $priceInventory = [
             'group' => 'Price & Inventory',
             'fields' => [
-                'cost' => [
+                [
+                    'field' => 'cost',
+                    'type' => 'decimal',
                     'label' => 'Cost Price',
                     'placeholder' => '0.00',
                     'required' => false,
                     'default' => '0.00',
-                    'min' => '0',
-                    'step' => '0.01',
+                    'min' => 0,
                     'prefix' => '₹',
                 ],
-                'mrp' => [
+                [
+                    'field' => 'mrp',
+                    'type' => 'decimal',
                     'label' => 'MRP',
                     'placeholder' => '0.00',
                     'default' => '0.00',
                     'required' => false,
-                    'min' => '0',
-                    'step' => '0.01',
+                    'min' => 0,
                     'prefix' => '₹',
                 ],
-                'price' => [
+                [
+                    'field' => 'price',
+                    'type' => 'decimal',
                     'label' => 'Regular Price',
                     'placeholder' => '0.00',
                     'required' => true,
                     'default' => '0.00',
-                    'min' => '0',
-                    'step' => '0.01',
+                    'min' => 0,
                     'prefix' => '₹',
                 ],
-                'sale_price' => [
+                [
+                    'field' => 'sale_price',
+                    'type' => 'decimal',
                     'label' => 'Sale Price',
                     'placeholder' => '0.00',
                     'required' => false,
                     'default' => '0.00',
-                    'min' => '0',
-                    'step' => '0.01',
+                    'min' => 0,
                     'prefix' => '₹',
                 ],
-                'stock_track' => [
+                [
+                    'field' => 'stock_track',
                     'type' => 'checkbox',
                     'label' => 'Track Stock',
                     'required' => false,
                     'default' => false,
                 ],
-                'stock_quantity' => [
+                [
+                    'field' => 'stock_quantity',
                     'type' => 'number',
                     'label' => 'Stock Quantity',
                     'placeholder' => '0',
@@ -450,7 +507,8 @@ class Product extends Model
                     'min' => '0',
                     'step' => '1',
                 ],
-                'stock_low_threshold' => [
+                [
+                    'field' => 'stock_low_threshold',
                     'type' => 'number',
                     'label' => 'Low Stock Threshold',
                     'placeholder' => '5',
@@ -465,19 +523,23 @@ class Product extends Model
         $tax = [
             'group' => 'TAX',
             'fields' => [
-                'taxable' => [
+                [
+                    'field' => 'taxable',
                     'type' => 'checkbox',
                     'label' => 'Taxable',
                     'required' => false,
                     'default' => true,
                 ],
-                'tax_hsn_code' => [
+                [
+                    'field' => 'tax_hsn_code',
+                    'type' => 'string',
                     'label' => 'HSN Code',
                     'placeholder' => 'Enter HSN code',
                     'required' => false,
                     'maxLength' => 20,
                 ],
-                'tax_rate' => [
+                [
+                    'field' => 'tax_rate',
                     'type' => 'number',
                     'label' => 'Tax Rate (%)',
                     'placeholder' => '18.00',
@@ -488,7 +550,8 @@ class Product extends Model
                     'step' => '0.01',
                     'suffix' => '%',
                 ],
-                'tax_inclusive' => [
+                [
+                    'field' => 'tax_inclusive',
                     'type' => 'checkbox',
                     'label' => 'Tax Inclusive',
                     'required' => false,
@@ -500,7 +563,9 @@ class Product extends Model
         $shipping = [
             'group' => 'Shipping',
             'fields' => [
-                'length' => [
+                [
+                    'field' => 'length',
+                    'type' => 'decimal',
                     'label' => 'Length',
                     'placeholder' => '0.00',
                     'default' => '0.00',
@@ -509,7 +574,9 @@ class Product extends Model
                     'step' => '0.01',
                     'suffix' => 'cm',
                 ],
-                'width' => [
+                [
+                    'field' => 'width',
+                    'type' => 'decimal',
                     'label' => 'Width',
                     'placeholder' => '0.00',
                     'default' => '0.00',
@@ -518,7 +585,9 @@ class Product extends Model
                     'step' => '0.01',
                     'suffix' => 'cm',
                 ],
-                'height' => [
+                [
+                    'field' => 'height',
+                    'type' => 'decimal',
                     'label' => 'Height',
                     'placeholder' => '0.00',
                     'default' => '0.00',
@@ -527,7 +596,9 @@ class Product extends Model
                     'step' => '0.01',
                     'suffix' => 'cm',
                 ],
-                'weight' => [
+                [
+                    'field' => 'weight',
+                    'type' => 'decimal',
                     'label' => 'Weight',
                     'placeholder' => '0.00',
                     'default' => '0.00',
@@ -536,7 +607,9 @@ class Product extends Model
                     'step' => '0.01',
                     'suffix' => 'kg',
                 ],
-                'shipping_weight' => [
+                [
+                    'field' => 'shipping_weight',
+                    'type' => 'decimal',
                     'label' => 'Shipping Weight',
                     'placeholder' => '0.00',
                     'required' => false,
@@ -544,19 +617,22 @@ class Product extends Model
                     'step' => '0.01',
                     'suffix' => 'kg',
                 ],
-                'shipping_required' => [
+                [
+                    'field' => 'shipping_required',
                     'type' => 'checkbox',
                     'label' => 'Shipping Required',
                     'required' => false,
                     'default' => true,
                 ],
-                'shipping_taxable' => [
+                [
+                    'field' => 'shipping_taxable',
                     'type' => 'checkbox',
                     'label' => 'Shipping Taxable',
                     'required' => false,
                     'default' => true,
                 ],
-                'shipping_class_id' => [
+                [
+                    'field' => 'shipping_class_id',
                     'type' => 'number',
                     'label' => 'Shipping Class ID',
                     'placeholder' => '0',
@@ -571,52 +647,61 @@ class Product extends Model
         $other = [
             'group' => 'Other',
             'fields' => [
-                'description' => [
+                [
+                    'field' => 'description',
                     'type' => 'textarea',
                     'label' => 'Description',
                     'placeholder' => 'Enter product description',
                     'required' => false,
                     'attributes' => ['rows' => 4],
                 ],
-                'short_description' => [
+                [
+                    'field' => 'short_description',
                     'type' => 'textarea',
                     'label' => 'Short Description',
                     'placeholder' => 'Enter brief description',
                     'required' => false,
                     'attributes' => ['rows' => 2],
                 ],
-                'tags' => [
+                [
+                    'field' => 'tags',
                     'type' => 'tags',
                     'label' => 'Tags',
                     'placeholder' => 'Enter tags separated by commas',
                     'required' => false,
                 ],
-                'attributes' => [
+                [
+                    'field' => 'attributes',
                     'type' => 'array',
                     'label' => 'Attributes',
                     'required' => false,
                 ],
-                'variations' => [
+                [
+                    'field' => 'variations',
                     'type' => 'array',
                     'label' => 'Variations',
                     'required' => false,
                 ],
-                'related_ids' => [
+                [
+                    'field' => 'related_ids',
                     'type' => 'array',
                     'label' => 'Related Ids',
                     'required' => false,
                 ],
-                'upsell_ids' => [
+                [
+                    'field' => 'upsell_ids',
                     'type' => 'array',
                     'label' => 'Upsell Ids',
                     'required' => false,
                 ],
-                'cross_sell_ids' => [
+                [
+                    'field' => 'cross_sell_ids',
                     'type' => 'array',
                     'label' => 'Cross Sell Ids',
                     'required' => false,
                 ],
-                'meta_data' => [
+                [
+                    'field' => 'meta_data',
                     'type' => 'array',
                     'label' => 'Meta Data',
                     'required' => false,

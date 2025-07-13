@@ -99,388 +99,61 @@ class Estimate extends Model
     public function getIndexColumns(): array
     {
         return [
-            'number' => [
+            [
+                'field' => 'number',
                 'label' => 'Estimate Number',
                 'sortable' => true,
                 'clickable' => true,
                 'search' => true,
             ],
-            'date' => [
+            [
+                'field' => 'date',
                 'label' => 'Date',
+                'sortable' => true,
+                'format' => 'date',
             ],
-            'customer_id' => [
+            [
+                'field' => 'customer_id',
                 'label' => 'Customer',
+                'sortable' => true,
+                'search' => true,
             ],
-            'status' => [
+            [
+                'field' => 'status',
                 'label' => 'Status',
+                'sortable' => true,
+                'search' => true,
             ],
-            'salesperson' => [
+            [
+                'field' => 'salesperson',
                 'label' => 'Salesperson',
+                'sortable' => true,
+                'search' => true,
             ],
-            'grand_total' => [
+            [
+                'field' => 'grand_total',
                 'label' => 'Total Amount',
+                'sortable' => true,
                 'format' => 'currency',
+                'align' => 'right',
             ],
-            'validity' => [
+            [
+                'field' => 'validity',
                 'label' => 'Validity (Days)',
+                'sortable' => true,
+                'format' => 'number',
+                'align' => 'center',
+            ],
+            [
+                'field' => 'active',
+                'label' => 'Status',
+                'sortable' => true,
+                'format' => 'boolean',
+                'align' => 'center',
             ],
         ];
     }
 
-    /**
-     * Get the API schema for form generation.
-     */
-    public function getApiSchema(): array
-    {
-        return [
-            'type' => [
-                'label' => 'Type',
-                'type' => 'select',
-                'required' => true,
-                'options' => [
-                    ['value' => 'ESTIMATE', 'label' => 'Estimate'],
-                    ['value' => 'QUOTE', 'label' => 'Quote'],
-                ],
-                'default' => 'ESTIMATE',
-            ],
-            'number' => [
-                'label' => 'Estimate Number',
-                'placeholder' => 'E-2025-0001',
-                'required' => true,
-                'maxLength' => 50,
-                'unique' => true,
-            ],
-            'date' => [
-                'label' => 'Date',
-                'type' => 'date',
-                'required' => true,
-            ],
-            'validity' => [
-                'label' => 'Validity (Days)',
-                'type' => 'number',
-                'required' => true,
-                'min' => 1,
-                'max' => 365,
-                'default' => 30,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'required' => true,
-                'options' => [
-                    ['value' => 'DRAFT', 'label' => 'Draft'],
-                    ['value' => 'SENT', 'label' => 'Sent'],
-                    ['value' => 'ACCEPTED', 'label' => 'Accepted'],
-                    ['value' => 'REJECTED', 'label' => 'Rejected'],
-                    ['value' => 'EXPIRED', 'label' => 'Expired'],
-                ],
-                'default' => 'DRAFT',
-            ],
-            'active' => [
-                'label' => 'Active',
-                'type' => 'checkbox',
-                'required' => false,
-                'default' => true,
-            ],
-            'refrence' => [
-                'label' => 'Reference',
-                'placeholder' => 'PO-2025-0001',
-                'required' => false,
-                'maxLength' => 100,
-            ],
-            'customer_id' => [
-                'label' => 'Customer ID',
-                'placeholder' => 'CUST001',
-                'required' => true,
-                'maxLength' => 50,
-            ],
-            'salesperson' => [
-                'label' => 'Salesperson',
-                'placeholder' => 'Enter salesperson name',
-                'required' => true,
-                'maxLength' => 100,
-            ],
-            'branch_id' => [
-                'label' => 'Branch ID',
-                'placeholder' => 'CHN001',
-                'required' => false,
-                'maxLength' => 50,
-            ],
-            'channel' => [
-                'label' => 'Channel',
-                'type' => 'select',
-                'required' => false,
-                'options' => [
-                    ['value' => 'Online', 'label' => 'Online'],
-                    ['value' => 'Offline', 'label' => 'Offline'],
-                    ['value' => 'Phone', 'label' => 'Phone'],
-                    ['value' => 'Email', 'label' => 'Email'],
-                ],
-            ],
-            'tax_inclusive' => [
-                'label' => 'Tax Inclusive',
-                'type' => 'checkbox',
-                'required' => false,
-                'default' => false,
-            ],
-            'show_bank_details' => [
-                'label' => 'Show Bank Details',
-                'type' => 'checkbox',
-                'required' => false,
-                'default' => true,
-            ],
-            'bank_id' => [
-                'label' => 'Bank ID',
-                'placeholder' => 'BANK001',
-                'maxLength' => 50,
-            ],
-            'show_signature' => [
-                'label' => 'Show Signature',
-                'type' => 'checkbox',
-                'required' => false,
-                'default' => true,
-            ],
-            'show_upi_qr' => [
-                'label' => 'Show UPI QR',
-                'type' => 'checkbox',
-                'required' => false,
-                'default' => true,
-            ],
-            'customer_billing' => [
-                'label' => 'Billing Address',
-                'type' => 'object',
-                'required' => true,
-                'properties' => [
-                    'name' => [
-                        'label' => 'Company Name',
-                        'required' => true,
-                        'maxLength' => 255,
-                    ],
-                    'address' => [
-                        'label' => 'Address',
-                        'required' => true,
-                        'maxLength' => 500,
-                    ],
-                    'city' => [
-                        'label' => 'City',
-                        'required' => true,
-                        'maxLength' => 100,
-                    ],
-                    'state' => [
-                        'label' => 'State',
-                        'required' => true,
-                        'maxLength' => 100,
-                    ],
-                    'pincode' => [
-                        'label' => 'Pincode',
-                        'required' => true,
-                        'pattern' => '^[0-9]{6}$',
-                    ],
-                    'state_code' => [
-                        'label' => 'State Code',
-                        'required' => true,
-                        'pattern' => '^[0-9]{2}$',
-                    ],
-                    'gstin' => [
-                        'label' => 'GSTIN',
-                        'required' => false,
-                        'pattern' => '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$',
-                    ],
-                    'phone' => [
-                        'label' => 'Phone',
-                        'required' => false,
-                        'pattern' => '^[+][0-9-]{10,15}$',
-                    ],
-                ],
-            ],
-            'customer_shipping' => [
-                'label' => 'Shipping Address',
-                'type' => 'object',
-                'required' => false,
-                'properties' => [
-                    'name' => [
-                        'label' => 'Company Name',
-                        'required' => true,
-                        'maxLength' => 255,
-                    ],
-                    'address' => [
-                        'label' => 'Address',
-                        'required' => true,
-                        'maxLength' => 500,
-                    ],
-                    'city' => [
-                        'label' => 'City',
-                        'required' => true,
-                        'maxLength' => 100,
-                    ],
-                    'state' => [
-                        'label' => 'State',
-                        'required' => true,
-                        'maxLength' => 100,
-                    ],
-                    'pincode' => [
-                        'label' => 'Pincode',
-                        'required' => true,
-                        'pattern' => '^[0-9]{6}$',
-                    ],
-                    'state_code' => [
-                        'label' => 'State Code',
-                        'required' => true,
-                        'pattern' => '^[0-9]{2}$',
-                    ],
-                    'gstin' => [
-                        'label' => 'GSTIN',
-                        'required' => false,
-                        'pattern' => '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$',
-                    ],
-                    'phone' => [
-                        'label' => 'Phone',
-                        'required' => false,
-                        'pattern' => '^[+][0-9-]{10,15}$',
-                    ],
-                ],
-            ],
-            'items' => [
-                'label' => 'Items',
-                'type' => 'array',
-                'required' => true,
-                'minItems' => 1,
-                'properties' => [
-                    'name' => [
-                        'label' => 'Item Name',
-                        'required' => true,
-                        'maxLength' => 255,
-                    ],
-                    'description' => [
-                        'label' => 'Description',
-                        'required' => false,
-                        'maxLength' => 1000,
-                    ],
-                    'hsn_sac' => [
-                        'label' => 'HSN/SAC Code',
-                        'required' => false,
-                        'maxLength' => 20,
-                    ],
-                    'quantity' => [
-                        'label' => 'Quantity',
-                        'type' => 'number',
-                        'required' => true,
-                        'min' => 0.01,
-                    ],
-                    'unit' => [
-                        'label' => 'Unit',
-                        'required' => true,
-                        'maxLength' => 50,
-                    ],
-                    'cost' => [
-                        'label' => 'Cost',
-                        'type' => 'number',
-                        'required' => true,
-                        'min' => 0,
-                    ],
-                    'rate' => [
-                        'label' => 'Rate',
-                        'type' => 'number',
-                        'required' => true,
-                        'min' => 0,
-                    ],
-                    'tax_rate' => [
-                        'label' => 'Tax Rate (%)',
-                        'type' => 'number',
-                        'required' => true,
-                        'min' => 0,
-                        'max' => 100,
-                    ],
-                    'total_amount' => [
-                        'label' => 'Total Amount',
-                        'type' => 'number',
-                        'required' => true,
-                        'min' => 0,
-                    ],
-                ],
-            ],
-            'subtotal' => [
-                'label' => 'Subtotal',
-                'type' => 'number',
-                'required' => true,
-                'min' => 0,
-            ],
-            'total_cost' => [
-                'label' => 'Total Cost',
-                'type' => 'number',
-                'required' => true,
-                'min' => 0,
-            ],
-            'taxable_amount' => [
-                'label' => 'Taxable Amount',
-                'type' => 'number',
-                'required' => true,
-                'min' => 0,
-            ],
-            'total_tax' => [
-                'label' => 'Total Tax',
-                'type' => 'number',
-                'required' => true,
-                'min' => 0,
-            ],
-            'shipping_charges' => [
-                'label' => 'Shipping Charges',
-                'type' => 'number',
-                'required' => false,
-                'min' => 0,
-                'default' => 0,
-            ],
-            'other_charges' => [
-                'label' => 'Other Charges',
-                'type' => 'number',
-                'required' => false,
-                'min' => 0,
-                'default' => 0,
-            ],
-            'adjustment' => [
-                'label' => 'Adjustment',
-                'type' => 'number',
-                'required' => false,
-                'default' => 0,
-            ],
-            'round_off' => [
-                'label' => 'Round Off',
-                'type' => 'number',
-                'required' => false,
-                'default' => 0,
-            ],
-            'grand_total' => [
-                'label' => 'Grand Total',
-                'type' => 'number',
-                'required' => true,
-                'min' => 0,
-            ],
-            'terms' => [
-                'label' => 'Terms & Conditions',
-                'type' => 'textarea',
-                'required' => false,
-                'maxLength' => 2000,
-            ],
-            'notes' => [
-                'label' => 'Notes',
-                'type' => 'textarea',
-                'required' => false,
-                'maxLength' => 1000,
-            ],
-            'created_by' => [
-                'label' => 'Created By',
-                'placeholder' => 'USER001',
-                'required' => true,
-                'maxLength' => 50,
-            ],
-            'updated_by' => [
-                'label' => 'Updated By',
-                'placeholder' => 'USER001',
-                'required' => true,
-                'maxLength' => 50,
-            ],
-        ];
-    }
 
     /**
      * Get the API filters for this model.
