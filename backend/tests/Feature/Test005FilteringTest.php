@@ -85,37 +85,76 @@ class Test005FilteringTest extends TestCase
     }
 
     #[Test]
-    public function it_handles_invalid_filter_format()
+    public function it_handles_invalid_filter_format_with_notification()
     {
         Product::factory()->count(3)->create();
 
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?filter=invalid_format');
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
+
+        // Should have a warning notification about the invalid filter format
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+
+        $hasFilterWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'Filter format');
+        });
+        $this->assertTrue($hasFilterWarning, 'Should have warning notification for invalid filter format');
+
+        // Filter should be ignored
+        $filters = $response->json('filters');
+        $this->assertNull($filters['applied'] ?? null);
     }
 
     #[Test]
-    public function it_handles_invalid_filter_field()
+    public function it_handles_invalid_filter_field_with_notification()
     {
         Product::factory()->count(3)->create();
 
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?filter=nonexistent_field:value');
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
+
+        // Should have a warning notification about the invalid filter field
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+
+        $hasFilterWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   (str_contains($notification['message'], 'Filter') ||
+                    str_contains($notification['message'], 'field'));
+        });
+        $this->assertTrue($hasFilterWarning, 'Should have warning notification for invalid filter field');
+
+        // Filter should be ignored
+        $filters = $response->json('filters');
+        $this->assertNull($filters['applied'] ?? null);
     }
 
     #[Test]

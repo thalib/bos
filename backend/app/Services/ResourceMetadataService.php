@@ -9,6 +9,13 @@ use Illuminate\Support\Facades\Log;
 /**
  * Service responsible for building response metadata for API resources.
  * Self-contained service that handles filters, search, sorting, schema, and columns metadata.
+ *
+ * Works in conjunction with:
+ *
+ * @see App\Services\ResourceSearchService
+ * @see App\Services\ResourceFilterService
+ * @see App\Services\ResourcePaginationService
+ * @see App\Services\ResourceSortingService
  */
 class ResourceMetadataService
 {
@@ -117,9 +124,19 @@ class ResourceMetadataService
      */
     public function buildSearchMetadata(Request $request): ?string
     {
-        return ($request->has('search') && ! empty($request->input('search')))
-            ? $request->input('search')
-            : null;
+        if (! $request->has('search') || empty(trim($request->get('search')))) {
+            return null;
+        }
+
+        $searchTerm = trim($request->get('search'));
+
+        // Return null for invalid search terms (too short)
+        // This ensures the search field is null when term is too short
+        if (strlen($searchTerm) < 2) {
+            return null;
+        }
+
+        return $searchTerm;
     }
 
     /**

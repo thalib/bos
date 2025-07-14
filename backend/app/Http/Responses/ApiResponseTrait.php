@@ -53,6 +53,9 @@ trait ApiResponseTrait
             $response['columns'] = $this->getDefaultColumns();
         }
 
+        // Always include notifications field (null if no notifications)
+        $response['notifications'] = $meta['notifications'] ?? null;
+
         // Include any remaining metadata (sort, total)
         if (! empty($meta)) {
             $filteredMeta = array_diff_key($meta, [
@@ -61,6 +64,7 @@ trait ApiResponseTrait
                 'schema' => true,
                 'columns' => true,
                 'search' => true,
+                'notifications' => true,
             ]);
             if (! empty($filteredMeta)) {
                 $response['meta'] = $filteredMeta;
@@ -137,6 +141,9 @@ trait ApiResponseTrait
         // Always include columns field (never null, fallback to ID column)
         $response['columns'] = $meta['columns'] ?? $this->getDefaultColumns();
 
+        // Always include notifications field (null if no notifications)
+        $response['notifications'] = $meta['notifications'] ?? null;
+
         // Include any remaining metadata (excluding moved fields)
         if (! empty($meta)) {
             $filteredMeta = array_diff_key($meta, [
@@ -145,6 +152,7 @@ trait ApiResponseTrait
                 'columns' => true,
                 'search' => true,
                 'sort' => true,
+                'notifications' => true,
             ]);
             if (! empty($filteredMeta)) {
                 $response['meta'] = $filteredMeta;

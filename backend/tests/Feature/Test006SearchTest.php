@@ -171,13 +171,31 @@ class Test006SearchTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?search=a'); // Single character
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
+
+        // Should have a warning notification about the short search term
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+
+        $hasSearchWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'Search term too short');
+        });
+        $this->assertTrue($hasSearchWarning, 'Should have warning notification for short search term');
+
+        // Search should be ignored/null
+        $this->assertNull($response->json('search'));
     }
 
     #[Test]

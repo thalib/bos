@@ -146,41 +146,81 @@ class Test004SortingTest extends TestCase
     }
 
     #[Test]
-    public function it_handles_invalid_sort_column()
+    public function it_handles_invalid_sort_column_with_notification()
     {
         Product::factory()->count(3)->create();
 
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?sort=invalid_column');
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
+
+        // Should have a warning notification about the invalid sort column
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+
+        $hasSortWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'Sort column');
+        });
+        $this->assertTrue($hasSortWarning, 'Should have warning notification for invalid sort column');
+
+        // Should fall back to default sort (likely 'id')
+        $sort = $response->json('sort');
+        $this->assertNotNull($sort);
+        $this->assertNotEquals('invalid_column', $sort['column']);
     }
 
     #[Test]
-    public function it_handles_invalid_sort_direction()
+    public function it_handles_invalid_sort_direction_with_notification()
     {
         Product::factory()->count(3)->create();
 
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?sort=name&dir=invalid');
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
+
+        // Should have a warning notification about the invalid sort direction
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+
+        $hasDirWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'Sort direction');
+        });
+        $this->assertTrue($hasDirWarning, 'Should have warning notification for invalid sort direction');
+
+        // Should fall back to 'asc'
+        $sort = $response->json('sort');
+        $this->assertEquals('asc', $sort['dir']);
+        $this->assertEquals('name', $sort['column']);
     }
 
     #[Test]
-    public function it_only_allows_sorting_on_sortable_columns()
+    public function it_handles_non_sortable_columns_with_notification()
     {
         Product::factory()->count(3)->create();
 
@@ -188,12 +228,32 @@ class Test004SortingTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?sort=description');
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
+
+        // Should have a warning notification about the non-sortable column
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+
+        $hasSortWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   (str_contains($notification['message'], 'Sort column') ||
+                    str_contains($notification['message'], 'not found'));
+        });
+        $this->assertTrue($hasSortWarning, 'Should have warning notification for non-sortable column');
+
+        // Should fall back to default sort
+        $sort = $response->json('sort');
+        $this->assertNotEquals('description', $sort['column']);
     }
 }

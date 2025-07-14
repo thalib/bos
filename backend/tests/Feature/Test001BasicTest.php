@@ -60,11 +60,16 @@ class Test001BasicTest extends TestCase
                 'filters',
                 'schema',
                 'columns',
+                'notifications',
             ]);
 
         $this->assertTrue($response->json('success'));
         $this->assertEquals('Resources retrieved successfully', $response->json('message'));
         $this->assertCount(3, $response->json('data'));
+
+        // Verify notifications field is present and null when no notifications
+        $this->assertArrayHasKey('notifications', $response->json());
+        $this->assertNull($response->json('notifications'));
     }
 
     #[Test]

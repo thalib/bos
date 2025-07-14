@@ -47,4 +47,6 @@ The backend follows both **Test-Driven Development (TDD)** and **Design-Driven D
 - This leads to robust, predictable, and maintainable APIs.
 
 follow rules in .github/copilot-instructions.md
+rollow api documentations design/api-index.md 
+
 for implmenting tests use /api/v1/products

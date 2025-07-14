@@ -27,6 +27,12 @@ The GET/index endpoint must return JSON responses in the following standardized 
   "filters": { "applied": <object|null>, "available": <object|null> }|null,
   "schema": <array|null>,
   "columns": <array>,
+  "notifications": [
+    {
+      "type": "<string>", // info, warning, success, etc.
+      "message": "<string>"
+    }
+  ] | null,
   "error": { // when present when error happens
     "code": "<ERROR_CODE>",
     "details": [ /* array of error details */ ]
@@ -45,6 +51,7 @@ The GET/index endpoint must return JSON responses in the following standardized 
 - **`filters`** _(object|null)_: Filter information with `applied` and `available` properties, `null` if no filters available
 - **`schema`** _(array|null)_: Field definitions for dynamic forms, `null` if not available
 - **`columns`** _(array)_: Column configuration for tables, always present (falls back to ID column)
+- **`notifications`** _(array|null)_: Array of notification objects for user feedback, present only in success responses, `null` if no notifications. Not present in error responses.
 
 ## Error
 
@@ -64,6 +71,39 @@ The GET/index endpoint must return JSON responses in the following standardized 
 - **`error.code`** _(string)_: Machine-readable error code
 - **`error.details`** _(array)_: Optional array of detailed error information
 
+## Notifications
+
+Array of notification objects for user feedback. Present only in success responses. If no notifications, set to `null`. Not present in error responses.
+
+```json
+"notifications": [
+  {
+    "type": "<string>", // info, warning, success, etc.
+    "message": "<string>"
+  }
+] | null
+```
+
+### Notification Properties
+
+- **`type`** _(string)_: Notification type (info, warning, success, etc.)
+- **`message`** _(string)_: Human-readable notification message
+
+### Notification Types
+
+- **`info`**: Informational messages (e.g., parameter defaults applied)
+- **`warning`**: Non-critical issues (e.g., invalid parameters ignored)
+- **`success`**: Success confirmations
+
+### Notification Behavior
+
+- Notifications are used for parameter fallbacks instead of returning errors
+- Invalid pagination parameters fall back to defaults with warning notification
+- Invalid sort parameters fall back to defaults with warning notification
+- Invalid filter parameters are ignored with warning notification
+- Invalid search parameters are ignored with warning notification
+- Multiple notifications can be present in a single response
+
 ### Error Codes for GET/index
 
 | Code                    | HTTP Status | Description                 |
@@ -74,6 +114,8 @@ The GET/index endpoint must return JSON responses in the following standardized 
 | `METHOD_NOT_ALLOWED`    | 405         | GET method not supported    |
 | `RATE_LIMIT_EXCEEDED`   | 429         | Too many requests           |
 | `INTERNAL_SERVER_ERROR` | 500         | Server error                |
+
+**Note**: Invalid request parameters (pagination, sort, filter, search) do not return errors. Instead, the system falls back to default values and includes appropriate notifications in the response.
 
 ## Pagination
 
@@ -289,6 +331,16 @@ If model doesn't define `getIndexColumns()` method, the following default is use
       }
     ]
   },
+  "notifications": [
+    {
+      "type": "warning",
+      "message": "Invalid sort column 'invalid_column' ignored, defaulted to 'name'"
+    },
+    {
+      "type": "info",
+      "message": "Using default page size of 10 items per page"
+    }
+  ],
   "schema": [
     {
       "group": "General Information",
@@ -349,6 +401,7 @@ If model doesn't define `getIndexColumns()` method, the following default is use
 {
   "success": false,
   "message": "Access denied",
+  "notifications": null,
   "error": {
     "code": "FORBIDDEN",
     "details": ["User does not have permission to access this resource"]
@@ -356,16 +409,44 @@ If model doesn't define `getIndexColumns()` method, the following default is use
 }
 ```
 
+## Response with No Notifications Example
+
+```json
+{
+  "success": true,
+  "message": "Resources retrieved successfully",
+  "data": [],
+  "pagination": null,
+  "search": null,
+  "sort": null,
+  "filters": null,
+  "schema": null,
+  "columns": [
+    {
+      "field": "id",
+      "label": "ID",
+      "sortable": true,
+      "clickable": true,
+      "search": false,
+      "format": "text",
+      "align": "left"
+    }
+  ],
+  "notifications": null
+}
+```
+
 ## HTTP Status Codes for GET/index
 
 - **200 OK**: Successful GET request with resource list
-- **400 Bad Request**: Invalid request parameters (e.g., invalid pagination, sort, or filter parameters)
 - **401 Unauthorized**: Authentication required
 - **403 Forbidden**: Access denied to resource list
 - **404 Not Found**: Resource endpoint not found
 - **405 Method Not Allowed**: GET method not supported for this endpoint
 - **429 Too Many Requests**: Rate limit exceeded
 - **500 Internal Server Error**: Server error
+
+**Note**: Invalid request parameters do not result in 400 Bad Request errors. Instead, the system uses default values and provides notifications about the parameter issues.
 
 ## Query Parameters
 
@@ -413,12 +494,53 @@ The `GET/index` endpoint accepts the following query parameters to control the r
 
 ### Parameter Validation
 
-- **`page`**: Must be a positive integer
-- **`per_page`**: Must be between 1 and 100
-- **`sort`**: Must be a valid column name as defined in the model's `getIndexColumns()` method
-- **`dir`**: Must be either `asc` or `desc`
-- **`filter`**: Must follow the format `field:value` where field is a valid filter field
-- **`search`**: String with minimum 2 characters
+Invalid parameters do not result in error responses. Instead, the system falls back to sensible values and provides notifications:
+
+- **`page`**: Invalid values (≤0) fall back to page 1 with warning notification. Values greater than total pages fall back to last available page with warning notification
+- **`per_page`**: Values outside 1-100 range fall back to maximum (100) or minimum (1) respectively with warning notification. Values exceeding 100 are capped at 100, values below 1 are set to 1
+- **`sort`**: Invalid column names fall back to default sort with warning notification
+- **`dir`**: Invalid direction values fall back to 'asc' with warning notification
+- **`filter`**: Invalid format or field names are ignored with warning notification
+- **`search`**: Invalid search terms (less than 2 characters) are ignored with warning notification
+
+### Notification Examples for Parameter Issues
+
+```json
+"notifications": [
+  {
+    "type": "warning",
+    "message": "Invalid page number '0', using page 1"
+  },
+  {
+    "type": "warning",
+    "message": "Page number '15' exceeds available pages (7), using last page 7"
+  },
+  {
+    "type": "warning", 
+    "message": "Page size '150' exceeds maximum of 100, using maximum 100"
+  },
+  {
+    "type": "warning", 
+    "message": "Page size '0' below minimum of 1, using minimum 1"
+  },
+  {
+    "type": "warning",
+    "message": "Sort column 'invalid_field' not found, using default 'id'"
+  },
+  {
+    "type": "warning",
+    "message": "Sort direction 'invalid' not recognized, using 'asc'"
+  },
+  {
+    "type": "warning",
+    "message": "Filter format 'invalid_format' not recognized, filter ignored"
+  },
+  {
+    "type": "warning",
+    "message": "Search term too short (minimum 2 characters), search ignored"
+  }
+]
+```
 
 ### Default Behavior
 
@@ -432,12 +554,12 @@ When no query parameters are provided, the endpoint returns:
 
 Example default request:
 
-```
+```bash
 GET /api/v1/products
 ```
 
 Is equivalent to:
 
-```
+```bash
 GET /api/v1/products?page=1&per_page=15&sort=id&dir=asc
 ```

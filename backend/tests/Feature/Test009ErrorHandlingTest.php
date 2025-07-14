@@ -45,6 +45,9 @@ class Test009ErrorHandlingTest extends TestCase
 
         $this->assertFalse($response->json('success'));
         $this->assertIsString($response->json('message'));
+
+        // Ensure notifications field is not present in error responses
+        $this->assertArrayNotHasKey('notifications', $response->json());
     }
 
     #[Test]
@@ -63,6 +66,9 @@ class Test009ErrorHandlingTest extends TestCase
 
         $this->assertFalse($response->json('success'));
         $this->assertIsString($response->json('message'));
+
+        // Ensure notifications field is not present in error responses
+        $this->assertArrayNotHasKey('notifications', $response->json());
     }
 
     #[Test]
@@ -117,16 +123,27 @@ class Test009ErrorHandlingTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?per_page=invalid');
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
 
-        $this->assertFalse($response->json('success'));
-        $this->assertIsArray($response->json('error.details'));
+        // Should have a warning notification about invalid per_page
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+        $hasWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'Page size must be a positive integer');
+        });
+        $this->assertTrue($hasWarning);
     }
 
     #[Test]
@@ -138,17 +155,27 @@ class Test009ErrorHandlingTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?per_page=101');
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
 
-        $error = $response->json('error');
-        $this->assertArrayHasKey('details', $error);
-        $this->assertIsArray($error['details']);
+        // Should have a warning notification about the per_page limit
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+        $hasPerPageWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'Per page value exceeds maximum limit');
+        });
+        $this->assertTrue($hasPerPageWarning, 'Should have warning notification for per_page limit');
     }
 
     #[Test]
@@ -160,15 +187,27 @@ class Test009ErrorHandlingTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?sort=name&dir=invalid');
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
 
-        $this->assertIsArray($response->json('error.details'));
+        // Should have a warning notification about invalid sort direction
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+        $hasWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'Sort direction');
+        });
+        $this->assertTrue($hasWarning);
     }
 
     #[Test]
@@ -180,15 +219,27 @@ class Test009ErrorHandlingTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?sort=nonexistent_column');
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
 
-        $this->assertIsArray($response->json('error.details'));
+        // Should have a warning notification about invalid sort column
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+        $hasWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'Sort column');
+        });
+        $this->assertTrue($hasWarning);
     }
 
     #[Test]
@@ -200,15 +251,27 @@ class Test009ErrorHandlingTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?filter=invalid_format');
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
 
-        $this->assertIsArray($response->json('error.details'));
+        // Should have a warning notification about invalid filter format
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+        $hasWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'Filter format invalid_format not recognized');
+        });
+        $this->assertTrue($hasWarning);
     }
 
     #[Test]
@@ -220,15 +283,27 @@ class Test009ErrorHandlingTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?search=a');
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
 
-        $this->assertIsArray($response->json('error.details'));
+        // Should have a warning notification about short search term
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+        $hasWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'Search term too short');
+        });
+        $this->assertTrue($hasWarning);
     }
 
     #[Test]

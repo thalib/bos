@@ -45,7 +45,17 @@ class Test010ResponseStructureTest extends TestCase
                     'currentPage',
                     'itemsPerPage',
                     'totalPages',
+                    'urlPath',
+                    'urlQuery',
+                    'nextPage',
+                    'prevPage',
                 ],
+                'search',
+                'sort',
+                'filters',
+                'schema',
+                'columns',
+                'notifications',
             ]);
 
         $this->assertTrue($response->json('success'));
@@ -287,5 +297,49 @@ class Test010ResponseStructureTest extends TestCase
         if (isset($field['readonly'])) {
             $this->assertIsBool($field['readonly']);
         }
+    }
+
+    #[Test]
+    public function it_has_correct_notifications_structure_when_present()
+    {
+        Product::factory()->count(3)->create();
+
+        // Test with invalid parameters to trigger notifications
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->getJson('/api/v1/products?page=0&per_page=150&sort=invalid_column');
+
+        $response->assertStatus(200);
+
+        $notifications = $response->json('notifications');
+
+        if ($notifications !== null) {
+            $this->assertIsArray($notifications);
+
+            foreach ($notifications as $notification) {
+                $this->assertIsArray($notification);
+                $this->assertArrayHasKey('type', $notification);
+                $this->assertArrayHasKey('message', $notification);
+                $this->assertIsString($notification['type']);
+                $this->assertIsString($notification['message']);
+
+                // Verify type is one of the expected values
+                $this->assertContains($notification['type'], ['info', 'warning', 'success']);
+            }
+        }
+    }
+
+    #[Test]
+    public function it_has_null_notifications_when_no_notifications_needed()
+    {
+        Product::factory()->count(3)->create();
+
+        // Test with valid parameters that shouldn't trigger any notifications
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->getJson('/api/v1/products?page=1&per_page=10');
+
+        $response->assertStatus(200);
+
+        // Notifications should be null when there are no notifications
+        $this->assertNull($response->json('notifications'));
     }
 }

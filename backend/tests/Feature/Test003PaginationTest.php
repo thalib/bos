@@ -88,20 +88,40 @@ class Test003PaginationTest extends TestCase
     }
 
     #[Test]
-    public function it_enforces_max_per_page_limit()
+    public function it_enforces_max_per_page_limit_with_notification()
     {
         Product::factory()->count(10)->create();
 
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?per_page=150'); // Over the 100 limit
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
+
+        // Should have a warning notification about the invalid per_page value
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+        $this->assertIsArray($notifications);
+
+        $hasPerPageWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'exceeds maximum');
+        });
+        $this->assertTrue($hasPerPageWarning, 'Should have warning notification for per_page exceeding maximum');
+
+        // Should fall back to maximum (100) instead of default
+        $pagination = $response->json('pagination');
+        $this->assertEquals(100, $pagination['itemsPerPage']); // Maximum allowed
     }
 
     #[Test]
@@ -121,52 +141,113 @@ class Test003PaginationTest extends TestCase
     }
 
     #[Test]
-    public function it_handles_invalid_page_parameter()
+    public function it_handles_invalid_page_parameter_with_notification()
     {
         Product::factory()->count(10)->create();
 
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?page=0');
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
+
+        // Should have a warning notification about the invalid page value
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+
+        $hasPageWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'Invalid page number');
+        });
+        $this->assertTrue($hasPageWarning, 'Should have warning notification for invalid page number');
+
+        // Should fall back to page 1
+        $pagination = $response->json('pagination');
+        $this->assertEquals(1, $pagination['currentPage']);
     }
 
     #[Test]
-    public function it_handles_invalid_per_page_parameter()
+    public function it_handles_invalid_per_page_parameter_with_notification()
     {
         Product::factory()->count(10)->create();
 
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?per_page=0');
 
-        $response->assertStatus(400)
+        $response->assertStatus(200)
             ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'INVALID_PARAMETERS',
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
                 ],
             ]);
+
+        // Should have a warning notification about the invalid per_page value
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+
+        $hasPerPageWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'Page size');
+        });
+        $this->assertTrue($hasPerPageWarning, 'Should have warning notification for invalid per_page');
+
+        // Should fall back to minimum (1) instead of default
+        $pagination = $response->json('pagination');
+        $this->assertEquals(1, $pagination['itemsPerPage']); // Minimum allowed
     }
 
     #[Test]
-    public function it_returns_empty_data_for_page_beyond_total()
+    public function it_returns_last_page_for_page_beyond_total_with_notification()
     {
-        Product::factory()->count(5)->create();
+        Product::factory()->count(5)->create(); // 5 products with per_page=10 means only 1 page
 
         $response = $this->actingAs($this->user, 'sanctum')
-            ->getJson('/api/v1/products?page=10&per_page=10');
+            ->getJson('/api/v1/products?page=10&per_page=10'); // Requesting page 10 when only 1 page exists
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'notifications' => [
+                    '*' => [
+                        'type',
+                        'message',
+                    ],
+                ],
+            ]);
 
-        $this->assertCount(0, $response->json('data'));
+        // Should have a warning notification about page exceeding available pages
+        $notifications = $response->json('notifications');
+        $this->assertNotNull($notifications);
+
+        $hasPageWarning = collect($notifications)->contains(function ($notification) {
+            return $notification['type'] === 'warning' &&
+                   str_contains($notification['message'], 'exceeds available pages');
+        });
+        $this->assertTrue($hasPageWarning, 'Should have warning notification for page exceeding available pages');
+
+        // Should return data for the last available page (page 1)
+        $this->assertCount(5, $response->json('data')); // All 5 products on the last page
         $pagination = $response->json('pagination');
-        $this->assertEquals(10, $pagination['currentPage']);
+        $this->assertEquals(1, $pagination['currentPage']); // Should be set to last available page
         $this->assertEquals(5, $pagination['totalItems']);
+        $this->assertEquals(1, $pagination['totalPages']);
     }
 }

@@ -97,6 +97,21 @@ class Product extends Model
     ];
 
     /**
+     * Get the searchable fields for API search functionality.
+     */
+    public function getSearchableFields(): array
+    {
+        return [
+            'name',
+            'description',
+            'short_description',
+            'sku',
+            'barcode',
+            'brand',
+        ];
+    }
+
+    /**
      * Get the GST information as an array.
      */
     protected function gst(): Attribute
