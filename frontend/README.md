@@ -1,4 +1,4 @@
-# Thanzil Frontend
+# BOS Frontend
 
 A modern business management application built with Nuxt 3, Vue 3, and Bootstrap 5.
 
