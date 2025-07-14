@@ -3,7 +3,7 @@ import { navigateTo } from '#app';
 import { nextTick } from 'vue';
 
 /**
- * Authentication middleware for Thanzil project
+ * Authentication middleware for BOS project
  * 
  * This middleware:
  * 1. Checks if the user is authenticated

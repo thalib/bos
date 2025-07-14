@@ -1,5 +1,5 @@
 /**
- * Common TypeScript types and interfaces for the Thanzil project
+ * Common TypeScript types and interfaces for the BOS project
  */
 
 // Re-export document types

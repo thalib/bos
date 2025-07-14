@@ -5,8 +5,8 @@
       <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
           <div class="text-center mb-4">
-            <h1 class="display-4 mb-3">Welcome to Thanzil</h1>
-            <p class="lead text-muted">Your Business Management Solution</p>
+            <h1 class="display-4 mb-3">Welcome to BOS</h1>
+            <p class="lead text-muted">Your Business OS Solution</p>
           </div>
           <div class="card shadow">
             <div class="card-header text-center">
@@ -36,11 +36,11 @@ const { showSuccessToast } = useToast();
 
 // Set page metadata
 useHead({
-  title: 'Welcome - Thanzil Business Management',
+  title: 'Welcome - BOS Business OS',
   meta: [
     {
       name: 'description',
-      content: 'Welcome to Thanzil - Your comprehensive business management solution'
+      content: 'Welcome to BOS - Your comprehensive business OS solution'
     }
   ]
 });

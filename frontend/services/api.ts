@@ -1,5 +1,5 @@
 /**
- * Base API Service for Thanzil project
+ * Base API Service for BOS project
  * Handles API requests with proper error handling and standardized responses
  * Includes request and response interceptors
  */

@@ -1,5 +1,5 @@
 /**
- * CRUD API Service for Thanzil project
+ * CRUD API Service for BOS project
  * Extends base API service with generic CRUD methods
  */
 import { useApiService } from './api'

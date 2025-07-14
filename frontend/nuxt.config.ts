@@ -51,8 +51,8 @@ export default defineNuxtConfig({
     // Public keys (exposed to client-side)
     public: {
       // Application Configuration
-      appName: process.env.NUXT_APP_NAME || 'Thanzil',
-      appDescription: process.env.NUXT_APP_DESCRIPTION || 'Thanzil - Your Business Management Solution',
+      appName: process.env.NUXT_APP_NAME || 'BOS',
+      appDescription: process.env.NUXT_APP_DESCRIPTION || 'BOS - Your Business OS Solution',
       appVersion: process.env.NUXT_APP_VERSION || '1.0.0',
       
       // Domain Configuration
@@ -90,7 +90,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: process.env.NUXT_APP_NAME || 'Thanzil'
+      title: process.env.NUXT_APP_NAME || 'BOS'
     }
   },
 

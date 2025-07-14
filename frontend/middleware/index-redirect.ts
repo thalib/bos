@@ -3,7 +3,7 @@ import { navigateTo } from '#app';
 import { nextTick } from 'vue';
 
 /**
- * Index page redirect middleware for Thanzil project
+ * Index page redirect middleware for BOS project
  * 
  * This middleware:
  * 1. Allows unauthenticated users to access the index page (shows login)
