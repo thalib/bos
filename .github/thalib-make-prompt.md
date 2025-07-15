@@ -1,5 +1,0 @@
-- Clearly define input, output, and constraints for each coding agent workflow. Reference `.github/copilot-instructions.md` for coding standards.
-- Ensure prompts are concise, focused, and avoid introducing breaking changes.
-- Write actionable prompts using Laravel 12 and Nuxt 3 terminology.
-- Break down the prompt into multiple small, self-contained steps/prompts if needed.
-- Do not generate documentation, examples, or explanatory content unless explicitly requested.
