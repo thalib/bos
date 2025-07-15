@@ -1,6 +1,25 @@
 # AI Agent Prompt Constraints for BOS Project
 
+
 These constraints ensure consistent implementation patterns, prevent recurring issues, and maintain codebase quality across frontend (Nuxt 3) and backend (Laravel 12) development.
+
+## General Backend API Architecture (Laravel 12)
+
+- **API endpoints for Eloquent models are auto-registered**: Any model with the `ApiResource` attribute is automatically exposed as a RESTful resource under `/api/v1/{resource}` via `ApiResourceServiceProvider`.
+- **All resource endpoints are protected by `auth:sanctum` middleware** (see `ApiResourceServiceProvider`).
+- **Only the `ApiResourceController` is used for these endpoints**. This controller must contain ONLY the 5 basic CRUD methods: `index`, `show`, `store`, `update`, `destroy`. All query, validation, and business logic must be delegated to dedicated service classes (see codebase for `Resource*Service`).
+- **Standardized API response format**: All responses must use the structure from `ApiResponseTrait`:
+  - Success: `{ "success": true, "data": ..., "message": ..., ... }`
+  - Error: `{ "success": false, "message": ..., "error": { "code": ..., "details": ... }, ... }`
+  - Additional fields: `pagination`, `search`, `filters`, `schema`, `columns`, `notifications`, `meta` (see `ApiResponseTrait` for details).
+- **Validation**: All requests must be validated using `StoreResourceRequest` and `UpdateResourceRequest`.
+- **Error handling**: Never expose internal errors or stack traces to the frontend. All errors must be logged and user-facing messages must be friendly.
+- **No direct database queries in controllers**; all logic must be in service classes.
+- **API design and implementation must follow TDD and DDD**:
+  - All endpoints and changes must be described in `/design/` API docs (e.g., `api-index.md`).
+  - Feature tests in `tests/Feature/` must be written/updated before implementation, asserting response structure, codes, and error handling as per design docs.
+  - Implementation must strictly follow both the design doc and the tests.
+
 
 ## Frontend Constraints (Nuxt 3)
 
@@ -143,136 +162,69 @@ These constraints ensure consistent implementation patterns, prevent recurring i
   };
   ```
 
-## Backend API and Route Constraints
 
-- **Backend API and routes must follow these constraints:**
-  1. **API endpoints for resources are auto-registered via `ApiResourceServiceProvider`**. Models with the `ApiResource` attribute are exposed as RESTful endpoints under `/api/v1/{resource}` (e.g., `/api/v1/users`).
-  2. **All resource endpoints are protected by `auth:sanctum` middleware**. Only authenticated users can access, create, update, or delete resources.
-  3. **API controllers must use the standardized response format** as implemented in `ApiResourceController`:
-     - Success: `{ "success": true, "data": ..., "message": ... }`
-     - Error: `{ "success": false, "error": { "code": ..., "message": ..., "details": ... } }`
-  4. **Supported resource routes** (all require authentication):
-     - `GET    /api/v1/{resource}`         → List resources
-     - `POST   /api/v1/{resource}`         → Create resource
-     - `GET    /api/v1/{resource}/{id}`    → Show resource
-     - `PUT    /api/v1/{resource}/{id}`    → Update resource
-     - `PATCH  /api/v1/{resource}/{id}`    → Update resource
-     - `DELETE /api/v1/{resource}/{id}`    → Delete resource
-     - `GET    /api/v1/{resource}/schema`  → Get form schema
-     - `GET    /api/v1/{resource}/columns` → Get index columns config
-     - `GET    /api/v1/{resource}/filters` → Get available filters
-  5. **Validation** is handled via `StoreResourceRequest` and `UpdateResourceRequest` with clear error messages and proper HTTP status codes.
-  6. **Never expose internal errors or stack traces to the frontend**. All errors must be logged and user-facing messages must be friendly.
-  7. **Do not change the API response format unless explicitly requested.**
+## Backend API and Route Constraints (Auto-Registered Resources)
+
+- **API endpoints for resources are auto-registered** via `ApiResourceServiceProvider` for all models with the `ApiResource` attribute.
+- **All resource endpoints require authentication** (`auth:sanctum`).
+- **Only the 5 CRUD methods are allowed** in `ApiResourceController` (`index`, `show`, `store`, `update`, `destroy`). No helper/business logic in the controller; all logic must be in service classes.
+- **Standardized response format** (see `ApiResponseTrait`):
+  - Always include: `success`, `data`, `message`, `pagination`, `search`, `filters`, `schema`, `columns`, `notifications`, `meta` (as appropriate).
+  - Error responses must include: `success: false`, `message`, `error: { code, details }`, and optionally `validation_errors`.
+- **Supported resource routes** (all require authentication):
+  - `GET    /api/v1/{resource}`         → List resources
+  - `POST   /api/v1/{resource}`         → Create resource
+  - `GET    /api/v1/{resource}/{id}`    → Show resource
+  - `PUT    /api/v1/{resource}/{id}`    → Update resource
+  - `PATCH  /api/v1/{resource}/{id}`    → Update resource
+  - `DELETE /api/v1/{resource}/{id}`    → Delete resource
+- **Validation**: Use `StoreResourceRequest` and `UpdateResourceRequest` for all resource requests. Provide clear error messages and proper HTTP status codes.
+- **Error handling**: Never expose internal errors or stack traces to the frontend. All errors must be logged and user-facing messages must be friendly.
+- **API response format must not be changed unless explicitly requested.**
+- **All API changes must be reflected in `/design/` docs and feature tests before implementation.**
+
+
 
 ## Backend Constraints (Laravel 12)
 
-### 1. API Response Format - Standardized Structure
+1. **API Response Format**
+   - Always use the standardized response format from `ApiResponseTrait`.
+   - All success and error responses must include the required fields (`success`, `data`, `message`, `error`, etc.) and additional metadata fields as appropriate.
 
-- **ALWAYS return consistent JSON responses**
-- **Use the standardized response format**:
+2. **Resource Controllers**
+   - Only `ApiResourceController` is used for auto-registered resources.
+   - Only the 5 CRUD methods are allowed; all logic must be delegated to service classes.
+   - Follow Laravel resource controller conventions.
 
-  ```php
-  // Success response
-  return response()->json([
-      'success' => true,
-      'data' => $data,
-      'message' => 'Operation completed successfully'
-  ]);
+3. **Model Conventions**
+   - Define fillable fields explicitly.
+   - Use proper Eloquent relationships.
+   - Add filter methods as needed (see codebase for `getApiFilters`).
 
-  // Error response
-  return response()->json([
-      'success' => false,
-      'error' => [
-          'code' => 'ERROR_CODE',
-          'message' => 'Human readable error message',
-          'details' => $details
-      ]
-  ], $statusCode);
-  ```
+4. **Request Validation**
+   - Always validate incoming requests using Form Request classes (`StoreResourceRequest`, `UpdateResourceRequest`).
+   - Provide clear validation messages.
 
-### 2. Resource Controllers - Follow Conventions
+5. **Error Handling**
+   - Never expose internal errors or stack traces to the frontend.
+   - Log all errors appropriately.
+   - Return user-friendly error messages and proper HTTP status codes.
 
-- **Use `ApiResourceController` patterns** for CRUD operations
-- **Follow Laravel resource controller conventions**
-- **Implement proper model validation**
-- **Example endpoint structure**:
-  - `GET /api/v1/{resource}` - List resources
-  - `POST /api/v1/{resource}` - Create resource
-  - `GET /api/v1/{resource}/{id}` - Show resource
-  - `PUT /api/v1/{resource}/{id}` - Update resource
-  - `DELETE /api/v1/{resource}/{id}` - Delete resource
-  - `GET /api/v1/{resource}/filters` - Get available filters
+6. **Database Migrations**
+   - Always use migrations for schema changes.
+   - Include proper indexes and foreign key constraints.
+   - Use descriptive migration names.
 
-### 3. Model Conventions - Eloquent Best Practices
+7. **Authentication & Authorization**
+   - Use Laravel Sanctum for API authentication.
+   - All resource routes are protected by `auth:sanctum` middleware.
+   - Validate user permissions before operations.
+   - Never trust frontend data without server-side validation.
 
-- **Define fillable fields** explicitly
-- **Use proper relationships** (hasMany, belongsTo, etc.)
-- **Implement model methods** for business logic
-- **Add filter methods** when needed:
-
-```php
-public function getApiFilters(): array
-{
-    return [
-        'status' => [
-            'label' => 'Status',
-            'values' => ['all', 'active', 'inactive'],
-            'parameter' => 'status'
-        ]
-    ];
-}
-```
-
-### 4. Request Validation - Comprehensive Rules
-
-- **ALWAYS validate incoming requests**
-- **Use Form Request classes** for complex validation
-- **Provide clear validation messages**
-- **Example**:
-
-```php
-$request->validate([
-    'name' => 'required|string|max:255',
-    'email' => 'required|email|unique:users,email'
-]);
-```
-
-### 5. Error Handling - Graceful Degradation
-
-- **NEVER expose internal errors to frontend**
-- **Log errors appropriately**
-- **Return user-friendly error messages**
-- **Use proper HTTP status codes**
-- **Example**:
-  ```php
-  try {
-      // Operation
-  } catch (\Exception $e) {
-      Log::error('Operation failed', ['error' => $e->getMessage()]);
-      return response()->json([
-          'success' => false,
-          'error' => [
-              'code' => 'OPERATION_FAILED',
-              'message' => 'Unable to complete operation'
-          ]
-      ], 500);
-  }
-  ```
-
-### 6. Database Migrations - Maintain Integrity
-
-- **ALWAYS use migrations** for schema changes
-- **Include proper indexes** for performance
-- **Add foreign key constraints** where appropriate
-- **Use descriptive migration names**
-
-### 7. Authentication & Authorization - Security First
-
-- **Use Laravel Sanctum** for API authentication
-- **Implement proper middleware** for route protection
-- **Validate user permissions** before operations
-- **NEVER trust frontend data** without server-side validation
+8. **TDD & DDD Enforcement**
+   - All API changes must be described in `/design/` docs and covered by feature tests before implementation.
+   - Tests must assert response structure, codes, and error handling as per design docs.
+   - Implementation must strictly follow both the design doc and the tests.
 
 ## Common Anti-Patterns to Avoid
 
