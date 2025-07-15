@@ -1,6 +1,6 @@
 # Configuration Guide
 
-This document explains how to configure the Thanzil frontend application using the centralized configuration system.
+This document explains how to configure the BOS frontend application using the centralized configuration system.
 
 ## Overview
 
@@ -8,7 +8,7 @@ The frontend uses a centralized configuration system following Nuxt 3 convention
 
 1. **Environment Variables** (`.env` file)
 2. **Runtime Configuration** (`nuxt.config.ts`)
-3. **App Configuration Composable** (`composables/useThanzilConfig.ts` - accessed via `useThanzilConfig()`)
+3. **App Configuration Composable** (`composables/useApplicationConfig.ts` - accessed via `useApplicationConfig()`)
 
 ## Quick Setup
 
@@ -71,7 +71,7 @@ NUXT_PUBLIC_API_BASE="https://api.yourdomain.com/api"
 
 ```typescript
 // Get all configuration
-const config = useThanzilConfig()
+const config = useApplicationConfig()
 
 // Access specific configuration sections
 console.log(config.app.name)           // App name
@@ -163,7 +163,7 @@ If you have existing hardcoded URLs or configuration:
 
 1. Move the values to `.env` file
 2. Update `nuxt.config.ts` to use environment variables
-3. Replace hardcoded values in components with `useThanzilConfig()`
+3. Replace hardcoded values in components with `useApplicationConfig()`
 4. Test in both development and production environments
 
 ## Security Considerations

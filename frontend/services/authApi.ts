@@ -1,5 +1,5 @@
 /**
- * Auth API Service for Thanzil project
+ * Auth API Service for BOS project
  * Provides authentication-specific API methods
  */
 import { useApiService } from './api'

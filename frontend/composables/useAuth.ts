@@ -1,5 +1,5 @@
 /**
- * Auth composable for the Thanzil project
+ * Auth composable for the BOS project
  * Exposes authentication functionality to components
  */
 import { useAuthService } from '~/services/auth'

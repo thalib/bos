@@ -23,7 +23,7 @@ export default defineNuxtPlugin(() => {
     const errors: string[] = []
     
     // Validate required configuration
-    if (!appConfig.app.name || appConfig.app.name === 'Thanzil') {
+    if (!appConfig.app.name || appConfig.app.name === 'BOS') {
       warnings.push('App name is using default value. Consider customizing NUXT_APP_NAME.')
     }
     

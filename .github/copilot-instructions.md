@@ -1,4 +1,4 @@
-# AI Agent Prompt Constraints for Thanzil Project
+# AI Agent Prompt Constraints for BOS Project
 
 These constraints ensure consistent implementation patterns, prevent recurring issues, and maintain codebase quality across frontend (Nuxt 3) and backend (Laravel 12) development.
 
@@ -302,4 +302,4 @@ $request->validate([
 4. **Security Validation**: Verify authentication and authorization implementation
 5. **User Experience**: Confirm proper loading states, error messages, and form validation
 
-These constraints should be referenced and enforced during all development tasks to maintain consistency and quality across the Thanzil project.
+These constraints should be referenced and enforced during all development tasks to maintain consistency and quality across the BOS project.

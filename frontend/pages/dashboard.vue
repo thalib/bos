@@ -93,11 +93,11 @@ const { user } = useAuth();
 
 // Set page metadata
 useHead({
-  title: 'Dashboard | Thanzil',
+  title: 'Dashboard | BOS',
   meta: [
     {
       name: 'description',
-      content: 'Thanzil dashboard - Access your business management tools and view recent activity.'
+      content: 'BOS dashboard - Access your business OS tools and view recent activity.'
     }
   ]
 });

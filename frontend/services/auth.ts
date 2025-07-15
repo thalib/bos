@@ -1,5 +1,5 @@
 /**
- * Authentication Service for Thanzil project
+ * Authentication Service for BOS project
  * Handles authentication tokens and auth state management
  */
 import { ref, computed } from 'vue'

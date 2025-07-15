@@ -95,7 +95,7 @@ const logoutAndRedirect = () => {
       <div class="d-flex flex-column">
         <h5 class="offcanvas-title mb-0 fw-semibold fs-5" id="mainMenuOffcanvasLabel">
           <i class="bi bi-person-circle me-2"></i>
-          {{ user?.name || 'Thanzil' }}
+          {{ user?.name || 'BOS' }}
         </h5>
       </div>
       <button        

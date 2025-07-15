@@ -1,5 +1,5 @@
 /**
- * Navigation composable for the Thanzil project
+ * Navigation composable for the BOS project
  * Handles dynamic menu items from the backend API
  */
 import { ref, computed, watch, readonly } from 'vue'

@@ -49,9 +49,9 @@ const canShowNavbarContent = computed(() => {
 const route = useRoute();
 const currentPageName = computed(() => {
   // Return default during SSR
-  if (!isClient.value || !canShowNavbarContent.value) return 'Thanzil';
+  if (!isClient.value || !canShowNavbarContent.value) return 'BOS';
   const found = flatMenuItems.value.find(item => item.path === route.path);
-  return found ? found.name : 'Thanzil';
+  return found ? found.name : 'BOS';
 });
 
 const router = useRouter();
