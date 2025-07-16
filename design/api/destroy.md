@@ -6,19 +6,20 @@ The `DELETE` method is used to remove a resource. This document outlines the sta
 
 ## Request Structure
 
-A `DELETE` request targets a specific resource using its identifier in the URL.
-
-### Example URLs
-
+```bash
+DELETE /api/v1/{resource}/{id}
 ```
+
+- `DELETE` request targets a specific **_resource_** using its **_identifier_** in the URL.
+- **`id`** _(string &#124; integer)_: **Path Parameter**, is unique identifier of the resource to be deleted.
+
+Example URLs
+
+```bash
 DELETE /api/v1/products/{id}
 DELETE /api/v1/users/{id}
 DELETE /api/v1/orders/{id}
 ```
-
-### Path Parameters
-
-- **`id`** _(string|integer)_: The unique identifier of the resource to delete.
 
 ---
 
@@ -47,39 +48,18 @@ Refer to [error.md](#file:design/api/error.md) for detailed error response struc
 
 ---
 
-## Validation Rules
+## Validation & Deletion Rules
 
-- ID must be provided in the URL path.
-- ID must be a valid format (integer or string depending on the model).
-- Non-existent IDs should return a `404 Not Found` response.
-- Invalid ID formats should return a `400 Bad Request` response.
-
----
-
-## Deletion Behavior
-
-- Handle related resources appropriately (e.g., cascade deletion or dependency checks).
-- Provide clear error messages if dependencies prevent deletion.
+- The `id` must be provided in the URL path and be a valid format (integer or string, as required by the model).
+- Non-existent IDs must return a `404 Not Found` response.
+- Invalid ID formats must return a `400 Bad Request` response.
+- All endpoints require authentication (`auth:sanctum` middleware) and user permission validation before deletion.
+- Related resources must be handled appropriately (e.g., cascade deletion or dependency checks). If dependencies prevent deletion, provide clear error messages and guidance for resolution.
 - Use transactions to ensure data consistency.
-
----
-
-## Security Considerations
-
-- All endpoints require authentication (`auth:sanctum` middleware).
-- Validate user permissions before allowing deletion.
+- Log all delete operations for compliance and debugging.
 - Implement rate limiting to prevent abuse.
 - Validate the `id` parameter to prevent injection attacks.
-- Log all delete operations for compliance and debugging.
-
----
-
-## Best Practices
-
-- Validate permissions and input before deletion.
-- Provide clear feedback about the deletion result.
-- Handle dependencies gracefully and provide guidance for resolution.
-- Use transactions to ensure data consistency.
+- Always provide clear feedback about the deletion result.
 - Consider implementing undo functionality for critical deletions.
 
 ---

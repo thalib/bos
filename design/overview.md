@@ -18,7 +18,7 @@ The backend follows both **Test-Driven Development (TDD)** and **Design-Driven D
 
 - **Purpose:** Ensures implementation matches a clear, agreed-upon API contract.
 - **How:**
-  - Each API endpoint has a dedicated design document (e.g., `api-index.md` for `/index`, `api-store.md` for `/store`, etc.) describing its request/response structure, error handling, and parameters.
+  - Each API endpoint has a dedicated design document (e.g., `design/api/index.md` for `index()`, `design/api/store.md` for `store()`, etc.) describing its request/response structure, error handling, and parameters.
   - These endpoint-specific files are the single source of truth for all API endpoints, responses, and error handling.
   - Before coding, review or update the relevant API design file to reflect new requirements or changes.
   - All backend code (controllers, requests, resources) must strictly follow these contracts.
@@ -34,7 +34,7 @@ The backend follows both **Test-Driven Development (TDD)** and **Design-Driven D
 
 ### Example Workflow
 
-1. **Design:** Add or update an endpoint/field in the relevant API design file (e.g., `api-index.md`, `api-store.md`).
+1. **Design:** Add or update an endpoint/field in the relevant API design file (e.g., `design/api/index.md`, `design/api/store.md`).
 2. **Test:** Write a failing test in `tests/Feature/` for the new behavior/response.
 3. **Implement:** Update controllers, requests, etc., to make the test pass and match the design.
 4. **Refactor:** Clean up code, keeping tests green.
@@ -47,6 +47,6 @@ The backend follows both **Test-Driven Development (TDD)** and **Design-Driven D
 - This leads to robust, predictable, and maintainable APIs.
 
 follow rules in .github/copilot-instructions.md
-rollow api documentations /design/api-index.md
+rollow api documentations /design/api/index.md
 
 for implmenting tests use /api/v1/products

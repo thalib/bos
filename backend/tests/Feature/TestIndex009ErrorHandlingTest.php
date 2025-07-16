@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-class Test009ErrorHandlingTest extends TestCase
+class TestIndex009ErrorHandlingTest extends TestCase
 {
     use RefreshDatabase;
 

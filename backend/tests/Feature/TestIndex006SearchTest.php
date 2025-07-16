@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-class Test006SearchTest extends TestCase
+class TestIndex006SearchTest extends TestCase
 {
     use RefreshDatabase;
 

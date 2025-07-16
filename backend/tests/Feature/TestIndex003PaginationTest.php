@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-class Test003PaginationTest extends TestCase
+class TestIndex003PaginationTest extends TestCase
 {
     use RefreshDatabase;
 

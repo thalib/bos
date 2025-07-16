@@ -16,7 +16,7 @@ These constraints ensure consistent implementation patterns, prevent recurring i
 - **Error handling**: Never expose internal errors or stack traces to the frontend. All errors must be logged and user-facing messages must be friendly.
 - **No direct database queries in controllers**; all logic must be in service classes.
 - **API design and implementation must follow TDD and DDD**:
-  - All endpoints and changes must be described in `/design/` API docs (e.g., `api-index.md`).
+  - All endpoints and changes must be described in `/design/` API docs (e.g., `design/api/index.md`).
   - Feature tests in `tests/Feature/` must be written/updated before implementation, asserting response structure, codes, and error handling as per design docs.
   - Implementation must strictly follow both the design doc and the tests.
 
