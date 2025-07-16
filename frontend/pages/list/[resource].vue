@@ -427,14 +427,14 @@ const handleUpdateItemInMemory = (data: any) => {
 };
 
 // Handle pagination with composable
-const handlePageChange = async (page: number) => {
-  await updatePagination(page);
-  fetchDataWithMultiFilters(page, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
+const handlePageChange = async (payload: { page: number }) => {
+  await updatePagination(payload.page);
+  fetchDataWithMultiFilters(payload.page, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
-const handlePerPageChange = async (perPage: number) => {
-  await updatePagination(1, perPage); // Reset to first page when changing perPage
-  fetchDataWithMultiFilters(1, perPage, searchQuery.value, sortField.value, sortDirection.value);
+const handlePerPageChange = async (payload: { perPage: number }) => {
+  await updatePagination(1, payload.perPage); // Reset to first page when changing perPage
+  fetchDataWithMultiFilters(1, payload.perPage, searchQuery.value, sortField.value, sortDirection.value);
 };
 
 // Search handlers using composable
@@ -767,11 +767,23 @@ onMounted(async () => {
     </ResourceMasterDetail>
 
         <!-- Pagination Component -->
-        <ResourcePagination v-if="items.length > 0" :current-page="pagination.currentPage"
-          :total-pages="pagination.totalPages" :per-page="pagination.perPage" :total="pagination.total"
-          :from="pagination.from" :to="pagination.to" :has-next-page="pagination.hasNextPage"
-          :has-prev-page="pagination.hasPrevPage" :loading="isSearching || isSorting"
-          :per-page-options="[10, 20, 50, 100]" @page-change="handlePageChange" @per-page-change="handlePerPageChange" />
+        <ResourcePagination 
+          v-if="items.length > 0" 
+          :pagination="{
+            totalItems: pagination.total,
+            currentPage: pagination.currentPage,
+            itemsPerPage: pagination.perPage,
+            totalPages: pagination.totalPages,
+            urlPath: '',
+            urlQuery: null,
+            nextPage: pagination.hasNextPage ? 'next' : null,
+            prevPage: pagination.hasPrevPage ? 'prev' : null
+          }"
+          :loading="isSearching || isSorting"
+          :per-page-options="[10, 20, 50, 100]" 
+          @page-change="handlePageChange" 
+          @per-page-change="handlePerPageChange" 
+        />
       </div>
     </div>
       
