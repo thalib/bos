@@ -458,13 +458,8 @@ const handleSearchClear = async () => {
 };
 
 // Sort handlers using composable
-const handleSort = async (column: Column) => {
-  // Only allow sorting on sortable columns
-  if (!column.sortable) {
-    return;
-  }
-
-  await updateSort(column.key);
+const handleSort = async (payload: { column: string; direction: string }) => {
+  await updateSort(payload.column);
   fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 

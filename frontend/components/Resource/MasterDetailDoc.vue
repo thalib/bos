@@ -28,17 +28,13 @@
       
       <ResourceList
         v-else
+        :data="items"
         :columns="masterColumns"
-        :items="items"
+        :sort="sortField && sortDirection ? { column: sortField, dir: sortDirection } : null"
         :loading="loading"
         :error="error"
-        :pagination="pagination"
-        :show-pagination="false"
-        :sort-field="sortField"
-        :sort-direction="sortDirection"
-        @userClick="handleItemClick"
-        @update:error="$emit('update:error', $event)"
-        @sort="$emit('sort', $event)"
+        @item-click="handleItemClick"
+        @sort-change="handleSortChange"
       />
     </template>
 
@@ -83,7 +79,7 @@ interface Emits {
   (e: 'create'): void
   (e: 'update:error', value: string | null): void
   (e: 'refresh'): void
-  (e: 'sort', column: Column): void
+  (e: 'sort', payload: { column: string; direction: string }): void
   (e: 'template-changed', templateId: string): void
   (e: 'data-updated', data: any): void
   (e: 'error', error: any): void
@@ -164,9 +160,13 @@ const masterColumns = computed(() => {
 })
 
 // Methods
-const handleItemClick = (item: any) => {
-  selectedItem.value = item
-  emit('itemClick', item)
+const handleItemClick = (payload: { item: any; index: number }) => {
+  selectedItem.value = payload.item
+  emit('itemClick', payload.item)
+}
+
+const handleSortChange = (payload: { column: string; direction: string }) => {
+  emit('sort', payload)
 }
 
 const handleCreate = () => {

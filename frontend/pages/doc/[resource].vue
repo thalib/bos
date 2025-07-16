@@ -325,10 +325,10 @@ const handlePerPageChange = async (perPage: number) => {
 };
 
 // Handle sorting
-const handleSort = async (column: Column) => {
-  const newDirection = (sortField.value === column.key && sortDirection.value === 'asc') ? 'desc' : 'asc';
-  await updateSort(column.key, newDirection);
-  fetchDataWithMultiFilters(currentPage.value, currentPerPage.value, searchQuery.value, column.key, newDirection);
+const handleSort = async (payload: { column: string; direction: string }) => {
+  const direction = payload.direction as 'asc' | 'desc';
+  await updateSort(payload.column, direction);
+  fetchDataWithMultiFilters(currentPage.value, currentPerPage.value, searchQuery.value, payload.column, direction);
 };
 
 // Handle item click - for document view, just select the item
