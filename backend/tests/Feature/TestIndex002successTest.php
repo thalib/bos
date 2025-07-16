@@ -102,7 +102,7 @@ class TestIndex002successTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->deleteJson("/api/v1/products/{$product->id}");
 
-        $response->assertStatus(204);
-        // Note: 204 No Content responses typically don't have a body, so we don't check for JSON response
+        $response->assertStatus(200);
+        // Note: 200 OK responses return JSON with success message
     }
 }

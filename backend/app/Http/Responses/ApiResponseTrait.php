@@ -75,6 +75,29 @@ trait ApiResponseTrait
     }
 
     /**
+     * Return a simple successful JSON response for CRUD operations (show, store, update).
+     * This excludes fields like search, filters, schema, columns, notifications which are only relevant for index operations.
+     *
+     * @param  mixed  $data
+     */
+    protected function simpleSuccessResponse($data = null, ?string $message = null, int $statusCode = 200): JsonResponse
+    {
+        $response = [
+            'success' => true,
+        ];
+
+        if ($message) {
+            $response['message'] = $message;
+        }
+
+        if ($data !== null) {
+            $response['data'] = $data;
+        }
+
+        return response()->json($response, $statusCode);
+    }
+
+    /**
      * Return an error JSON response with standardized format.
      */
     protected function errorResponse(string $code, string $message, int $statusCode = 400, array $details = [], array $errors = []): JsonResponse

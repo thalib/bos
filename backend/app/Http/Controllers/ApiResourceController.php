@@ -201,7 +201,7 @@ class ApiResourceController extends Controller
 
             $item = $modelClass::findOrFail($id);
 
-            return $this->successResponse($item, 'Resource retrieved successfully');
+            return $this->simpleSuccessResponse($item, 'Resource retrieved successfully');
 
         } catch (ModelNotFoundException $e) {
             return $this->errorResponse('NOT_FOUND', 'Resource not found', 404);
@@ -246,7 +246,7 @@ class ApiResourceController extends Controller
 
             $resource = $modelClass::create($validated);
 
-            return $this->successResponse($resource, 'Resource created successfully', 201);
+            return $this->simpleSuccessResponse($resource, 'Resource created successfully', 201);
 
         } catch (ValidationException $e) {
             return $this->errorResponse('INTERNAL_SERVER_ERROR', 'The given data was invalid', 422, [], $e->errors());
@@ -265,7 +265,7 @@ class ApiResourceController extends Controller
             ]);
 
             $specificError = DatabaseErrorParser::parse($e, $validated ?? []);
-            $validationErrors = ['required_field_missing', 'unique_constraint_violation', 'invalid_data_type'];
+            $validationErrors = ['required_field_missing', 'duplicate_value', 'data_type_mismatch', 'data_too_long'];
             $isValidationError = isset($specificError['error_type']) && in_array($specificError['error_type'], $validationErrors);
 
             if ($isValidationError) {
@@ -323,7 +323,7 @@ class ApiResourceController extends Controller
             $resource->update($validated);
             $resource->refresh();
 
-            return $this->successResponse($resource, 'Resource updated successfully');
+            return $this->simpleSuccessResponse($resource, 'Resource updated successfully');
 
         } catch (ModelNotFoundException $e) {
             return $this->errorResponse('NOT_FOUND', 'Resource not found', 404);
@@ -344,6 +344,12 @@ class ApiResourceController extends Controller
             ]);
 
             $specificError = DatabaseErrorParser::parse($e, $validated ?? []);
+            $validationErrors = ['required_field_missing', 'duplicate_value', 'data_type_mismatch', 'data_too_long'];
+            $isValidationError = isset($specificError['error_type']) && in_array($specificError['error_type'], $validationErrors);
+
+            if ($isValidationError) {
+                return $this->errorResponse('VALIDATION_FAILED', 'The given data was invalid', 422, $specificError);
+            }
 
             return $this->errorResponse('INTERNAL_SERVER_ERROR', 'Database operation failed while updating the resource', 500, $specificError);
         } catch (\Exception $e) {
@@ -384,7 +390,7 @@ class ApiResourceController extends Controller
             $resource = $modelClass::findOrFail($id);
             $resource->delete();
 
-            return $this->successResponse(null, 'Resource deleted successfully', 204);
+            return $this->simpleSuccessResponse(null, 'Resource deleted successfully', 200);
 
         } catch (ModelNotFoundException $e) {
             return $this->errorResponse('NOT_FOUND', 'Resource not found', 404);

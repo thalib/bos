@@ -149,7 +149,7 @@ class TestIndex010ResponseStructureTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->deleteJson("/api/v1/products/{$product->id}");
 
-        $response->assertStatus(204);
+        $response->assertStatus(200);
     }
 
     #[Test]

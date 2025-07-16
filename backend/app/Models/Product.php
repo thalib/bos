@@ -758,4 +758,54 @@ class Product extends Model
             'shipping_taxable' => true,
         ];
     }
+
+    /**
+     * Apply database defaults to the given data.
+     * Also handles slug generation if not provided.
+     */
+    public function applyDatabaseDefaults(array $data, bool $isUpdate = false): array
+    {
+        $defaults = $this->getDatabaseDefaults();
+        
+        if (!$isUpdate) {
+            // For create operations, apply defaults for missing fields
+            foreach ($defaults as $field => $value) {
+                if (!array_key_exists($field, $data)) {
+                    $data[$field] = $value;
+                }
+            }
+        } else {
+            // For update operations, only apply defaults for explicitly null values
+            foreach ($defaults as $field => $value) {
+                if (array_key_exists($field, $data) && $data[$field] === null) {
+                    $data[$field] = $value;
+                }
+            }
+        }
+
+        // Generate slug if not provided and name is available
+        if ((!isset($data['slug']) || empty($data['slug'])) && isset($data['name'])) {
+            $data['slug'] = $this->generateUniqueSlug($data['name']);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Generate a unique slug for the product.
+     */
+    private function generateUniqueSlug(string $name): string
+    {
+        $baseSlug = \Illuminate\Support\Str::slug($name);
+        $slug = $baseSlug;
+        $counter = 1;
+
+        // Check if slug already exists
+        while (static::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
+    }
 }

@@ -60,7 +60,7 @@ class TestDestroy001Test extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->deleteJson("/api/v1/products/{$product->id}");
 
-        $response->assertStatus(204)
+        $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
                 'message' => 'Resource deleted successfully',
@@ -159,7 +159,7 @@ class TestDestroy001Test extends TestCase
             $this->assertStringNotContainsStringIgnoringCase('app/', $responseBody);
         } else {
             // If no error occurred, verify normal operation
-            $response->assertStatus(204);
+            $response->assertStatus(200);
             $this->assertTrue($response->json('success'));
         }
     }
@@ -172,7 +172,7 @@ class TestDestroy001Test extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->deleteJson("/api/v1/products/{$product->id}");
 
-        $response->assertStatus(204)
+        $response->assertStatus(200)
             ->assertJsonStructure([
                 'success',
                 'message',
@@ -208,7 +208,7 @@ class TestDestroy001Test extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->deleteJson("/api/v1/products/{$product->id}");
 
-        if ($response->status() === 204) {
+        if ($response->status() === 200) {
             // Verify the product count decreased by 1
             $this->assertEquals($originalCount - 1, Product::count());
             
@@ -230,7 +230,7 @@ class TestDestroy001Test extends TestCase
         $response1 = $this->actingAs($this->user, 'sanctum')
             ->deleteJson("/api/v1/products/{$product->id}");
 
-        $response1->assertStatus(204);
+        $response1->assertStatus(200);
         $this->assertDatabaseMissing('products', ['id' => $product->id]);
 
         // Second deletion attempt should return 404
@@ -277,7 +277,7 @@ class TestDestroy001Test extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->deleteJson("/api/v1/products/{$product->id}");
 
-        if ($response->status() === 204) {
+        if ($response->status() === 200) {
             // Verify successful deletion
             $this->assertTrue($response->json('success'));
             $this->assertDatabaseMissing('products', ['id' => $product->id]);
@@ -343,9 +343,9 @@ class TestDestroy001Test extends TestCase
             ->deleteJson("/api/v1/products/{$product->id}");
 
         // First attempt should succeed or fail gracefully
-        $this->assertContains($response->status(), [204, 404, 500]);
+        $this->assertContains($response->status(), [200, 404, 500]);
 
-        if ($response->status() === 204) {
+        if ($response->status() === 200) {
             $this->assertTrue($response->json('success'));
             $this->assertDatabaseMissing('products', ['id' => $product->id]);
         } else {
@@ -362,7 +362,7 @@ class TestDestroy001Test extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->deleteJson("/api/v1/products/{$product->id}");
 
-        if ($response->status() === 204) {
+        if ($response->status() === 200) {
             $this->assertTrue($response->json('success'));
             $this->assertEquals('Resource deleted successfully', $response->json('message'));
         } else {
@@ -386,7 +386,7 @@ class TestDestroy001Test extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->deleteJson("/api/v1/products/{$productId}");
 
-        if ($response->status() === 204) {
+        if ($response->status() === 200) {
             // Verify the exact product is deleted
             $this->assertDatabaseMissing('products', ['id' => $productId]);
             
