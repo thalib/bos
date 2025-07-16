@@ -1,52 +1,70 @@
-## Backend Development Approach: Test-Driven & Design-Driven
+# BOS Project Overview
 
-The backend follows both **Test-Driven Development (TDD)** and **Design-Driven Development (DDD)** to ensure robust, predictable, and maintainable APIs.
+## General Design Principles
 
-### Test-Driven Development (TDD)
+The BOS project follows a structured design approach to ensure robust, predictable, and maintainable APIs and frontend applications. The development process is guided by Test-Driven Development (TDD) and Design-Driven Development (DDD) principles, ensuring that all implementations adhere to predefined standards and best practices.
 
-- **Purpose:** Guarantees code meets requirements, prevents regressions, and enforces correct behavior.
-- **How:**
-  - Write or update a test _before_ implementing any feature or endpoint.
-  - Use the `tests/Feature/` directory for comprehensive [PHPUnit](https://laravel.com/docs/12.x/testing) feature tests.
-  - Tests should:
-    - Assert response structure matches the API design (see `assertJsonStructure`).
-    - Assert correct status codes, error codes, and messages.
-    - Cover edge cases, validation, and error handling.
-  - Only implement or update backend logic after the test fails.
+### Key Principles
 
-### Design-Driven Development (API-First)
+- **TDD and DDD** are essential and complementary approaches that work together.
+- **Design documents and feature tests** create a comprehensive specification system.
+- **This approach ensures** robust, predictable, and maintainable APIs and frontend applications.
 
-- **Purpose:** Ensures implementation matches a clear, agreed-upon API contract.
-- **How:**
-  - Each API endpoint has a dedicated design document (e.g., `design/api/index.md` for `index()`, `design/api/store.md` for `store()`, etc.) describing its request/response structure, error handling, and parameters.
-  - These endpoint-specific files are the single source of truth for all API endpoints, responses, and error handling.
-  - Before coding, review or update the relevant API design file to reflect new requirements or changes.
-  - All backend code (controllers, requests, resources) must strictly follow these contracts.
+---
 
-### Continuous Enforcement
+## Backend: TDD API-First Development with Laravel 12
 
-- **Tests as Specification:**
-  - Tests act as a living specification—if implementation drifts from the design, tests will fail.
-- **Change Management:**
-  - When the API design changes, update both the relevant design doc and the tests before changing implementation.
-- **Code Reviews:**
-  - Ensure both test coverage and design compliance during reviews.
+The backend is designed as an API-only service, strictly following TDD and DDD principles. It leverages Laravel 12 to provide auto-registered API resources and standardized response formats.
 
-### Example Workflow
+- Backend source directory: `backend`
+- **Standardized Response Format**: design\api\
+- **Authentication**: All endpoints are protected by `auth:sanctum` middleware.
+- **Auto-Registered API Resources**:
+  - All CRUD operations are handled by `backend\app\Http\Controllers\ApiResourceController.php`.
+  - Routes are registered in `backend\app\Providers\ApiResourceServiceProvider.php`
+  - Standardized response defined in `backend\app\Http\Responses\ApiResponseTrait.php`.
+  - Test routes for development testing `backend\routes\test.php`.
 
-1. **Design:** Add or update an endpoint/field in the relevant API design file (e.g., `design/api/index.md`, `design/api/store.md`).
-2. **Test:** Write a failing test in `tests/Feature/` for the new behavior/response.
-3. **Implement:** Update controllers, requests, etc., to make the test pass and match the design.
-4. **Refactor:** Clean up code, keeping tests green.
-5. **Review:** Confirm both design and tests are up to date.
+### Backend Workflow
 
-### Summary
+- **Design**: Add or update an endpoint/field in the relevant API design file (e.g., `design/api/index.md`, `design/api/store.md`).
+- **Test**: Write a failing test in `tests/Feature/` for the new behavior/response.
+- **Implement**: Update controllers, requests, etc., to make the test pass and match the design.
+- **Refactor**: Clean up code, keeping tests green.
+- **Review**: Confirm both design and tests are up to date.
 
-- **TDD and DDD are both essential and complementary.**
-- The current setup (feature tests + endpoint-specific design docs) is ideal for this approach.
-- This leads to robust, predictable, and maintainable APIs.
+### Backend Best Practices
 
-follow rules in .github/copilot-instructions.md
-rollow api documentations /design/api/index.md
+- Use the `RefreshDatabase` trait for isolated testing.
+- Validate all requests using `StoreResourceRequest` and `UpdateResourceRequest`.
+- Log all errors and provide user-friendly error messages.
+- Ensure transaction safety and data consistency.
+- Protect against SQL injection, XSS attacks, and other security vulnerabilities.
 
-for implmenting tests use /api/v1/products
+---
+
+## Frontend: Data-Driven Development with Nuxt 3
+
+The frontend is built using Nuxt 3, focusing on data-driven development and optimized UI/UX. It adheres to strict TypeScript typing and modern Vue 3 Composition API patterns.
+
+- Backend source directory: `fcontend`
+- **Shared API Service**: All HTTP requests must use the shared API service (`/frontend/services/api.ts`). Authentication headers are automatically handled by API service.
+- **CRUD Operations**: Use `/frontend/services/apiCrud.ts` for standard CRUD operations.
+- **UI Styling**: Prioritize Bootstrap 5.3 classes over custom CSS.
+- **Error Handling**: Implement comprehensive error handling using utilities from `/frontend/utils/errorHandling.ts`.
+- **Form Validation**: Use reactive validation patterns and provide real-time feedback.
+
+### Frontend Workflow
+
+- **Design**: Define the data structure and API endpoints required for the feature.
+- **Implement**: Use Composition API patterns (`ref`, `reactive`, `computed`, `watch`) and strict TypeScript typing.
+- **Test**: Ensure all components implement error handling and loading states.
+- **Refactor**: Optimize code for performance and maintainability.
+
+### Frontend Best Practices
+
+- Always use `<script setup>` syntax for Vue components.
+- Show loading states for all async operations.
+- Avoid using `any` type unless absolutely necessary.
+- Provide user feedback for errors and successes.
+- Use Bootstrap classes for consistent styling.

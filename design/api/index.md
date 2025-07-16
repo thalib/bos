@@ -1,8 +1,57 @@
 # REST API Response for GET/index Endpoint
 
-The GET/index endpoint must return JSON responses in the following standardized structure for retrieving lists of resources.
+## Request Structure
 
----
+### Query Parameters
+
+- **`page`** _(integer)_: Page number to retrieve (default: 1).
+- **`per_page`** _(integer)_: Number of items per page (default: 15, max: 100).
+- **`sort`** _(string)_: Column name to sort by.
+- **`dir`** _(string)_: Sort direction, either `asc` or `desc` (default: `asc`).
+- **`filter`** _(string)_: Filter format: `field:value`.
+- **`search`** _(string)_: Search query string to filter results.
+
+### Parameter Examples
+
+```
+?page=2&per_page=20
+?sort=name&dir=asc
+?filter=status:active
+?search=mobile
+```
+
+### Parameter Validation
+
+Invalid parameters do not result in error responses. Instead, the system falls back to sensible values and provides notifications:
+
+- **`page`**: Invalid values (≤0) fall back to page 1 with warning notification. Values greater than total pages fall back to last available page with warning notification.
+- **`per_page`**: Values outside 1-100 range fall back to maximum (100) or minimum (1) respectively with warning notification. Values exceeding 100 are capped at 100, values below 1 are set to 1.
+- **`sort`**: Invalid column names fall back to default sort with warning notification.
+- **`dir`**: Invalid direction values fall back to 'asc' with warning notification.
+- **`filter`**: Invalid format or field names are ignored with warning notification.
+- **`search`**: Invalid search terms (less than 2 characters) are ignored with warning notification.
+
+### Default Behavior
+
+When no query parameters are provided, the endpoint returns:
+
+- First page of results.
+- Default page size (15 items).
+- Default sort order (first sortable column from `getIndexColumns()` method, fallback to ID ascending if no sortable columns).
+- No filters applied.
+- No search applied.
+
+Example default request:
+
+```bash
+GET /api/v1/products
+```
+
+Is equivalent to:
+
+```bash
+GET /api/v1/products?page=1&per_page=15&sort=id&dir=asc
+```
 
 ## Response Structure
 
@@ -42,69 +91,20 @@ The GET/index endpoint must return JSON responses in the following standardized 
 }
 ```
 
----
-
 ## Response Fields
 
 ### Success and Error Fields
 
 - **`success`** _(boolean)_: Always `true` for successful GET requests (HTTP 200), `false` for error responses (HTTP 4xx, 5xx).
 - **`message`** _(string)_: Optional user-friendly message describing the operation result.
-- **`error`** _(object|null)_: Present only in error responses, contains `code` and `details`.
+- **`error`** _(object|null)_: Present only in error responses, contains `code` and `details`. Refer to [Error Codes](../error.md).
 
 ### Data and Pagination
 
 - **`data`** _(array)_: Array of resource objects, always an array even if empty `[]`.
 - **`pagination`** _(object|null)_: Pagination details for the resource list, `null` if pagination is not used.
 
-### Search, Sort, and Filters
-
-- **`search`** _(string|null)_: Search query string applied, `null` if no search.
-- **`sort`** _(object|null)_: Sorting configuration applied, `null` if no sorting.
-- **`filters`** _(object|null)_: Filter information with `applied` and `available` properties, `null` if no filters available.
-
-### Schema and Columns
-
-- **`schema`** _(array|null)_: Field definitions for dynamic forms, `null` if not available.
-- **`columns`** _(array)_: Column configuration for tables, always present (falls back to ID column).
-
-### Notifications
-
-- **`notifications`** _(array|null)_: Array of notification objects for user feedback, present only in success responses, `null` if no notifications.
-
----
-
-## Notifications
-
-### Notification Structure
-
-```json
-"notifications": [
-  {
-    "type": "<string>", // info, warning, success, etc.
-    "message": "<string>"
-  }
-] | null
-```
-
-### Notification Properties
-
-- **`type`** _(string)_: Notification type (info, warning, success, etc.).
-- **`message`** _(string)_: Human-readable notification message.
-
-### Notification Types and Behavior
-
-- **`info`**: Informational messages (e.g., parameter defaults applied).
-- **`warning`**: Non-critical issues (e.g., invalid parameters ignored).
-- **`success`**: Success confirmations.
-
-Notifications are used for parameter fallbacks instead of returning errors. Multiple notifications can be present in a single response.
-
----
-
-## Pagination
-
-### Pagination Structure
+#### Pagination Structure
 
 ```json
 "pagination": {
@@ -119,11 +119,12 @@ Notifications are used for parameter fallbacks instead of returning errors. Mult
 }
 ```
 
----
+### Search, Sort, and Filters
 
-## Sort
+- **`search`** _(string|null)_: Search query string applied, `null` if no search.
+- **`sort`** _(object|null)_: Sorting configuration applied, `null` if no sorting.
 
-### Sort Structure
+#### Sort Structure
 
 ```json
 "sort": {
@@ -132,11 +133,9 @@ Notifications are used for parameter fallbacks instead of returning errors. Mult
 }
 ```
 
----
+- **`filters`** _(object|null)_: Filter information with `applied` and `available` properties, `null` if no filters available.
 
-## Filters
-
-### Filters Structure
+#### Filters Structure
 
 ```json
 "filters": {
@@ -147,11 +146,11 @@ Notifications are used for parameter fallbacks instead of returning errors. Mult
 }
 ```
 
----
+### Schema and Columns
 
-## Schema
+- **`schema`** _(array|null)_: Field definitions for dynamic forms, `null` if not available.
 
-### Schema Structure
+#### Schema Structure
 
 ```json
 "schema": [
@@ -180,11 +179,9 @@ Notifications are used for parameter fallbacks instead of returning errors. Mult
 ]
 ```
 
----
+- **`columns`** _(array)_: Column configuration for tables, always present (falls back to ID column).
 
-## Columns
-
-### Columns Structure
+#### Columns Structure
 
 ```json
 "columns": [
@@ -199,6 +196,73 @@ Notifications are used for parameter fallbacks instead of returning errors. Mult
     "width": "<string>",
     "align": "<string>",
     "hidden": <boolean>
+  }
+]
+```
+
+### Notifications
+
+- **`notifications`** _(array|null)_: Array of notification objects for user feedback, present only in success responses, `null` if no notifications.
+
+#### Notification Structure
+
+```json
+"notifications": [
+  {
+    "type": "<string>", // info, warning, success, etc.
+    "message": "<string>"
+  }
+] | null
+```
+
+#### Notification Properties
+
+- **`type`** _(string)_: Notification type (info, warning, success, etc.).
+- **`message`** _(string)_: Human-readable notification message.
+
+#### Notification Types and Behavior
+
+- **`info`**: Informational messages (e.g., parameter defaults applied).
+- **`warning`**: Non-critical issues (e.g., invalid parameters ignored).
+- **`success`**: Success confirmations.
+
+Notifications are used for parameter fallbacks instead of returning errors. Multiple notifications can be present in a single response.
+
+#### Notification Examples for Parameter Issues
+
+```json
+"notifications": [
+  {
+    "type": "warning",
+    "message": "Invalid page number '0', using page 1"
+  },
+  {
+    "type": "warning",
+    "message": "Page number '15' exceeds available pages (7), using last page 7"
+  },
+  {
+    "type": "warning",
+    "message": "Page size '150' exceeds maximum of 100, using maximum 100"
+  },
+  {
+    "type": "warning",
+    "message": "Page size '0' below minimum of 1, using minimum 1"
+  },
+  {
+    "type": "warning",
+    "message": "Sort column 'invalid_field' not found, using default 'id'"
+  },
+  {
+    "type": "warning",
+    "message": "Sort direction 'invalid' not recognized, using 'asc'"
+  },
+  {
+    "type": "warning",
+    "message": "Filter format 'invalid_format' not recognized, filter ignored"
+  },
+  {
+    "type": "warning",
+    "message": "Search term too short (minimum 2 characters), search ignored"
   }
 ]
 ```
@@ -329,205 +393,4 @@ Notifications are used for parameter fallbacks instead of returning errors. Mult
 
 ## HTTP Status Codes for GET/index
 
-- **200 OK**: Successful GET request with resource list.
-- **401 Unauthorized**: Authentication required.
-- **403 Forbidden**: Access denied to resource list.
-- **404 Not Found**: Resource endpoint not found.
-- **405 Method Not Allowed**: GET method not supported for this endpoint.
-- **429 Too Many Requests**: Rate limit exceeded.
-- **500 Internal Server Error**: Server error.
-
----
-
-## Query Parameters
-
-### Pagination Parameters
-
-- **`page`** _(integer)_: Page number to retrieve (default: 1).
-- **`per_page`** _(integer)_: Number of items per page (default: 15, max: 100).
-
-### Sorting Parameters
-
-- **`sort`** _(string)_: Column name to sort by.
-- **`dir`** _(string)_: Sort direction, either `asc` or `desc` (default: `asc`)
-
-### Filtering Parameters
-
-- **`filter`** _(string)_: Filter format: `field:value`.
-
-### Search Parameters
-
-- **`search`** _(string)_: Search query string to filter results.
-
-### Parameter Examples
-
-```
-?page=2&per_page=20
-?sort=name&dir=asc
-?filter=status:active
-?search=mobile
-```
-
-### Default Behavior
-
-When no query parameters are provided, the endpoint returns:
-
-- First page of results.
-- Default page size (15 items).
-- Default sort order (first sortable column from `getIndexColumns()` method, fallback to ID ascending if no sortable columns).
-- No filters applied.
-- No search applied.
-
-Example default request:
-
-```bash
-GET /api/v1/products
-```
-
-Is equivalent to:
-
-```bash
-GET /api/v1/products?page=1&per_page=15&sort=id&dir=asc
-```
-  "columns": [
-    {
-      "field": "id",
-      "label": "ID",
-      "sortable": true,
-      "clickable": true,
-      "search": false,
-      "format": "text",
-      "align": "left"
-    }
-  ],
-  "notifications": null
-}
-```
-
-## HTTP Status Codes for GET/index
-
-- **200 OK**: Successful GET request with resource list
-- **401 Unauthorized**: Authentication required
-- **403 Forbidden**: Access denied to resource list
-- **404 Not Found**: Resource endpoint not found
-- **405 Method Not Allowed**: GET method not supported for this endpoint
-- **429 Too Many Requests**: Rate limit exceeded
-- **500 Internal Server Error**: Server error
-
-**Note**: Invalid request parameters do not result in 400 Bad Request errors. Instead, the system uses default values and provides notifications about the parameter issues.
-
-## Query Parameters
-
-The `GET/index` endpoint accepts the following query parameters to control the response:
-
-### Pagination Parameters
-
-- **`page`** _(integer)_: Page number to retrieve (default: 1)
-- **`per_page`** _(integer)_: Number of items per page (default: 15, max: 100), if not set fallback to default
-
-### Sorting Parameters
-
-- **`sort`** _(string)_: Column name to sort by
-- **`dir`** _(string)_: Sort direction, either `asc` or `desc` (default: `asc`)
-
-### Filtering Parameters
-
-- **`filter`** _(string)_: Filter format: `field:value` (only one filter can be active at a time)
-
-### Search Parameters
-
-- **`search`** _(string)_: Search query string to filter results
-
-### Parameter Examples
-
-```
-# Basic pagination
-?page=2&per_page=20
-
-# Sorting by name in ascending order
-?sort=name&dir=asc
-
-# Sorting by created date in descending order
-?sort=created_at&dir=desc
-
-# Filtering by status
-?filter=status:active
-
-# Search for products containing "mobile"
-?search=mobile
-
-# Combined parameters
-?page=2&per_page=20&sort=name&dir=asc&filter=status:active&search=mobile
-```
-
-### Parameter Validation
-
-Invalid parameters do not result in error responses. Instead, the system falls back to sensible values and provides notifications:
-
-- **`page`**: Invalid values (≤0) fall back to page 1 with warning notification. Values greater than total pages fall back to last available page with warning notification
-- **`per_page`**: Values outside 1-100 range fall back to maximum (100) or minimum (1) respectively with warning notification. Values exceeding 100 are capped at 100, values below 1 are set to 1
-- **`sort`**: Invalid column names fall back to default sort with warning notification
-- **`dir`**: Invalid direction values fall back to 'asc' with warning notification
-- **`filter`**: Invalid format or field names are ignored with warning notification
-- **`search`**: Invalid search terms (less than 2 characters) are ignored with warning notification
-
-### Notification Examples for Parameter Issues
-
-```json
-"notifications": [
-  {
-    "type": "warning",
-    "message": "Invalid page number '0', using page 1"
-  },
-  {
-    "type": "warning",
-    "message": "Page number '15' exceeds available pages (7), using last page 7"
-  },
-  {
-    "type": "warning",
-    "message": "Page size '150' exceeds maximum of 100, using maximum 100"
-  },
-  {
-    "type": "warning",
-    "message": "Page size '0' below minimum of 1, using minimum 1"
-  },
-  {
-    "type": "warning",
-    "message": "Sort column 'invalid_field' not found, using default 'id'"
-  },
-  {
-    "type": "warning",
-    "message": "Sort direction 'invalid' not recognized, using 'asc'"
-  },
-  {
-    "type": "warning",
-    "message": "Filter format 'invalid_format' not recognized, filter ignored"
-  },
-  {
-    "type": "warning",
-    "message": "Search term too short (minimum 2 characters), search ignored"
-  }
-]
-```
-
-### Default Behavior
-
-When no query parameters are provided, the endpoint returns:
-
-- First page of results
-- Default page size (15 items)
-- Default sort order (first sortable column from `getIndexColumns()` method, fallback to ID ascending if no sortable columns)
-- No filters applied
-- No search applied
-
-Example default request:
-
-```bash
-GET /api/v1/products
-```
-
-Is equivalent to:
-
-```bash
-GET /api/v1/products?page=1&per_page=15&sort=id&dir=asc
-```
+- refer the design\api\error.md
