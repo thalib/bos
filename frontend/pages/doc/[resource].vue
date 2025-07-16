@@ -303,9 +303,9 @@ const fetchDataWithMultiFilters = async (
 };
 
 // Handle search
-const handleSearch = async (query: string) => {
-  await updateSearch(query);
-  fetchDataWithMultiFilters(1, currentPerPage.value, query, sortField.value, sortDirection.value);
+const handleSearch = async (payload: { query: string }) => {
+  await updateSearch(payload.query);
+  fetchDataWithMultiFilters(1, currentPerPage.value, payload.query, sortField.value, sortDirection.value);
 };
 
 // Handle search clear
@@ -520,28 +520,36 @@ onBeforeUnmount(() => {
       <!-- Main Content - Only show after components can load -->
       <template v-if="canShowComponentContent">
         <!-- Resource Header Component -->
-        <ResourceHeader :resource-name="resourceName" :title="`${resourceTitle} Documents`" :loading="loading"
-          :total-results="pagination.total" :has-filters="hasActiveFilters" :from="pagination.from" :to="pagination.to"
-          @create="handleCreate" @export="handleExport" @import="handleImport">
+        <ResourceHeader 
+          :resource-title="`${resourceTitle} Documents`" 
+          :resource-count="pagination.total" 
+          :loading="loading"
+          @action-create="handleCreate" 
+          @action-export="handleExport" 
+          @action-import="handleImport"
+        >
           
           <!-- Filter Component in Header -->
-          <template #filter>
+          <template #filters>
             <ResourceFilter 
-              :resource="resourceName"
+              :filters="{ applied: null, available: null }"
               :loading="loading || isSearching || isSorting || isFiltering"
-              :active-filter-field="activeFilterField"
-              :is-active="Object.keys(activeFilters).length > 0"
-              :filter-count="filterCount"
               @filter-change="handleFilterChange"
-              @filter-clear-all="handleFilterClearAll"
-              @filters-cleared="handleFiltersClearedEvent"
+              @filter-clear="handleFilterClearAll"
             />
           </template>
 
           <!-- Search Component in Header -->
           <template #search>
-            <ResourceSearch ref="searchComponent" v-model="searchQuery" :loading="isSearching" :disabled="isSearchDisabled"
-              @search="handleSearch" @clear="handleSearchClear">
+            <ResourceSearch 
+              ref="searchComponent" 
+              :search="searchQuery" 
+              :loading="isSearching" 
+              :disabled="isSearchDisabled"
+              @search-change="handleSearch"
+              @search-clear="handleSearchClear"
+              @search-submit="handleSearch"
+            >
               <template #search-info="{ query }">
                 <!-- Empty template - search info handled elsewhere -->
               </template>
@@ -549,7 +557,7 @@ onBeforeUnmount(() => {
           </template>
 
           <!-- Custom Action Indicators -->
-          <template #indicators>
+          <template #actions>
             <span v-if="isSearching" class="badge bg-primary">
               <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
               Searching...

@@ -442,13 +442,13 @@ const handleSearchUpdate = (query: string) => {
   // This is handled by the v-model binding to searchQuery from composable
 };
 
-const handleSearch = async (query: string) => {
-  if (!query.trim()) {
+const handleSearch = async (payload: { query: string }) => {
+  if (!payload.query.trim()) {
     await handleSearchClear();
     return;
   }
 
-  await updateSearch(query);
+  await updateSearch(payload.query);
   fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
@@ -480,7 +480,7 @@ const handleFilterChange = async (event: FilterChangeEvent) => {
 };
 
 const handleFilterClearAll = async () => {
-  await clearFiltersOnly();
+  await updateFilters({});
   fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
@@ -644,28 +644,37 @@ onMounted(async () => {
       <!-- Main Content - Only show after components can load -->
       <div v-if="canShowComponentContent">
         <!-- Resource Header Component -->
-        <ResourceHeader :resource-name="resourceName" :title="resourceTitle" :loading="false"
-          :total-results="pagination.total" :has-filters="hasActiveFilters" :from="pagination.from" :to="pagination.to"
-          @create="handleCreate" @export="handleExport" @import="handleImport">
+        <ResourceHeader 
+          :resource-title="resourceTitle" 
+          :resource-count="pagination.total" 
+          :loading="false"
+          @action-create="handleCreate" 
+          @action-export="handleExport" 
+          @action-import="handleImport"
+        >
         
         <!-- Filter Component in Header -->
-        <template #filter>
+        <template #filters>
           <ResourceFilter 
-            :resource="resourceName"
+            :filters="{ applied: null, available: null }"
             :loading="isSearching || isSorting || isFiltering"
-            :active-filter-field="activeFilterField"
-            :is-active="Object.keys(activeFilters).length > 0"
-            :filter-count="filterCount"
             @filter-change="handleFilterChange"
-            @filter-clear-all="handleFilterClearAll"
-            @filters-cleared="handleFiltersClearedEvent"
+            @filter-clear="handleFilterClearAll"
           />
         </template>
 
         <!-- Search Component in Header -->
         <template #search>
-          <ResourceSearch ref="searchComponent" v-model="searchQuery" :loading="isSearching" :disabled="isSearchDisabled"
-            @search="handleSearch" @clear="handleSearchClear"><template #search-info="{ query }">
+          <ResourceSearch 
+            ref="searchComponent" 
+            :search="searchQuery" 
+            :loading="isSearching" 
+            :disabled="isSearchDisabled"
+            @search-change="handleSearch"
+            @search-clear="handleSearchClear"
+            @search-submit="handleSearch"
+          >
+            <template #search-info="{ query }">
               <!-- Empty template - search info handled elsewhere -->
             </template>
           </ResourceSearch>
