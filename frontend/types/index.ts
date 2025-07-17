@@ -20,6 +20,20 @@ export interface Column {
   formatter?: (value: any, item?: any) => string;
   /** Optional CSS class for the cell */
   cellClass?: string;
+  /** Whether the column is clickable */
+  clickable?: boolean;
+  /** Whether the column is searchable */
+  search?: boolean;
+  /** Column data type */
+  type?: string;
+  /** Column format */
+  format?: string;
+  /** Column width */
+  width?: string;
+  /** Column alignment */
+  align?: string;
+  /** Whether the column is hidden */
+  hidden?: boolean;
 }
 
 /**

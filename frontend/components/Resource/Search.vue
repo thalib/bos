@@ -8,15 +8,16 @@
         class="form-control"
         :placeholder="placeholder"
         aria-label="Search"
-        title="Use Ctrl+K to focus this field"
+        :title="`Use Ctrl+K to focus this field${minLength > 0 ? ` (minimum ${minLength} characters)` : ''}`"
         @keydown="handleKeydown"
+        @input="handleInput"
         :disabled="disabled || loading"
       />
       <button
         type="button"
         class="btn btn-outline-primary"
         @click="handleSearch"
-        :disabled="disabled || loading"
+        :disabled="disabled || loading || !canSearch"
         aria-label="Search"
       >
         <span v-if="loading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
@@ -46,59 +47,103 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 
-// Define TypeScript interfaces
+// Define TypeScript interfaces based on design specification
 interface Props {
-  modelValue: string
+  /** Current search query from API response */
+  search: string | null
+  /** Loading state for the component */
   loading?: boolean
-  placeholder?: string
+  /** Whether the search is disabled */
   disabled?: boolean
+  /** Placeholder text for search input */
+  placeholder?: string
+  /** Debounce delay in milliseconds */
+  debounceMs?: number
+  /** Minimum search length */
+  minLength?: number
 }
 
 interface Emits {
-  (e: 'update:modelValue', value: string): void
-  (e: 'search', query: string): void
-  (e: 'clear'): void
+  /** Emitted when search query changes */
+  (e: 'search-change', payload: { query: string }): void
+  /** Emitted when search is cleared */
+  (e: 'search-clear'): void
+  /** Emitted when search is explicitly submitted */
+  (e: 'search-submit', payload: { query: string }): void
 }
 
-// Define props and emits
+// Define props and emits based on design specification
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
+  disabled: false,
   placeholder: 'Search...',
-  disabled: false
+  debounceMs: 300,
+  minLength: 2
 })
 
 const emit = defineEmits<Emits>()
 
 // Component state
 const searchInput = ref<HTMLInputElement>()
-const searchQuery = ref<string>(props.modelValue)
+const searchQuery = ref<string>(props.search || '')
+const debounceTimer = ref<NodeJS.Timeout>()
 
-// Single watcher for two-way binding
-watch(() => props.modelValue, (newValue) => {
-  searchQuery.value = newValue
+// Computed properties
+const canSearch = computed(() => {
+  return searchQuery.value.trim().length >= props.minLength || searchQuery.value.trim().length === 0
 })
 
-watch(searchQuery, (newValue) => {
-  emit('update:modelValue', newValue)
+// Watch for props changes
+watch(() => props.search, (newValue) => {
+  searchQuery.value = newValue || ''
 })
+
+// Handle input with debounce
+const handleInput = () => {
+  if (debounceTimer.value) {
+    clearTimeout(debounceTimer.value)
+  }
+  
+  debounceTimer.value = setTimeout(() => {
+    const trimmedQuery = searchQuery.value.trim()
+    if (trimmedQuery.length >= props.minLength) {
+      emit('search-change', { query: trimmedQuery })
+    } else if (trimmedQuery.length === 0) {
+      emit('search-clear')
+    }
+  }, props.debounceMs)
+}
 
 // Handle search action
 const handleSearch = () => {
   const trimmedQuery = searchQuery.value.trim()
-  if (!trimmedQuery) {
-    handleClear()
+  if (!trimmedQuery || trimmedQuery.length < props.minLength) {
+    if (trimmedQuery.length === 0) {
+      handleClear()
+    }
     return
   }
   
-  emit('search', trimmedQuery)
+  // Clear debounce timer
+  if (debounceTimer.value) {
+    clearTimeout(debounceTimer.value)
+  }
+  
+  emit('search-submit', { query: trimmedQuery })
 }
 
 // Handle clear action
 const handleClear = () => {
   searchQuery.value = ''
-  emit('clear')
+  
+  // Clear debounce timer
+  if (debounceTimer.value) {
+    clearTimeout(debounceTimer.value)
+  }
+  
+  emit('search-clear')
 }
 
 // Handle keyboard shortcuts

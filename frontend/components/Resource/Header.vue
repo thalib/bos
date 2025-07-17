@@ -3,13 +3,25 @@
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
       <div class="d-flex align-items-center flex-grow-1 me-2 gap-2">
-        <!-- Filter Component Slot -->
-        <div v-if="$slots.filter" class="flex-shrink-0">
-          <slot name="filter"></slot>
+        <!-- Title Section -->
+        <div v-if="showResourceTitle" class="flex-shrink-0">
+          <slot name="title">
+            <div class="d-flex align-items-center">
+              <h4 class="mb-0 me-2">{{ resourceTitle }}</h4>
+              <span v-if="resourceCount !== undefined" class="badge bg-secondary">
+                {{ resourceCount }}
+              </span>
+            </div>
+          </slot>
         </div>
         
-        <!-- Search Component replacing title -->
-        <div class="w-100" style="max-width: 500px;">
+        <!-- Filter Component Slot -->
+        <div v-if="showFilters && $slots.filters" class="flex-shrink-0">
+          <slot name="filters"></slot>
+        </div>
+        
+        <!-- Search Component -->
+        <div v-if="showSearch" class="w-100" style="max-width: 500px;">
           <slot name="search">
             <!-- Default search placeholder when no search is provided -->
             <div class="input-group">
@@ -19,13 +31,13 @@
                 placeholder="Search..."
                 disabled
                 readonly
-                :aria-label="`Search ${resourceName.toLowerCase()}`"
+                :aria-label="`Search ${resourceTitle.toLowerCase()}`"
               />
               <button 
                 type="button" 
                 class="btn btn-outline-primary" 
                 disabled
-                :aria-label="`Search ${resourceName.toLowerCase()}`"
+                :aria-label="`Search ${resourceTitle.toLowerCase()}`"
               >
                 <i class="bi bi-search" aria-hidden="true"></i>
               </button>
@@ -39,20 +51,20 @@
         <!-- Custom Actions Slot -->
         <slot name="actions"></slot>
         
-        <!-- Default Primary Action -->
-        <div v-if="!$slots.actions && !loading" class="d-flex align-items-center gap-2">
-          <!-- New Button -->
+        <!-- Default Actions -->
+        <div v-if="showActions && !$slots.actions && !loading" class="d-flex align-items-center gap-2">
+          <!-- Create Button -->
           <button 
             class="btn btn-primary"
             type="button"
-            :aria-label="`Create new ${resourceName.toLowerCase()}`"
-            @click="handleEmit('create')"
+            :aria-label="`Create new ${resourceTitle.toLowerCase()}`"
+            @click="handleEmit('action-create')"
           >
             <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
             <span class="d-none d-sm-inline">New</span>
           </button>
           
-          <!-- Three Dots Menu -->
+          <!-- Additional Actions Dropdown -->
           <div class="dropdown">
             <button 
               class="btn btn-outline-secondary"
@@ -69,7 +81,17 @@
                 <button 
                   class="dropdown-item" 
                   role="menuitem"
-                  @click="handleEmit('export')"
+                  @click="handleEmit('action-import')"
+                >
+                  <i class="bi bi-upload me-2" aria-hidden="true"></i>
+                  Import Data
+                </button>
+              </li>
+              <li role="none">
+                <button 
+                  class="dropdown-item" 
+                  role="menuitem"
+                  @click="handleEmit('action-export')"
                 >
                   <i class="bi bi-download me-2" aria-hidden="true"></i>
                   Export Data
@@ -79,10 +101,10 @@
                 <button 
                   class="dropdown-item" 
                   role="menuitem"
-                  @click="handleEmit('import')"
+                  @click="handleEmit('action-custom', { action: 'refresh' })"
                 >
-                  <i class="bi bi-upload me-2" aria-hidden="true"></i>
-                  Import Data
+                  <i class="bi bi-arrow-clockwise me-2" aria-hidden="true"></i>
+                  Refresh
                 </button>
               </li>
             </ul>
@@ -100,25 +122,43 @@
 </template>
 
 <script setup lang="ts">
+// Props based on design specification
 interface Props {
-  title?: string;
-  loading?: boolean;
-  resourceName: string;
-  showBreadcrumbs?: boolean;
+  /** Title of the resource being managed */
+  resourceTitle: string
+  /** Total count of resources */
+  resourceCount?: number
+  /** Loading state for the component */
+  loading?: boolean
+  /** Whether to show action buttons */
+  showActions?: boolean
+  /** Whether to show filter section */
+  showFilters?: boolean
+  /** Whether to show search section */
+  showSearch?: boolean
+  /** Whether to show resource title */
+  showResourceTitle?: boolean
 }
 
+// Events based on design specification
 interface Emits {
-  create: []
-  export: []
-  import: []
-  'bulk-action': [action: string]
+  /** Emitted when create action is triggered */
+  (event: 'action-create'): void
+  /** Emitted when import action is triggered */
+  (event: 'action-import'): void
+  /** Emitted when export action is triggered */
+  (event: 'action-export'): void
+  /** Emitted for custom actions */
+  (event: 'action-custom', payload: { action: string; data?: any }): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  title: undefined,
   loading: false,
-  showBreadcrumbs: true
-});
+  showActions: true,
+  showFilters: true,
+  showSearch: true,
+  showResourceTitle: true
+})
 
 const emit = defineEmits<Emits>()
 
@@ -126,20 +166,26 @@ const emit = defineEmits<Emits>()
 const dropdownId = useSSRSafeId('header-actions-dropdown')
 
 // Error handling for emit calls with proper type narrowing
-function handleEmit(event: 'create'): void
-function handleEmit(event: 'export'): void
-function handleEmit(event: 'import'): void
-function handleEmit(event: 'create' | 'export' | 'import'): void {
+function handleEmit(event: 'action-create'): void
+function handleEmit(event: 'action-import'): void  
+function handleEmit(event: 'action-export'): void
+function handleEmit(event: 'action-custom', payload: { action: string; data?: any }): void
+function handleEmit(event: 'action-create' | 'action-import' | 'action-export' | 'action-custom', payload?: { action: string; data?: any }): void {
   try {
     switch (event) {
-      case 'create':
-        emit('create')
+      case 'action-create':
+        emit('action-create')
         break
-      case 'export':
-        emit('export')
+      case 'action-import':
+        emit('action-import')
         break
-      case 'import':
-        emit('import')
+      case 'action-export':
+        emit('action-export')
+        break
+      case 'action-custom':
+        if (payload) {
+          emit('action-custom', payload)
+        }
         break
     }
   } catch (error) {

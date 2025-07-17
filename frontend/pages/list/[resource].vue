@@ -427,14 +427,14 @@ const handleUpdateItemInMemory = (data: any) => {
 };
 
 // Handle pagination with composable
-const handlePageChange = async (page: number) => {
-  await updatePagination(page);
-  fetchDataWithMultiFilters(page, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
+const handlePageChange = async (payload: { page: number }) => {
+  await updatePagination(payload.page);
+  fetchDataWithMultiFilters(payload.page, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
-const handlePerPageChange = async (perPage: number) => {
-  await updatePagination(1, perPage); // Reset to first page when changing perPage
-  fetchDataWithMultiFilters(1, perPage, searchQuery.value, sortField.value, sortDirection.value);
+const handlePerPageChange = async (payload: { perPage: number }) => {
+  await updatePagination(1, payload.perPage); // Reset to first page when changing perPage
+  fetchDataWithMultiFilters(1, payload.perPage, searchQuery.value, sortField.value, sortDirection.value);
 };
 
 // Search handlers using composable
@@ -442,13 +442,13 @@ const handleSearchUpdate = (query: string) => {
   // This is handled by the v-model binding to searchQuery from composable
 };
 
-const handleSearch = async (query: string) => {
-  if (!query.trim()) {
+const handleSearch = async (payload: { query: string }) => {
+  if (!payload.query.trim()) {
     await handleSearchClear();
     return;
   }
 
-  await updateSearch(query);
+  await updateSearch(payload.query);
   fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
@@ -458,13 +458,8 @@ const handleSearchClear = async () => {
 };
 
 // Sort handlers using composable
-const handleSort = async (column: Column) => {
-  // Only allow sorting on sortable columns
-  if (!column.sortable) {
-    return;
-  }
-
-  await updateSort(column.key);
+const handleSort = async (payload: { column: string; direction: string }) => {
+  await updateSort(payload.column);
   fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
@@ -480,7 +475,7 @@ const handleFilterChange = async (event: FilterChangeEvent) => {
 };
 
 const handleFilterClearAll = async () => {
-  await clearFiltersOnly();
+  await updateFilters({});
   fetchDataWithMultiFilters(1, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
@@ -644,28 +639,37 @@ onMounted(async () => {
       <!-- Main Content - Only show after components can load -->
       <div v-if="canShowComponentContent">
         <!-- Resource Header Component -->
-        <ResourceHeader :resource-name="resourceName" :title="resourceTitle" :loading="false"
-          :total-results="pagination.total" :has-filters="hasActiveFilters" :from="pagination.from" :to="pagination.to"
-          @create="handleCreate" @export="handleExport" @import="handleImport">
+        <ResourceHeader 
+          :resource-title="resourceTitle" 
+          :resource-count="pagination.total" 
+          :loading="false"
+          @action-create="handleCreate" 
+          @action-export="handleExport" 
+          @action-import="handleImport"
+        >
         
         <!-- Filter Component in Header -->
-        <template #filter>
+        <template #filters>
           <ResourceFilter 
-            :resource="resourceName"
+            :filters="{ applied: null, available: null }"
             :loading="isSearching || isSorting || isFiltering"
-            :active-filter-field="activeFilterField"
-            :is-active="Object.keys(activeFilters).length > 0"
-            :filter-count="filterCount"
             @filter-change="handleFilterChange"
-            @filter-clear-all="handleFilterClearAll"
-            @filters-cleared="handleFiltersClearedEvent"
+            @filter-clear="handleFilterClearAll"
           />
         </template>
 
         <!-- Search Component in Header -->
         <template #search>
-          <ResourceSearch ref="searchComponent" v-model="searchQuery" :loading="isSearching" :disabled="isSearchDisabled"
-            @search="handleSearch" @clear="handleSearchClear"><template #search-info="{ query }">
+          <ResourceSearch 
+            ref="searchComponent" 
+            :search="searchQuery" 
+            :loading="isSearching" 
+            :disabled="isSearchDisabled"
+            @search-change="handleSearch"
+            @search-clear="handleSearchClear"
+            @search-submit="handleSearch"
+          >
+            <template #search-info="{ query }">
               <!-- Empty template - search info handled elsewhere -->
             </template>
           </ResourceSearch>
@@ -763,11 +767,23 @@ onMounted(async () => {
     </ResourceMasterDetail>
 
         <!-- Pagination Component -->
-        <ResourcePagination v-if="items.length > 0" :current-page="pagination.currentPage"
-          :total-pages="pagination.totalPages" :per-page="pagination.perPage" :total="pagination.total"
-          :from="pagination.from" :to="pagination.to" :has-next-page="pagination.hasNextPage"
-          :has-prev-page="pagination.hasPrevPage" :loading="isSearching || isSorting"
-          :per-page-options="[10, 20, 50, 100]" @page-change="handlePageChange" @per-page-change="handlePerPageChange" />
+        <ResourcePagination 
+          v-if="items.length > 0" 
+          :pagination="{
+            totalItems: pagination.total,
+            currentPage: pagination.currentPage,
+            itemsPerPage: pagination.perPage,
+            totalPages: pagination.totalPages,
+            urlPath: '',
+            urlQuery: null,
+            nextPage: pagination.hasNextPage ? 'next' : null,
+            prevPage: pagination.hasPrevPage ? 'prev' : null
+          }"
+          :loading="isSearching || isSorting"
+          :per-page-options="[10, 20, 50, 100]" 
+          @page-change="handlePageChange" 
+          @per-page-change="handlePerPageChange" 
+        />
       </div>
     </div>
       

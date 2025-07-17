@@ -303,9 +303,9 @@ const fetchDataWithMultiFilters = async (
 };
 
 // Handle search
-const handleSearch = async (query: string) => {
-  await updateSearch(query);
-  fetchDataWithMultiFilters(1, currentPerPage.value, query, sortField.value, sortDirection.value);
+const handleSearch = async (payload: { query: string }) => {
+  await updateSearch(payload.query);
+  fetchDataWithMultiFilters(1, currentPerPage.value, payload.query, sortField.value, sortDirection.value);
 };
 
 // Handle search clear
@@ -315,20 +315,20 @@ const handleSearchClear = async () => {
 };
 
 // Handle pagination
-const handlePageChange = async (page: number) => {
-  fetchDataWithMultiFilters(page, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
+const handlePageChange = async (payload: { page: number }) => {
+  fetchDataWithMultiFilters(payload.page, currentPerPage.value, searchQuery.value, sortField.value, sortDirection.value);
 };
 
 // Handle per-page change
-const handlePerPageChange = async (perPage: number) => {
-  fetchDataWithMultiFilters(1, perPage, searchQuery.value, sortField.value, sortDirection.value);
+const handlePerPageChange = async (payload: { perPage: number }) => {
+  fetchDataWithMultiFilters(1, payload.perPage, searchQuery.value, sortField.value, sortDirection.value);
 };
 
 // Handle sorting
-const handleSort = async (column: Column) => {
-  const newDirection = (sortField.value === column.key && sortDirection.value === 'asc') ? 'desc' : 'asc';
-  await updateSort(column.key, newDirection);
-  fetchDataWithMultiFilters(currentPage.value, currentPerPage.value, searchQuery.value, column.key, newDirection);
+const handleSort = async (payload: { column: string; direction: string }) => {
+  const direction = payload.direction as 'asc' | 'desc';
+  await updateSort(payload.column, direction);
+  fetchDataWithMultiFilters(currentPage.value, currentPerPage.value, searchQuery.value, payload.column, direction);
 };
 
 // Handle item click - for document view, just select the item
@@ -520,28 +520,36 @@ onBeforeUnmount(() => {
       <!-- Main Content - Only show after components can load -->
       <template v-if="canShowComponentContent">
         <!-- Resource Header Component -->
-        <ResourceHeader :resource-name="resourceName" :title="`${resourceTitle} Documents`" :loading="loading"
-          :total-results="pagination.total" :has-filters="hasActiveFilters" :from="pagination.from" :to="pagination.to"
-          @create="handleCreate" @export="handleExport" @import="handleImport">
+        <ResourceHeader 
+          :resource-title="`${resourceTitle} Documents`" 
+          :resource-count="pagination.total" 
+          :loading="loading"
+          @action-create="handleCreate" 
+          @action-export="handleExport" 
+          @action-import="handleImport"
+        >
           
           <!-- Filter Component in Header -->
-          <template #filter>
+          <template #filters>
             <ResourceFilter 
-              :resource="resourceName"
+              :filters="{ applied: null, available: null }"
               :loading="loading || isSearching || isSorting || isFiltering"
-              :active-filter-field="activeFilterField"
-              :is-active="Object.keys(activeFilters).length > 0"
-              :filter-count="filterCount"
               @filter-change="handleFilterChange"
-              @filter-clear-all="handleFilterClearAll"
-              @filters-cleared="handleFiltersClearedEvent"
+              @filter-clear="handleFilterClearAll"
             />
           </template>
 
           <!-- Search Component in Header -->
           <template #search>
-            <ResourceSearch ref="searchComponent" v-model="searchQuery" :loading="isSearching" :disabled="isSearchDisabled"
-              @search="handleSearch" @clear="handleSearchClear">
+            <ResourceSearch 
+              ref="searchComponent" 
+              :search="searchQuery" 
+              :loading="isSearching" 
+              :disabled="isSearchDisabled"
+              @search-change="handleSearch"
+              @search-clear="handleSearchClear"
+              @search-submit="handleSearch"
+            >
               <template #search-info="{ query }">
                 <!-- Empty template - search info handled elsewhere -->
               </template>
@@ -549,7 +557,7 @@ onBeforeUnmount(() => {
           </template>
 
           <!-- Custom Action Indicators -->
-          <template #indicators>
+          <template #actions>
             <span v-if="isSearching" class="badge bg-primary">
               <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
               Searching...
@@ -669,11 +677,23 @@ onBeforeUnmount(() => {
     </ResourceMasterDetailDoc>
 
         <!-- Pagination Component -->
-        <ResourcePagination v-if="!loading && items.length > 0" :current-page="pagination.currentPage"
-          :total-pages="pagination.totalPages" :per-page="pagination.perPage" :total="pagination.total"
-          :from="pagination.from" :to="pagination.to" :has-next-page="pagination.hasNextPage"
-          :has-prev-page="pagination.hasPrevPage" :loading="loading || isSearching || isSorting"
-          :per-page-options="[10, 20, 50, 100]" @page-change="handlePageChange" @per-page-change="handlePerPageChange" />
+        <ResourcePagination 
+          v-if="!loading && items.length > 0" 
+          :pagination="{
+            totalItems: pagination.total,
+            currentPage: pagination.currentPage,
+            itemsPerPage: pagination.perPage,
+            totalPages: pagination.totalPages,
+            urlPath: '',
+            urlQuery: null,
+            nextPage: pagination.hasNextPage ? 'next' : null,
+            prevPage: pagination.hasPrevPage ? 'prev' : null
+          }"
+          :loading="loading || isSearching || isSorting"
+          :per-page-options="[10, 20, 50, 100]" 
+          @page-change="handlePageChange" 
+          @per-page-change="handlePerPageChange" 
+        />
       </template>
     </template>
 
