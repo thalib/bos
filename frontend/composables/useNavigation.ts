@@ -130,7 +130,7 @@ export const useNavigation = () => {
     error.value = null
     
     try {
-      const response = await request<MenuResponse>('menu', {
+      const response = await request<MenuResponse>('app/menu', {
         method: 'GET',
         version: 'v1'
       })

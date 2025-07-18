@@ -50,7 +50,6 @@ The component expects the `filters` prop to match the API response structure:
 <Filter
   :filters="response.filters"
   :loading="isLoading"
-  :disabled="false"
   @filter-change="handleFilterChange"
   @filter-clear="handleFilterClear"
 />

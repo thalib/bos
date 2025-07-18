@@ -146,11 +146,9 @@ GET /api/v1/products?page=1&per_page=15&sort=id&dir=asc
 }
 ```
 
-### Schema and Columns
+### Schema Structure
 
 - **`schema`** _(array|null)_: Field definitions for dynamic forms, `null` if not available.
-
-#### Schema Structure
 
 ```json
 "schema": [
@@ -179,26 +177,24 @@ GET /api/v1/products?page=1&per_page=15&sort=id&dir=asc
 ]
 ```
 
-- **`columns`** _(array)_: Column configuration for tables, always present (falls back to ID column).
-
-#### Columns Structure
+### Columns Structure
 
 ```json
 "columns": [
   {
-    "field": "<string>",
-    "label": "<string>",
-    "sortable": <boolean>,
-    "clickable": <boolean>,
-    "search": <boolean>,
-    "type": "<string>",
-    "format": "<string>",
-    "width": "<string>",
-    "align": "<string>",
-    "hidden": <boolean>
+    "field": "<string>", //mandatory
+    "label": "<string>", //mandatory
+    "sortable": <boolean>, //optional, tells if the column should be sortable
+    "clickable": <boolean>, //optional, if the column should be a clickable link to Form.vue component
+    "search": <boolean>, //not used by frontend, tells backend to include this column when searching
+    "type": "<string>", // optional, default column type is text, can be decimal, etc.
+    "format": "<string>", //optional e.g., format to currency
+    "align": "<string>", //optional left, right, middle, default middle
   }
 ]
 ```
+
+- **`columns`** _(array)_: Column configuration for tables, always present (falls back to ID column).
 
 ### Notifications
 
@@ -361,13 +357,16 @@ Notifications are used for parameter fallbacks instead of returning errors. Mult
       "label": "Name",
       "sortable": true,
       "clickable": true,
-      "search": true
+      "search": true,
+      "type": "string"
     },
     {
       "field": "price",
       "label": "Price",
+      "sortable": true,
+      "type": "decimal",
       "format": "currency",
-      "sortable": true
+      "align": "right"
     }
   ]
 }

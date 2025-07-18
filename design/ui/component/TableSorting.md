@@ -1,34 +1,41 @@
-# TableSorting Component Documentation
+# TableSorting Component Design Specification
 
 ## Overview
 
-The `TableSorting.vue` component provides sorting and filtering status display for data tables. It receives the complete sort and filters nodes from the API response and displays active sorting and filtering information.
+The `TableSorting` component provides sorting and filtering status display for data tables. It dynamically displays active sorting and filtering information.
+
+```vue
+<TableSorting
+  :sort="sortConfig"
+  :filters="filters"
+  :search="searchQuery"
+  :loading="false"
+  :disabled="false"
+/>
+```
 
 ## Features
 
-- Displays current sorting configuration with visual indicators
-- Shows active filters with clear badges
-- Provides clear all filters functionality
-- Handles loading states during operations
-- Responsive design for mobile and desktop
-- Self-contained sorting and filtering status logic
-- Bootstrap-based responsive design
+- Displays current sorting configuration with visual indicators.
+- Shows active filters with clear badges.
+- Provides functionality to clear all filters.
+- Handles loading states during operations.
+- Responsive design for mobile and desktop.
 
 ## Props
 
-- `sort` _(object|null)_: Current sort configuration from API response
-- `filters` _(object|null)_: Complete filters node from API response
-- `search` _(string|null)_: Current search query from API response
-- `loading` _(boolean)_: Loading state for the component
-- `disabled` _(boolean)_: Whether the component is disabled
+- `sort`: Current sort configuration.
+- `filters`: Active filters.
+- `search`: Current search query.
+- `loading`: Boolean indicating loading state.
+- `disabled`: Boolean to disable the component.
 
 ## Events
 
-- `sort-clear`: Emitted when sort is cleared
-- `filters-clear`: Emitted when all filters are cleared
-- `search-clear`: Emitted when search is cleared
-- `filter-remove`: Emitted when a specific filter is removed
-  - Payload: `{ field: string }`
+- `sort-clear`: Triggered when sorting is cleared.
+- `filters-clear`: Triggered when all filters are cleared.
+- `search-clear`: Triggered when search is cleared.
+- `filter-remove`: Triggered when a specific filter is removed.
 
 ## API Response Structure
 
@@ -52,22 +59,6 @@ The component expects props to match the API response structure:
   },
   "search": "mobile phone"
 }
-```
-
-## Usage
-
-```vue
-<TableSorting
-  :sort="response.sort"
-  :filters="response.filters"
-  :search="response.search"
-  :loading="isLoading"
-  :disabled="false"
-  @sort-clear="handleSortClear"
-  @filters-clear="handleFiltersClear"
-  @search-clear="handleSearchClear"
-  @filter-remove="handleFilterRemove"
-/>
 ```
 
 ## Internal Logic

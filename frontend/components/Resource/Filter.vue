@@ -79,19 +79,21 @@
         </template>
 
         <!-- Clear All Filters Button (if any filter is active) -->
-        <li v-if="hasActiveFilters">
+        <template v-if="hasActiveFilters">
           <li class="dropdown-divider"></li>
-          <button
-            type="button"
-            class="dropdown-item d-flex align-items-center text-danger fw-semibold"
-            role="menuitem"
-            @click="handleClearAllFilters"
-            :disabled="loading"
-          >
+          <li>
+            <button
+              type="button"
+              class="dropdown-item d-flex align-items-center text-danger fw-semibold"
+              role="menuitem"
+              @click="handleClearAllFilters"
+              :disabled="loading"
+            >
             <i class="bi bi-x-circle-fill me-2" aria-hidden="true"></i>
             Clear Filters
-          </button>
-        </li>
+            </button>
+          </li>
+        </template>
       </template>
     </ul>
   </div>

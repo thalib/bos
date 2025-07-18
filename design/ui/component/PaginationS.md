@@ -2,13 +2,13 @@
 
 ## Overview
 
-The `PaginationS.vue` component provides pagination controls for data tables or lists. It receives the complete pagination node from the API response and handles all pagination logic internally.
+The `PaginationS.vue` component provides pagination controls for data tables or lists. It receives the complete pagination node from the API response (design\api\index.md) and handles all pagination logic internally.
 
 ## Features
 
 - Displays current page range and total entries
 - Allows users to navigate between pages
-- Provides per-page selection dropdown
+- Provides per-page selection dropdown (15, 50, 100), default: 15
 - Responsive design for mobile and desktop
 - Handles loading states
 - Self-contained pagination logic
@@ -16,22 +16,41 @@ The `PaginationS.vue` component provides pagination controls for data tables or 
 
 ## Props
 
-- `pagination` _(object|null)_: Complete pagination node from API response
+- `pagination` _(object|null)_: API responses Complete pagination node from paranet component
 - `loading` _(boolean)_: Loading state for the component
-- `disabled` _(boolean)_: Whether pagination is disabled
-- `showInfo` _(boolean)_: Whether to show pagination info text (default: true)
-- `perPageOptions` _(array)_: Available per-page options (default: [10, 25, 50, 100])
 
 ## Events
 
-- `page-change`: Emitted when page is changed
-  - Payload: `{ page: number }`
-- `per-page-change`: Emitted when per-page value is changed
-  - Payload: `{ perPage: number }`
+```
+<PaginationS
+  :pagination="response.pagination"
+  :loading="isLoading"
+  @page-change="handlePageChange"
+  @per-page-change="handlePerPageChange"
+/>
+```
+
+- `page-change`: Emitted when page is changed, Payload: `{ page: number }`
+- `per-page-change`: Emitted when per-page value is changed Payload: `{ perPage: number }`
 
 ## API Response Structure
 
 The component expects the `pagination` prop to match the API response structure:
+
+```json
+response["pagination]": {
+    "totalItems": <int>,
+    "currentPage": <int>,
+    "itemsPerPage": <int>,
+    "totalPages": <int>,
+    "urlPath": "<string>",
+    "urlQuery": <string|null>,
+    "nextPage": "<string|null>",
+    "prevPage": "<string|null>"
+  } | null,
+```
+
+example
 
 ```json
 {
@@ -46,20 +65,6 @@ The component expects the `pagination` prop to match the API response structure:
     "prevPage": "http://localhost:8000/api/v1/products?page=1"
   }
 }
-```
-
-## Usage
-
-```vue
-<PaginationS
-  :pagination="response.pagination"
-  :loading="isLoading"
-  :disabled="false"
-  :showInfo="true"
-  :perPageOptions="[10, 25, 50, 100]"
-  @page-change="handlePageChange"
-  @per-page-change="handlePerPageChange"
-/>
 ```
 
 ## Internal Logic

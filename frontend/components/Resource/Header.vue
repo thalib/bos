@@ -3,17 +3,6 @@
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
       <div class="d-flex align-items-center flex-grow-1 me-2 gap-2">
-        <!-- Title Section -->
-        <div v-if="showResourceTitle" class="flex-shrink-0">
-          <slot name="title">
-            <div class="d-flex align-items-center">
-              <h4 class="mb-0 me-2">{{ resourceTitle }}</h4>
-              <span v-if="resourceCount !== undefined" class="badge bg-secondary">
-                {{ resourceCount }}
-              </span>
-            </div>
-          </slot>
-        </div>
         
         <!-- Filter Component Slot -->
         <div v-if="showFilters && $slots.filters" class="flex-shrink-0">

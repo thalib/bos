@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { Column } from '~/types';
 
 // Define interfaces based on design specification
@@ -8,7 +8,6 @@ interface SortConfig {
   dir: 'asc' | 'desc';
 }
 
-// Props based on design specification
 interface Props {
   /** Array of items from API response */
   data: any[];
@@ -18,152 +17,73 @@ interface Props {
   sort: SortConfig | null;
   /** Loading state for the component */
   loading: boolean;
-  /** Error object from API response */
-  error: any | null;
-  /** Whether items are clickable */
-  clickable?: boolean;
-  /** Whether items can be selected */
-  selectable?: boolean;
 }
 
-// Events based on design specification
 interface Emits {
   /** Emitted when an item is clicked */
   (event: 'item-click', payload: { item: any; index: number }): void;
-  /** Emitted when items are selected */
-  (event: 'item-select', payload: { selectedItems: any[] }): void;
   /** Emitted when column sorting is requested */
   (event: 'sort-change', payload: { column: string; direction: string }): void;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  clickable: true,
-  selectable: false
-});
-
+const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-// Component state
-const selectedItems = ref<any[]>([]);
-const selectAll = ref(false);
+// Reactive variables
+const showDetails = ref(false);
 
 // Computed properties
-const visibleColumns = computed(() => {
-  return props.columns.filter(column => !column.hidden);
-});
-
 const hasData = computed(() => {
   return props.data && props.data.length > 0;
 });
 
-const isAllSelected = computed(() => {
-  return props.data.length > 0 && selectedItems.value.length === props.data.length;
+const hasValidColumns = computed(() => {
+  return props.columns && Array.isArray(props.columns) && props.columns.length > 0;
 });
 
-const isSomeSelected = computed(() => {
-  return selectedItems.value.length > 0 && selectedItems.value.length < props.data.length;
+const showError = computed(() => {
+  return !hasValidColumns.value || (props.data === null || props.data === undefined);
 });
 
-// Methods
-const handleItemClick = (item: any, index: number) => {
-  if (props.clickable && !props.loading) {
+// Event handlers
+const handleItemClick = (item: any, index: number): void => {
+  if (!props.loading) {
     emit('item-click', { item, index });
   }
 };
 
-const handleItemSelect = (item: any, selected: boolean) => {
-  if (selected) {
-    selectedItems.value.push(item);
-  } else {
-    const index = selectedItems.value.findIndex(i => i.id === item.id);
-    if (index > -1) {
-      selectedItems.value.splice(index, 1);
-    }
-  }
-  
-  emit('item-select', { selectedItems: selectedItems.value });
-};
-
-const handleSelectAll = (selected: boolean) => {
-  if (selected) {
-    selectedItems.value = [...props.data];
-  } else {
-    selectedItems.value = [];
-  }
-  
-  emit('item-select', { selectedItems: selectedItems.value });
-};
-
-const handleSortChange = (column: Column) => {
+const handleSortChange = (column: any): void => {
   if (!column.sortable || props.loading) return;
   
   let direction = 'asc';
-  if (props.sort?.column === column.key) {
+  if (props.sort && props.sort.column === column.key) {
     direction = props.sort.dir === 'asc' ? 'desc' : 'asc';
   }
   
   emit('sort-change', { column: column.key, direction });
 };
 
-const isSelected = (item: any) => {
-  return selectedItems.value.some(i => i.id === item.id);
-};
-
-const getSortIcon = (column: Column) => {
+// Utility functions
+const getSortIcon = (column: any): string => {
   if (!column.sortable) return '';
   
-  if (props.sort?.column === column.key) {
+  if (props.sort && props.sort.column === column.key) {
     return props.sort.dir === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down';
   }
   
   return 'bi-arrow-down-up';
 };
 
-const formatCellValue = (value: any, column: Column) => {
+const formatCellValue = (value: any): string => {
   if (value === null || value === undefined) return '-';
-  
-  // If column has a formatter, use it
-  if (column.formatter) {
-    return column.formatter(value, props.data);
-  }
-  
-  // Use built-in formatters based on column type
-  switch (column.type) {
-    case 'currency':
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD'
-      }).format(value);
-    case 'date':
-      return new Date(value).toLocaleDateString();
-    case 'datetime':
-      return new Date(value).toLocaleString();
-    case 'number':
-      return new Intl.NumberFormat('en-US').format(value);
-    case 'boolean':
-      return value ? 'Yes' : 'No';
-    case 'email':
-      return value;
-    case 'url':
-      return value;
-    default:
-      return String(value);
-  }
+  return String(value);
 };
 
-const getCellClass = (column: Column) => {
-  const classes = [];
-  
-  if (column.cellClass) {
-    classes.push(column.cellClass);
-  }
+const getCellClass = (column: any): string => {
+  const classes: string[] = [];
   
   if (column.align) {
     classes.push(`text-${column.align}`);
-  }
-  
-  if (column.clickable && props.clickable) {
-    classes.push('cursor-pointer');
   }
   
   return classes.join(' ');
@@ -171,9 +91,15 @@ const getCellClass = (column: Column) => {
 </script>
 <template>
   <!-- Error state -->
-  <div v-if="error" class="alert alert-danger" role="alert">
-    <h5 class="alert-heading">Error loading data</h5>
-    <p class="mb-0">{{ error.message || 'An error occurred while loading data' }}</p>
+  <div v-if="showError" class="alert alert-danger" role="alert">
+    <h5 class="alert-heading">Unable to load data</h5>
+    <p class="mb-3">Please try again later or contact support.</p>
+    <button type="button" class="btn btn-sm btn-outline-danger" @click="showDetails = !showDetails">
+      {{ showDetails ? 'Hide' : 'Show' }} Details
+    </button>
+    <div v-if="showDetails" class="mt-2 text-muted small">
+      {{ !hasValidColumns ? 'Invalid columns configuration' : 'No data available' }}
+    </div>
   </div>
 
   <!-- Loading state -->
@@ -186,41 +112,25 @@ const getCellClass = (column: Column) => {
 
   <!-- Empty state -->
   <div v-else-if="!hasData" class="text-center py-5">
-    <i class="bi bi-table fs-1 text-muted"></i>
-    <h5 class="text-muted mt-2">No data available</h5>
+    <i class="bi bi-table fs-1 text-muted mb-3"></i>
+    <h5 class="text-muted">No data available</h5>
     <p class="text-muted mb-0">There are no items to display.</p>
   </div>
   
   <!-- Data table -->
   <div v-else class="table-responsive">
-    <table class="table table-hover table-striped mb-0">
-      <thead class="table-light">
+    <table class="table table-hover table-striped table-bordered mb-0">
+      <thead class="table-dark">
         <tr>
-          <!-- Selection checkbox column -->
-          <th v-if="selectable" class="ps-3" style="width: 50px;">
-            <div class="form-check">
-              <input 
-                class="form-check-input" 
-                type="checkbox" 
-                :checked="isAllSelected"
-                :indeterminate="isSomeSelected"
-                @change="handleSelectAll(!isAllSelected)"
-                :disabled="loading"
-                aria-label="Select all items"
-              >
-            </div>
-          </th>
-          
           <!-- Column headers -->
           <th 
-            v-for="column in visibleColumns" 
+            v-for="column in columns" 
             :key="column.key"
             :class="[
-              'user-select-none fw-semibold text-uppercase small',
+              'user-select-none fw-semibold text-uppercase small position-relative',
               column.sortable ? 'cursor-pointer' : '',
               props.sort?.column === column.key ? 'table-active' : ''
             ]"
-            :style="{ width: column.width }"
             @click="column.sortable ? handleSortChange(column) : null"
           >
             <div class="d-flex align-items-center justify-content-between">
@@ -230,7 +140,7 @@ const getCellClass = (column: Column) => {
                   :class="[
                     'bi',
                     getSortIcon(column),
-                    props.sort?.column === column.key ? 'text-primary' : 'text-muted opacity-50'
+                    props.sort?.column === column.key ? 'text-warning' : 'text-muted opacity-50'
                   ]"
                 ></i>
               </div>
@@ -242,59 +152,29 @@ const getCellClass = (column: Column) => {
         <tr 
           v-for="(item, index) in data" 
           :key="item.id || index"
-          :class="{ 'table-primary': selectable && isSelected(item) }"
         >
-          <!-- Selection checkbox -->
-          <td v-if="selectable" class="ps-3">
-            <div class="form-check">
-              <input 
-                class="form-check-input" 
-                type="checkbox" 
-                :checked="isSelected(item)"
-                @change="handleItemSelect(item, !isSelected(item))"
-                :disabled="loading"
-                :aria-label="`Select item ${index + 1}`"
-              >
-            </div>
-          </td>
-          
           <!-- Data cells -->
           <td 
-            v-for="column in visibleColumns" 
+            v-for="column in columns" 
             :key="column.key"
             :class="getCellClass(column)"
             @click="column.clickable ? handleItemClick(item, index) : null"
           >
-            <span v-if="column.type === 'boolean'">
-              <i 
-                :class="[
-                  'bi',
-                  item[column.key] ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger'
-                ]"
-              ></i>
-              {{ formatCellValue(item[column.key], column) }}
-            </span>
-            <span v-else-if="column.type === 'email'">
-              <a :href="`mailto:${item[column.key]}`" class="text-decoration-none">
-                {{ formatCellValue(item[column.key], column) }}
-              </a>
-            </span>
-            <span v-else-if="column.type === 'url'">
-              <a :href="item[column.key]" target="_blank" class="text-decoration-none">
-                {{ formatCellValue(item[column.key], column) }}
-              </a>
-            </span>
-            <span v-else-if="column.type === 'image'">
-              <img 
-                :src="item[column.key]" 
-                :alt="column.label"
-                class="img-thumbnail" 
-                style="width: 40px; height: 40px; object-fit: cover;"
+            <!-- Clickable column content -->
+            <template v-if="column.clickable">
+              <button 
+                type="button" 
+                class="btn btn-link text-decoration-none p-0 text-primary fw-medium"
+                @click.stop="handleItemClick(item, index)"
               >
-            </span>
-            <span v-else>
-              {{ formatCellValue(item[column.key], column) }}
-            </span>
+                {{ formatCellValue(item[column.key]) }}
+              </button>
+            </template>
+            
+            <!-- Default column content -->
+            <template v-else>
+              {{ formatCellValue(item[column.key]) }}
+            </template>
           </td>
         </tr>
       </tbody>
@@ -309,19 +189,25 @@ const getCellClass = (column: Column) => {
 
 .table-responsive {
   border-radius: 0.375rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
 .table th {
   border-top: none;
   font-weight: 600;
   font-size: 0.875rem;
-  padding: 0.75rem;
+  padding: 0.875rem;
   vertical-align: middle;
+  position: sticky;
+  top: 0;
+  background-color: var(--bs-dark);
+  z-index: 10;
 }
 
 .table td {
-  padding: 0.75rem;
+  padding: 0.875rem;
   vertical-align: middle;
+  border-color: var(--bs-border-color-translucent);
 }
 
 .table-hover tbody tr:hover {
@@ -334,9 +220,19 @@ const getCellClass = (column: Column) => {
 
 .img-thumbnail {
   border: 1px solid var(--bs-border-color);
+  transition: transform 0.2s ease;
 }
 
-@media (max-width: 576px) {
+.img-thumbnail:hover {
+  transform: scale(1.1);
+}
+
+.btn-link:hover {
+  text-decoration: underline !important;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
   .table th,
   .table td {
     font-size: 0.875rem;
@@ -345,6 +241,28 @@ const getCellClass = (column: Column) => {
   
   .table th span {
     font-size: 0.75rem;
+  }
+  
+  .img-thumbnail {
+    width: 30px !important;
+    height: 30px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .table th,
+  .table td {
+    font-size: 0.8rem;
+    padding: 0.375rem;
+  }
+  
+  .table th span {
+    font-size: 0.7rem;
+  }
+  
+  .img-thumbnail {
+    width: 25px !important;
+    height: 25px !important;
   }
 }
 </style>

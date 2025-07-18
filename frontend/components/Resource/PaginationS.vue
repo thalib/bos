@@ -1,3 +1,139 @@
+<script setup lang="ts">
+interface PaginationData {
+  totalItems: number;
+  currentPage: number;
+  itemsPerPage: number;
+  totalPages: number;
+  urlPath: string;
+  urlQuery: string | null;
+  nextPage: string | null;
+  prevPage: string | null;
+}
+
+interface Props {
+  pagination: PaginationData | null;
+  loading?: boolean;
+}
+
+interface Emits {
+  (event: 'page-change', payload: { page: number }): void;
+  (event: 'per-page-change', payload: { perPage: number }): void;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  loading: false
+});
+
+const emit = defineEmits<Emits>();
+
+// Per page options as defined in documentation (15, 50, 100), default: 15
+const perPageOptions = [15, 50, 100];
+
+// Jump to page input value
+const jumpToPageValue = ref<string>('');
+const jumpToPageInput = ref<HTMLInputElement | null>(null);
+
+// Computed properties for pagination logic
+const showPagination = computed(() => {
+  return props.pagination && props.pagination.totalItems > 0;
+});
+
+const from = computed(() => {
+  if (!props.pagination) return 0;
+  return (props.pagination.currentPage - 1) * props.pagination.itemsPerPage + 1;
+});
+
+const to = computed(() => {
+  if (!props.pagination) return 0;
+  const calculated = props.pagination.currentPage * props.pagination.itemsPerPage;
+  return Math.min(calculated, props.pagination.totalItems);
+});
+
+const hasPrevPage = computed(() => {
+  return props.pagination ? props.pagination.currentPage > 1 : false;
+});
+
+const hasNextPage = computed(() => {
+  return props.pagination ? props.pagination.currentPage < props.pagination.totalPages : false;
+});
+
+const visiblePages = computed(() => {
+  if (!props.pagination) return [];
+  
+  const current = props.pagination.currentPage;
+  const total = props.pagination.totalPages;
+  const pages: (number | -1)[] = [];
+  
+  if (total <= 7) {
+    // Show all pages if total is 7 or less
+    for (let i = 1; i <= total; i++) {
+      pages.push(i);
+    }
+  } else {
+    // Complex logic for showing pages with ellipsis
+    if (current <= 4) {
+      // Show first 5 pages + ellipsis + last page
+      for (let i = 1; i <= 5; i++) {
+        pages.push(i);
+      }
+      pages.push(-1); // ellipsis
+      pages.push(total);
+    } else if (current >= total - 3) {
+      // Show first page + ellipsis + last 5 pages
+      pages.push(1);
+      pages.push(-1); // ellipsis
+      for (let i = total - 4; i <= total; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Show first page + ellipsis + current-1, current, current+1 + ellipsis + last page
+      pages.push(1);
+      pages.push(-1); // ellipsis
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i);
+      }
+      pages.push(-1); // ellipsis
+      pages.push(total);
+    }
+  }
+  
+  return pages;
+});
+
+// Event handlers
+const handlePageChange = (page: number) => {
+  if (props.loading || !props.pagination) return;
+  if (page < 1 || page > props.pagination.totalPages) return;
+  if (page === props.pagination.currentPage) return;
+  
+  emit('page-change', { page });
+};
+
+const handlePerPageChange = (perPage: number) => {
+  if (props.loading) return;
+  if (!perPageOptions.includes(perPage)) return;
+  
+  emit('per-page-change', { perPage });
+};
+
+const handleJumpToPage = () => {
+  if (!props.pagination || props.loading) return;
+  
+  const page = parseInt(jumpToPageValue.value);
+  if (isNaN(page) || page < 1 || page > props.pagination.totalPages) {
+    jumpToPageValue.value = '';
+    return;
+  }
+  
+  jumpToPageValue.value = '';
+  if (jumpToPageInput.value) {
+    jumpToPageInput.value.blur();
+  }
+  
+  handlePageChange(page);
+};
+</script>
+
 <template>
   <div v-if="showPagination && pagination && pagination.totalItems > 0" class="border-top py-3 mt-3">
     <div class="container-fluid px-3">
@@ -182,148 +318,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed } from 'vue';
 
-// Props based on design specification
-interface Props {
-  /** Complete pagination node from API response */
-  pagination: {
-    totalItems: number;
-    currentPage: number;
-    itemsPerPage: number;
-    totalPages: number;
-    urlPath: string;
-    urlQuery: string | null;
-    nextPage: string | null;
-    prevPage: string | null;
-  } | null;
-  /** Loading state for the component */
-  loading?: boolean;
-  /** Whether pagination is disabled */
-  disabled?: boolean;
-  /** Whether to show pagination info text */
-  showInfo?: boolean;
-  /** Available per-page options */
-  perPageOptions?: number[];
-}
-
-// Events based on design specification
-interface Emits {
-  /** Emitted when page is changed */
-  (event: 'page-change', payload: { page: number }): void;
-  /** Emitted when per-page value is changed */
-  (event: 'per-page-change', payload: { perPage: number }): void;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  loading: false,
-  disabled: false,
-  showInfo: true,
-  perPageOptions: () => [10, 25, 50, 100]
-});
-
-const emit = defineEmits<Emits>();
-
-// Reactive references for component state
-const jumpToPageInput = ref<HTMLInputElement>();
-const jumpToPageValue = ref<string>('');
-
-// Computed properties based on design specification
-const showPagination = computed(() => {
-  return props.pagination && props.pagination.totalItems > 0;
-});
-
-const hasNextPage = computed(() => {
-  return props.pagination?.nextPage !== null;
-});
-
-const hasPrevPage = computed(() => {
-  return props.pagination?.prevPage !== null;
-});
-
-const from = computed(() => {
-  if (!props.pagination) return 0;
-  return ((props.pagination.currentPage - 1) * props.pagination.itemsPerPage) + 1;
-});
-
-const to = computed(() => {
-  if (!props.pagination) return 0;
-  return Math.min(
-    props.pagination.currentPage * props.pagination.itemsPerPage,
-    props.pagination.totalItems
-  );
-});
-
-const visiblePages = computed(() => {
-  if (!props.pagination) return [];
-  
-  const current = props.pagination.currentPage;
-  const total = props.pagination.totalPages;
-  const pages: (number | -1)[] = [];
-  
-  if (total <= 7) {
-    // Show all pages if 7 or fewer
-    for (let i = 1; i <= total; i++) {
-      pages.push(i);
-    }
-  } else {
-    // Complex logic for large page sets
-    pages.push(1);
-    
-    if (current <= 4) {
-      // Near beginning: show first 5 pages
-      for (let i = 2; i <= Math.min(5, total - 1); i++) {
-        pages.push(i);
-      }
-      if (total > 6) pages.push(-1); // ellipsis
-    } else if (current >= total - 3) {
-      // Near end: show last 5 pages
-      if (total > 6) pages.push(-1); // ellipsis
-      for (let i = Math.max(total - 4, 2); i <= total - 1; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Middle: show current ± 1 with ellipsis on both sides
-      pages.push(-1);
-      for (let i = current - 1; i <= current + 1; i++) {
-        pages.push(i);
-      }
-      pages.push(-1);
-    }
-    
-    if (total > 1) pages.push(total);
-  }
-  
-  return pages;
-});
-
-// Methods based on design specification
-const handlePageChange = (page: number) => {
-  if (props.loading || props.disabled || !props.pagination) return;
-  
-  if (page < 1 || page > props.pagination.totalPages) return;
-  
-  emit('page-change', { page });
-};
-
-const handlePerPageChange = (perPage: number) => {
-  if (props.loading || props.disabled) return;
-  
-  emit('per-page-change', { perPage });
-};
-
-const handleJumpToPage = () => {
-  if (!jumpToPageValue.value || !props.pagination) return;
-  
-  const page = parseInt(jumpToPageValue.value);
-  if (page >= 1 && page <= props.pagination.totalPages) {
-    handlePageChange(page);
-  }
-  
-  jumpToPageValue.value = '';
-};
-</script>
 
 <style scoped>
 /**
