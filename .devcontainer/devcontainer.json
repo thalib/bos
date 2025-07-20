@@ -1,0 +1,39 @@
+{
+  "name": "BOS Laravel + Nuxt Development",
+  "image": "mcr.microsoft.com/devcontainers/php:1-8.3-bullseye",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "nodeGypDependencies": true,
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-typescript-next",
+        "Vue.volar",
+        "bmewburn.vscode-intelephense-client",
+        "bradlc.vscode-tailwindcss",
+        "ms-vscode.vscode-json",
+        "esbenp.prettier-vscode",
+        "formulahendry.auto-rename-tag",
+        "neilbrayfield.php-docblocker",
+        "mikestead.dotenv"
+      ]
+    }
+  },
+
+  "forwardPorts": [8000, 3000],
+
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+
+  "remoteUser": "vscode",
+
+  "mounts": [
+    "source=${localWorkspaceFolder}/.devcontainer/php.ini,target=/usr/local/etc/php/conf.d/99-custom.ini,type=bind"
+  ]
+}
