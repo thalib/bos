@@ -79,9 +79,14 @@ The Authentication Service integrates with the backend API endpoints as follows:
 - Returns `200 OK` on success.
 - Refer to [show.md](design/api/show.md) for detailed request and response structure.
 
+
 ## Middleware
 
-The authentication middleware ensures that only authenticated users can access protected routes. It redirects unauthenticated users to the login page and preserves the intended destination for post-login redirection.
+- Ensure only authenticated users can access the app, redirecting unauthenticated users to the login page with their intended destination preserved for post-login redirection.
+- Apply the `auth` middleware globally to protect all pages by default.
+- Handle token expiration or missing tokens gracefully to maintain a seamless user experience.
+- Test middleware to confirm proper redirection and access control.
+- Use consistent error handling and notifications for unauthorized access attempts.
 
 ### Example Middleware Usage
 
@@ -197,6 +202,33 @@ try {
 } catch (error) {
   addNotification("Failed to check authentication status.", "error");
 }
+```
+
+## Usage Examples
+
+```typescript
+// Import the service
+import { useAuthService } from '~/app/utils/auth'
+
+const authService = useAuthService()
+
+// Login
+const loginResult = await authService.login({
+  email: 'user@example.com',
+  password: 'password123'
+})
+
+// Check authentication status
+console.log(authService.isAuthenticated.value) // reactive boolean
+
+// Get current user
+const currentUser = authService.getCurrentUser()
+
+// Logout
+await authService.logout()
+
+// Manual token refresh
+await authService.refreshToken()
 ```
 
 ## Design Considerations

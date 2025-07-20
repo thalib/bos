@@ -139,4 +139,39 @@ All responses follow the standardized format defined by the backend:
 - [Notification Service Specification](design/ui/services/Notification.md).
 - [Nuxt 4 Testing Guide](https://nuxt.com/docs/4.x/getting-started/testing).
 
+## Usage Examples
+
+```typescript
+// Import the service
+import { useApiService } from '~/app/utils/api'
+
+const apiService = useApiService()
+
+// Fetch paginated resources
+const users = await apiService.fetch('users', { page: 1, limit: 10 })
+
+// Get single resource
+const user = await apiService.get('users', 1)
+
+// Create new resource
+const newUser = await apiService.create('users', {
+  name: 'John Doe',
+  email: 'john@example.com'
+})
+
+// Update resource
+const updatedUser = await apiService.update('users', 1, {
+  name: 'John Smith'
+})
+
+// Delete resource
+await apiService.delete('users', 1)
+
+// Custom request
+const response = await apiService.request('/api/custom-endpoint', {
+  method: 'POST',
+  body: { customData: 'value' }
+})
+```
+
 This API service layer provides a flexible and dynamic interface for interacting with backend services, ensuring adherence to best practices and project constraints.
