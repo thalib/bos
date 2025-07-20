@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mockNavigateTo } from '../setup-test'
 
 // Mock the auth service
 const mockAuthService = {
@@ -6,28 +7,9 @@ const mockAuthService = {
   isInitialized: { value: true }
 }
 
-vi.mock('../../../app/utils/auth', () => ({
+vi.mock('../../app/utils/auth', () => ({
   useAuthService: () => mockAuthService
 }))
-
-// Mock Nuxt functions
-const mockNavigateTo = vi.fn()
-const mockNextTick = vi.fn((callback) => callback())
-
-vi.mock('#app', () => ({
-  navigateTo: mockNavigateTo,
-  nextTick: mockNextTick
-}))
-
-// Mock defineNuxtRouteMiddleware
-vi.mock('#imports', () => ({
-  defineNuxtRouteMiddleware: (middleware: Function) => middleware
-}))
-
-// Set up globals
-global.defineNuxtRouteMiddleware = (middleware: Function) => middleware
-global.navigateTo = mockNavigateTo
-global.nextTick = mockNextTick
 
 describe('Auth Middleware', () => {
   beforeEach(() => {
