@@ -4,6 +4,28 @@
 
 The `[resource].vue` page provides a comprehensive interface for managing resources with a data-driven approach. It receives the complete API response and delegates functionality to self-contained components that handle their own logic based on the API data structure.
 
+## Relationship
+
+```markdown
+Page
+├── MasterDetail (design\ui\component\master-detail.md)
+│   ├── List (design\ui\component\list.md)
+│   └── {Form (design/ui/component/form.md) or Document (design\ui\component\document.md)}
+├── PaginationS (design\ui\component\paginations.md)
+├── Header (design\ui\component\header.md)
+│   ├── Filter (design\ui\component\filter.md)
+│   └── Search (design\ui\component\search.md)
+└── Toast
+
+Form
+└── FormField
+```
+
+Page: The main page that includes MasterDetail, PaginationS, Header, and Toast.
+Header: Depends on Filter and Search components for its functionality.
+MasterDetail: Depends on List and either Form or Document based on the context.
+Form: Relies on FormField for rendering individual form fields.
+
 ## Features
 
 - Dynamic resource management based on route parameters
@@ -35,7 +57,7 @@ The page receives the complete API response and passes specific nodes to compone
   "pagination": { /* pagination metadata */ },
   "search": "query string" | null,
   "sort": { "column": "name", "dir": "asc" } | null,
-  "filters": { 
+  "filters": {
     "applied": { "field": "status", "value": "active" },
     "available": [ /* filter options */ ]
   } | null,
@@ -46,296 +68,6 @@ The page receives the complete API response and passes specific nodes to compone
 }
 ```
 
-## Component Integration
-
-### Header Component
-```vue
-<Header
-  :resourceTitle="resourceTitle"
-  :resourceCount="response.pagination?.totalItems"
-  :loading="isLoading"
-  @action-create="handleCreate"
-  @action-import="handleImport"
-  @action-export="handleExport"
->
-  <template #filters>
-    <Filter
-      :filters="response.filters"
-      :loading="isLoading"
-      @filter-change="handleFilterChange"
-      @filter-clear="handleFilterClear"
-    />
-  </template>
-  
-  <template #search>
-    <Search
-      :search="response.search"
-      :loading="isLoading"
-      @search-change="handleSearchChange"
-      @search-clear="handleSearchClear"
-    />
-  </template>
-</Header>
-```
-
-### List Component
-```vue
-<List
-  :data="response.data"
-  :columns="response.columns"
-  :sort="response.sort"
-  :loading="isLoading"
-  :error="response.error"
-  @item-click="handleItemClick"
-  @item-select="handleItemSelect"
-  @sort-change="handleSortChange"
-/>
-```
-
-### Pagination Component
-```vue
-<PaginationS
-  :pagination="response.pagination"
-  :loading="isLoading"
-  @page-change="handlePageChange"
-  @per-page-change="handlePerPageChange"
-/>
-```
-
-### Table Sorting Component
-```vue
-<TableSorting
-  :sort="response.sort"
-  :filters="response.filters"
-  :search="response.search"
-  :loading="isLoading"
-  @sort-clear="handleSortClear"
-  @filters-clear="handleFiltersClear"
-  @search-clear="handleSearchClear"
-/>
-```
-
-### Form Component (for Create/Edit)
-```vue
-<Form
-  :schema="response.schema"
-  :data="selectedItem"
-  :loading="isFormLoading"
-  :mode="formMode"
-  :resourceTitle="resourceTitle"
-  @form-submit="handleFormSubmit"
-  @form-cancel="handleFormCancel"
-  @form-error="handleFormError"
-/>
-```
-
-## Event Handling
-
-### Search Events
-```javascript
-const handleSearchChange = ({ query }) => {
-  // Update URL parameters and fetch data
-  updateUrlParams({ search: query, page: 1 });
-  fetchData();
-};
-
-const handleSearchClear = () => {
-  updateUrlParams({ search: null, page: 1 });
-  fetchData();
-};
-```
-
-### Filter Events
-```javascript
-const handleFilterChange = ({ field, value }) => {
-  updateUrlParams({ 
-    filter: `${field}:${value}`, 
-    page: 1 
-  });
-  fetchData();
-};
-
-const handleFilterClear = ({ field }) => {
-  updateUrlParams({ filter: null, page: 1 });
-  fetchData();
-};
-```
-
-### Pagination Events
-```javascript
-const handlePageChange = ({ page }) => {
-  updateUrlParams({ page });
-  fetchData();
-};
-
-const handlePerPageChange = ({ perPage }) => {
-  updateUrlParams({ per_page: perPage, page: 1 });
-  fetchData();
-};
-```
-
-### Sort Events
-```javascript
-const handleSortChange = ({ column, direction }) => {
-  updateUrlParams({ 
-    sort: column, 
-    dir: direction,
-    page: 1 
-  });
-  fetchData();
-};
-```
-
-### Item Events
-```javascript
-const handleItemClick = ({ item, index }) => {
-  // Navigate to detail view or open modal
-  navigateTo(`/${resourceName}/${item.id}`);
-};
-
-const handleItemSelect = ({ selectedItems }) => {
-  // Handle bulk operations
-  selectedItems.value = selectedItems;
-};
-```
-
-### Form Events
-```javascript
-const handleFormSubmit = ({ data, mode }) => {
-  if (mode === 'create') {
-    createResource(data);
-  } else {
-    updateResource(data);
-  }
-};
-
-const handleFormError = ({ errors }) => {
-  // Display validation errors
-  showToast('error', 'Please correct the errors and try again.');
-};
-```
-
-## State Management
-
-```javascript
-const state = reactive({
-  response: null,
-  isLoading: false,
-  selectedItem: null,
-  formMode: 'create',
-  isFormLoading: false,
-  urlParams: {
-    page: 1,
-    per_page: 15,
-    sort: null,
-    dir: 'asc',
-    filter: null,
-    search: null
-  }
-});
-```
-
-## API Communication
-
-```javascript
-const fetchData = async () => {
-  try {
-    state.isLoading = true;
-    const params = new URLSearchParams(state.urlParams);
-    const response = await $fetch(`/api/v1/${resourceName}?${params}`);
-    
-    if (response.success) {
-      state.response = response;
-      // Handle notifications
-      if (response.notifications) {
-        response.notifications.forEach(notification => {
-          showToast(notification.type, notification.message);
-        });
-      }
-    } else {
-      handleError(response.error);
-    }
-  } catch (error) {
-    handleError(error);
-  } finally {
-    state.isLoading = false;
-  }
-};
-```
-
-## Error Handling
-
-```javascript
-const handleError = (error) => {
-  if (error.code === 'UNAUTHORIZED') {
-    // Redirect to login
-    navigateTo('/login');
-  } else if (error.code === 'FORBIDDEN') {
-    showToast('error', 'You do not have permission to access this resource.');
-  } else {
-    showToast('error', error.message || 'An unexpected error occurred.');
-  }
-};
-```
-
-## URL Management
-
-```javascript
-const updateUrlParams = (params) => {
-  Object.assign(state.urlParams, params);
-  
-  const searchParams = new URLSearchParams();
-  Object.entries(state.urlParams).forEach(([key, value]) => {
-    if (value !== null && value !== undefined && value !== '') {
-      searchParams.set(key, value);
-    }
-  });
-  
-  const newUrl = `${window.location.pathname}?${searchParams}`;
-  window.history.replaceState({}, '', newUrl);
-};
-```
-
-## Component Lifecycle
-
-```javascript
-onMounted(() => {
-  // Parse URL parameters
-  const urlParams = new URLSearchParams(window.location.search);
-  Object.keys(state.urlParams).forEach(key => {
-    if (urlParams.has(key)) {
-      state.urlParams[key] = urlParams.get(key);
-    }
-  });
-  
-  // Initial data fetch
-  fetchData();
-});
-```
-
-## Toast Notifications
-
-```javascript
-const showToast = (type, message) => {
-  // Use Toast component or notification service
-  $toast.show({
-    type,
-    message,
-    duration: 5000
-  });
-};
-```
-
-## Bootstrap Classes Used
-
-- `container-fluid` for full-width layout
-- `row`, `col-*` for responsive grid
-- `card`, `card-header`, `card-body` for content containers
-- `btn`, `btn-primary`, `btn-outline-secondary` for actions
-- `d-flex`, `justify-content-between` for layout
-- `mb-3`, `mt-3` for spacing
-- `spinner-border` for loading states
-- `alert` for error messages
 
 ## Notes
 

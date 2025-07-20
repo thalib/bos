@@ -1,58 +1,41 @@
-# BOS Frontend
+# Nuxt Minimal Starter
 
-A modern business management application built with Nuxt 3, Vue 3, and Bootstrap 5.
+Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
 
-## Quick Start
+## Setup
 
-### 1. Install Dependencies
+Make sure to install dependencies:
 
 ```bash
+# npm
 npm install
+
+# pnpm
+pnpm install
+
+# yarn
+yarn install
+
+# bun
+bun install
 ```
 
-### 2. Configure Environment
-
-Copy the example environment file and customize it:
-
-```bash
-cp .env.example .env
-```
-
-Update the domain configuration in `.env`:
-
-```env
-# Update these URLs to match your environment
-NUXT_FRONTEND_URL="http://localhost:3000"
-NUXT_BACKEND_URL="http://127.0.0.1:8000"
-NUXT_PUBLIC_API_BASE="http://127.0.0.1:8000/api"
-```
-
-### 3. Start Development Server
-
-```bash
-npm run dev
-```
-
-The application will be available at `http://localhost:3000`
-
-## Configuration
-
-This application uses a centralized configuration system. For detailed configuration options, see [CONFIG.md](./CONFIG.md).
-
-### Quick Domain Change
-
-When changing domains, update these variables in `.env`:
-
-- `NUXT_FRONTEND_URL` - Your frontend domain
-- `NUXT_BACKEND_URL` - Your backend domain  
-- `NUXT_PUBLIC_API_BASE` - Your API base URL
-
-## Development
+## Development Server
 
 Start the development server on `http://localhost:3000`:
 
 ```bash
+# npm
 npm run dev
+
+# pnpm
+pnpm dev
+
+# yarn
+yarn dev
+
+# bun
+bun run dev
 ```
 
 ## Production
@@ -60,13 +43,33 @@ npm run dev
 Build the application for production:
 
 ```bash
+# npm
 npm run build
+
+# pnpm
+pnpm build
+
+# yarn
+yarn build
+
+# bun
+bun run build
 ```
 
 Locally preview production build:
 
 ```bash
+# npm
 npm run preview
+
+# pnpm
+pnpm preview
+
+# yarn
+yarn preview
+
+# bun
+bun run preview
 ```
 
 Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
