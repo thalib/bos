@@ -338,7 +338,7 @@ class ApiService {
 
     if (error instanceof Error) {
       apiError.message = error.message
-      apiError.details = error.stack
+      apiError.details = error.stack ? [error.stack] : undefined
     } else if (typeof error === 'string') {
       apiError.message = error
     } else if (error && typeof error === 'object') {
