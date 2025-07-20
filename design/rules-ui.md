@@ -52,6 +52,17 @@
 
 - **Testing**: Follow Nuxt 4 testing guidelines. Use `@nuxt/test-utils` for unit and end-to-end testing. Ensure tests are written for all critical components and services.
 
+### Relation
+
+```text
+Backend <-> `api.ts` <-> `auth.ts` <-> Frontend Components
+```
+
+- `api.ts` (API Service Layer)
+- `auth.ts` (Authentication Service)
+
+This diagram illustrates the flow of interactions between the backend, `api.ts`, `auth.ts`, and frontend components.
+
 ## Frontend Anti-Patterns
 
 ❌ Using direct fetch/HTTP calls instead of shared API service: Leads to inconsistent error handling and authentication issues.  
