@@ -18,15 +18,14 @@ export default defineNuxtRouteMiddleware((to, from) => {
       if (isInitialized.value) {
         if (!isAuthenticated.value && to.path !== '/') {
           // Redirect to login page with return URL
-          resolve(
-            navigateTo({
-              path: '/',
-              query: { redirect: to.fullPath },
-            })
-          )
+          const result = navigateTo({
+            path: '/',
+            query: { redirect: to.fullPath },
+          })
+          resolve(result)
         } else {
           // User is authenticated or going to login page
-          resolve()
+          resolve(undefined)
         }
       } else {
         // Auth not initialized yet, wait a bit
