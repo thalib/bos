@@ -1,5 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mockNavigateTo } from '../setup-test'
+
+// Mock navigateTo function at the module level before any imports
+const mockNavigateTo = vi.fn(() => Promise.resolve())
+const mockNextTick = vi.fn((fn) => Promise.resolve().then(fn))
+
+// Mock Nuxt auto-imports at the specific import paths
+vi.mock('#app/composables/router', () => ({
+  navigateTo: mockNavigateTo,
+  defineNuxtRouteMiddleware: vi.fn((fn) => fn),
+}))
+
+vi.mock('#app', () => ({
+  navigateTo: mockNavigateTo,
+  nextTick: mockNextTick,
+  defineNuxtRouteMiddleware: vi.fn((fn) => fn)
+}))
+
+// Mock Vue's nextTick
+vi.mock('vue', () => ({
+  nextTick: mockNextTick
+}))
 
 // Mock the auth service
 const mockAuthService = {
