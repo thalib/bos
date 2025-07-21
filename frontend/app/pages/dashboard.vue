@@ -1,9 +1,9 @@
 <template>
   <div class="container mt-5">
-    <h1>Dashboard</h1>
+    <h1><i class="bi bi-speedometer2"></i> Dashboard</h1>
     <p>Welcome to the protected dashboard!</p>
     <div class="alert alert-success">
-      This page should only be accessible to authenticated users.
+      <i class="bi bi-check-circle"></i> This page should only be accessible to authenticated users.
     </div>
   </div>
 </template>
