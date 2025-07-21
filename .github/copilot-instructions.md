@@ -13,10 +13,10 @@ Refer to `design/design-overview.md` for detailed project principles.
 - Protect all endpoints with `auth:sanctum` middleware.
 
 ## Frontend Development
-- Use Nuxt 4 with strict TypeScript typing and Vue 3 Composition API.
-- Centralize HTTP requests in `/frontend/services/api.ts`.
-- Prioritize Bootstrap 5.3 classes for styling.
-- Implement error handling using `/frontend/utils/errorHandling.ts`.
+- Use Nuxt 4 with strict TypeScript typing and Vue 3 Composition API, and prioritize Bootstrap 5.3 classes for styling.
+- Write tests first in `frontend/tests/` before implementing features.
+- Centralize HTTP requests in `frontend/app/utils/api.ts`. for Notification and logging use `frontend/app/utils/notify.ts`.
+
 
 ## References
 - For backend rules, see `design/rules-api.md`.

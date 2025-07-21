@@ -2,7 +2,7 @@
 
 ## Overview
 
-- **Use the `api.ts` service** for all HTTP requests and operations. **DO NOT USE** direct `$fetch`, `fetch`, or other HTTP clients. The service handles authentication headers and error handling automatically.
+- **Use the `frontend\app\utils\api.ts` service** for all HTTP requests and operations. **DO NOT USE** direct `$fetch`, `fetch`, or other HTTP clients. The service handles authentication headers and error handling automatically.
 - **Follow Bootstrap First**: Use Bootstrap 5.3 classes for layout, components, and utilities. Custom CSS should only be used when necessary. Examples include:
 
   - Layout: `container`, `row`, `col-*`, `d-flex`, `justify-content-*`, `align-items-*`.
@@ -11,7 +11,7 @@
 
 - **Implement Form Validation**: Use reactive patterns with real-time feedback and clear error messages. Leverage libraries like `vee-validate` or `yup` for schema-based validation.
 
-- **Handle Errors Gracefully**: Use the Notification Service for user feedback and error handling. Ensure fallback UI is provided for unexpected errors.
+- **Handle Errors Gracefully**: Use the Notifiy Service for user feedback and error handling. Ensure fallback UI is provided for unexpected errors.
 
 - **Use TypeScript Strictly**: Define interfaces, avoid `any`, and follow Composition API patterns like `ref`, `reactive`, `computed`, and `watch`. Use tools like `tsc` for type checking.
 
@@ -19,9 +19,9 @@
 
 - **Reference Services**: Use the following services for specific operations:
 
-  - [API Service](design/ui/services/Api.md) for API operations.
-  - [Authentication Service](design/ui/services/Auth.md) for session management.
-  - [Notification Service](design/ui/services/Notification.md) for notifications.
+  - [API Service](design/ui/services/Api.md) - `frontend\app\utils\api.ts` for API operations.
+  - [Authentication Service](design/ui/services/Auth.md) - `frontend\app\utils\auth.ts` for session management.
+  - [Notifiy Service](design/ui/services/Notifiy.md) - `frontend\app\utils\notify.ts` for Notifiys.
 
 - **Adopt Industry Best Practices**: Ensure accessibility (ARIA roles, keyboard navigation), optimize performance (lazy loading, code splitting, caching), sanitize user inputs, and use HTTPS for API calls. Use tools like Lighthouse for performance and accessibility audits.
 
@@ -51,6 +51,9 @@
 - **Leverage Auto-Imports**: Nuxt 4 auto-imports components, composables, and utilities. Avoid manual imports unless explicitly required. Use the `#imports` alias for explicit imports when needed.
 
 - **Testing**: Follow Nuxt 4 testing guidelines. Use `@nuxt/test-utils` for unit and end-to-end testing. Ensure tests are written for all critical components and services.
+
+- The Notifiy Service `frontend\app\utils\notify.ts` is core part of the notification mechanism in the frontend.
+- Use the Notify Service for all notifications to ensure consistency and maintainability.
 
 ### Relation
 

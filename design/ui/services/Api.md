@@ -2,14 +2,14 @@
 
 ## Overview
 
-This document outlines the design and implementation details for a new `api.ts` (`frontend\app\utils\api.ts`) service layer. The purpose of this layer is to abstract API handling calls, providing a flexible and dynamic interface for interacting with backend services. The service layer is designed to evolve with the backend, making no assumptions about the data structure or endpoints.
+This document outlines the design and implementation details for `api.ts` (`frontend\app\utils\api.ts`) service layer. The purpose of this layer is to abstract API handling calls, providing a flexible and dynamic interface for interacting with backend services. The service layer is designed to evolve with the backend, making no assumptions about the data structure or endpoints.
 
 ## Key Features
 
 - **Dynamic API Handling**: Adapts to changes in backend data structures and endpoints without assuming fixed formats.
 - **Standardized Response Handling**: Ensures all responses follow the backend's standardized format for consistency.
 - **Extensibility**: Allows adding custom interceptors and extending functionalities for specific use cases.
-- **Error Handling**: Provides consistent error handling, logs all errors, and ensures user-friendly messages without exposing internal errors or stack traces to the frontend.
+- **Error Handling**: Provides consistent error handling, logs all errors, and ensures user-friendly messages. Internal errors or stack traces are included in the `details` field for debugging purposes but are not exposed to the frontend UI.
 - **Lightweight and Modular**: Focuses on core API handling with minimal overhead and efficient interactions.
 - **CRUD Operations**: Includes generic methods for Create, Read, Update, and Delete operations.
 - **Performance**: Optimized for efficient API interactions while maintaining flexibility.
@@ -49,10 +49,10 @@ The API service layer provides the following methods:
 
 ### Utility Methods
 
-- `buildUrl(resource: string, params?: Record<string, any>): string`
-  - Constructs a URL with query parameters.
+- `buildUrl(resource: string, params?: Record<string, any>): { url: string; notifications: Notification[] }`
+  - Constructs a URL with query parameters and validates them. Adds notifications for invalid parameters.
 - `handleError(error: any): ApiError`
-  - Processes and formats API errors.
+  - Processes and formats API errors. Includes stack traces in the `details` field for debugging purposes.
 
 ## Backend Integration
 
@@ -136,7 +136,7 @@ All responses follow the standardized format defined by the backend:
 ## References Specifications
 
 - [Authentication Service Specification](design/ui/services/Auth.md).
-- [Notification Service Specification](design/ui/services/Notification.md).
+- [Notifiy Service Specification](design/ui/services/Notify.md).
 - [Nuxt 4 Testing Guide](https://nuxt.com/docs/4.x/getting-started/testing).
 
 ## Usage Examples

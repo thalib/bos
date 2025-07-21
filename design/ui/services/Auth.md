@@ -233,7 +233,7 @@ await authService.refreshToken()
 
 ## Design Considerations
 
-- **Error Handling**: All errors are logged, and user-friendly messages are displayed using the Notification Service.
+- **Error Handling**: All errors are logged, and user-friendly messages are displayed using the Notifiy Service.
 - **Security**: Authentication tokens are securely managed, and sensitive data is never exposed.
 - **Performance**: The service is optimized for minimal overhead and efficient API interactions.
 - **Single Responsibility**: The `auth.ts` file is the single point of truth for all authentication-related operations, ensuring consistency and maintainability.
