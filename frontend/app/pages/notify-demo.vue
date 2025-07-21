@@ -4,7 +4,7 @@
       <div class="col-md-8 mx-auto">
         <div class="card">
           <div class="card-header">
-            <h4 class="mb-0">Notification Service Demo</h4>
+            <h4 class="mb-0"><i class="bi bi-bell"></i> Notification Service Demo</h4>
           </div>
           <div class="card-body">
             <p class="text-muted">

@@ -3,8 +3,19 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   modules: ['@nuxt/test-utils'],
-  css: ['toastr/build/toastr.min.css'],
+  css: [
+    'bootstrap/dist/css/bootstrap.min.css',
+    'bootstrap-icons/font/bootstrap-icons.css',
+    'toastr/build/toastr.min.css'
+  ],
   router: {
     middleware: ['auth']
+  },
+  app: {
+    head: {
+      htmlAttrs: {
+        'data-bs-theme': 'dark'
+      }
+    }
   }
 })
