@@ -1,5 +1,6 @@
 import { ref, computed, type ComputedRef } from 'vue'
 import { useApiService, type ApiResponse } from './api'
+import { useNotifyService } from './notify'
 
 // Type definitions
 export interface LoginCredentials {
@@ -28,6 +29,7 @@ export interface AuthTokens {
 // Authentication Service implementation
 class AuthService {
   public apiService = useApiService()
+  private notifyService = useNotifyService()
   
   // Reactive state
   private tokens = ref<AuthTokens>({ accessToken: '', refreshToken: '' })
@@ -72,10 +74,21 @@ class AuthService {
           refreshToken: response.data.refresh_token
         })
         this.saveUser(response.data.user)
+        
+        // Show success notification
+        this.notifyService.success(
+          `Welcome back, ${response.data.user.name}!`,
+          'Login Successful'
+        )
       }
 
       return response
     } catch (error) {
+      // Error notifications are already handled by the API service
+      this.notifyService.error(
+        'Invalid credentials. Please check your email and password.',
+        'Login Failed'
+      )
       throw error
     }
   }
@@ -89,8 +102,20 @@ class AuthService {
         method: 'POST'
       })
 
+      if (response.success) {
+        this.notifyService.success(
+          'You have been logged out successfully.',
+          'Logged Out'
+        )
+      }
+
       return response
     } catch (error) {
+      // Log the logout error but don't prevent logout
+      this.notifyService.warning(
+        'Logout request failed, but you have been logged out locally.',
+        'Logout Warning'
+      )
       throw error
     } finally {
       // Always clear local data regardless of API response
@@ -121,12 +146,22 @@ class AuthService {
           refreshToken: response.data.refresh_token
         })
         this.saveUser(response.data.user)
+        
+        // Optionally show a subtle notification for token refresh
+        this.notifyService.info(
+          'Session refreshed successfully.',
+          'Session Updated'
+        )
       }
 
       return response
     } catch (error) {
       // If refresh fails, clear local data
       this.clearLocalData()
+      this.notifyService.error(
+        'Session expired. Please log in again.',
+        'Session Expired'
+      )
       throw error
     }
   }

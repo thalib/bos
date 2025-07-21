@@ -1,4 +1,6 @@
 // Refer to design/api/index.md for response structure
+import { useNotifyService } from './notify'
+
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
   headers?: Record<string, string>
@@ -66,6 +68,45 @@ class ApiService {
   private baseURL = ''
   private requestInterceptors: RequestInterceptor[] = []
   private responseInterceptors: ResponseInterceptor[] = []
+  private notifyService = useNotifyService()
+
+  /**
+   * Display notifications from API response
+   */
+  private displayNotifications(notifications: Notification[]): void {
+    notifications.forEach(notification => {
+      this.notifyService.notify({
+        type: notification.type,
+        message: notification.message
+      })
+    })
+  }
+
+  /**
+   * Handle API success response
+   */
+  private handleSuccess<T>(response: ApiResponse<T>): void {
+    // Display any notifications from the response
+    if (response.notifications && response.notifications.length > 0) {
+      this.displayNotifications(response.notifications)
+    }
+  }
+
+  /**
+   * Handle API error response
+   */
+  private handleApiError(response: ApiResponse, status: number): void {
+    // Log API error
+    this.notifyService.error(
+      response.message || 'Request failed',
+      'API Error'
+    )
+
+    // Display any notifications from the error response
+    if (response.notifications && response.notifications.length > 0) {
+      this.displayNotifications(response.notifications)
+    }
+  }
 
   /**
    * Generic request method for API calls
@@ -129,15 +170,26 @@ class ApiService {
 
       // Handle HTTP errors
       if (!response.ok) {
+        this.handleApiError(data, response.status)
         throw this.createError(data, response.status)
       }
+
+      // Handle successful response
+      this.handleSuccess(data)
 
       return data
     } catch (error) {
       if (error instanceof Error && error.name === 'ApiError') {
         throw error
       }
-      throw this.handleError(error)
+      
+      // Handle unexpected errors
+      const apiError = this.handleError(error)
+      this.notifyService.error(
+        apiError.message,
+        'Network Error'
+      )
+      throw apiError
     }
   }
 
