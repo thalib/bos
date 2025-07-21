@@ -1,4 +1,4 @@
-// Type definitions
+// Refer to design/api/index.md for response structure
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
   headers?: Record<string, string>
@@ -8,14 +8,20 @@ export interface RequestOptions {
   responseType?: 'json' | 'text' | 'blob'
 }
 
+export interface Notification {
+  type: 'info' | 'warning' | 'success'
+  message: string
+}
+
 export interface ApiResponse<T = any> {
   success: boolean
   message: string
   data?: T
   pagination?: PaginationInfo
+  notifications?: Notification[]
   error?: {
     code: string
-    details: string
+    details: string[]
   }
 }
 
@@ -25,20 +31,22 @@ export interface PaginatedResponse<T = any> {
 }
 
 export interface PaginationInfo {
-  current_page: number
-  per_page: number
-  total: number
-  last_page?: number
-  from?: number
-  to?: number
+  totalItems: number
+  currentPage: number
+  itemsPerPage: number
+  totalPages: number
+  urlPath: string
+  urlQuery: string | null
+  nextPage: string | null
+  prevPage: string | null
 }
 
 export interface PaginationParams {
   page?: number
-  limit?: number
   per_page?: number
   sort?: string
-  order?: 'asc' | 'desc'
+  dir?: 'asc' | 'desc'
+  filter?: string
   search?: string
   [key: string]: any
 }
@@ -46,7 +54,7 @@ export interface PaginationParams {
 export interface ApiError {
   message: string
   code: string
-  details?: string
+  details?: string[]
   status?: number
 }
 
@@ -137,8 +145,18 @@ class ApiService {
    * Fetch a list of resources with pagination
    */
   async fetch<T = any>(resource: string, params?: PaginationParams): Promise<ApiResponse<PaginatedResponse<T>>> {
-    const url = this.buildUrl(resource, params)
-    return this.request<PaginatedResponse<T>>(url)
+    const { url, notifications } = this.buildUrl(resource, params)
+    const response = await this.request<PaginatedResponse<T>>(url)
+    
+    // Merge validation notifications with response notifications
+    if (notifications.length > 0) {
+      response.notifications = [
+        ...(response.notifications || []),
+        ...notifications
+      ]
+    }
+    
+    return response
   }
 
   /**
@@ -208,18 +226,96 @@ class ApiService {
   }
 
   /**
-   * Build URL with query parameters
+   * Build URL with query parameters and validation
    */
-  buildUrl(resource: string, params?: Record<string, any>): string {
+  buildUrl(resource: string, params?: Record<string, any>): { url: string; notifications: Notification[] } {
     let url = `/api/v1/${resource}`
+    const notifications: Notification[] = []
     
     if (params) {
-      const queryParams = new URLSearchParams()
+      const validatedParams: Record<string, any> = {}
       
+      // Validate and process each parameter
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          queryParams.append(key, String(value))
+          switch (key) {
+            case 'page':
+              const pageNum = Number(value)
+              if (isNaN(pageNum) || pageNum <= 0) {
+                validatedParams.page = 1
+                notifications.push({
+                  type: 'warning',
+                  message: `Invalid page number '${value}', using page 1`
+                })
+              } else {
+                validatedParams.page = pageNum
+              }
+              break
+              
+            case 'per_page':
+              const perPage = Number(value)
+              if (isNaN(perPage) || perPage < 1) {
+                validatedParams.per_page = 1
+                notifications.push({
+                  type: 'warning',
+                  message: `Page size '${value}' below minimum of 1, using minimum 1`
+                })
+              } else if (perPage > 100) {
+                validatedParams.per_page = 100
+                notifications.push({
+                  type: 'warning',
+                  message: `Page size '${value}' exceeds maximum of 100, using maximum 100`
+                })
+              } else {
+                validatedParams.per_page = perPage
+              }
+              break
+              
+            case 'dir':
+              if (value !== 'asc' && value !== 'desc') {
+                validatedParams.dir = 'asc'
+                notifications.push({
+                  type: 'warning',
+                  message: `Sort direction '${value}' not recognized, using 'asc'`
+                })
+              } else {
+                validatedParams.dir = value
+              }
+              break
+              
+            case 'search':
+              if (typeof value === 'string' && value.length < 2) {
+                // Ignore search term if too short
+                notifications.push({
+                  type: 'warning',
+                  message: 'Search term too short (minimum 2 characters), search ignored'
+                })
+              } else {
+                validatedParams.search = value
+              }
+              break
+              
+            case 'filter':
+              if (typeof value === 'string' && !value.includes(':')) {
+                notifications.push({
+                  type: 'warning',
+                  message: `Filter format '${value}' not recognized, filter ignored`
+                })
+              } else {
+                validatedParams.filter = value
+              }
+              break
+              
+            default:
+              validatedParams[key] = value
+              break
+          }
         }
+      })
+      
+      const queryParams = new URLSearchParams()
+      Object.entries(validatedParams).forEach(([key, value]) => {
+        queryParams.append(key, String(value))
       })
       
       const queryString = queryParams.toString()
@@ -228,7 +324,7 @@ class ApiService {
       }
     }
     
-    return url
+    return { url, notifications }
   }
 
   /**
@@ -242,7 +338,7 @@ class ApiService {
 
     if (error instanceof Error) {
       apiError.message = error.message
-      apiError.details = error.stack
+      apiError.details = error.stack ? [error.stack] : undefined
     } else if (typeof error === 'string') {
       apiError.message = error
     } else if (error && typeof error === 'object') {

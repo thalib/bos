@@ -104,9 +104,14 @@ describe('API Service', () => {
         message: 'Success',
         data: [{ id: 1, name: 'Item 1' }],
         pagination: {
-          current_page: 1,
-          per_page: 10,
-          total: 1
+          totalItems: 1,
+          currentPage: 1,
+          itemsPerPage: 10,
+          totalPages: 1,
+          urlPath: '/api/v1/users',
+          urlQuery: 'page=1&per_page=10',
+          nextPage: null,
+          prevPage: null
         }
       }
 
@@ -116,10 +121,10 @@ describe('API Service', () => {
         json: () => Promise.resolve(mockResponse)
       })
 
-      const result = await apiService.fetch('users', { page: 1, limit: 10 })
+      const result = await apiService.fetch('users', { page: 1, per_page: 10 })
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/users?page=1&limit=10',
+        '/api/v1/users?page=1&per_page=10',
         expect.any(Object)
       )
       expect(result).toEqual(mockResponse)
@@ -276,10 +281,146 @@ describe('API Service', () => {
     })
   })
 
+  describe('notifications handling', () => {
+    it('should merge parameter validation notifications with response notifications', async () => {
+      const mockResponse = {
+        success: true,
+        message: 'Success',
+        data: [{ id: 1, name: 'Item 1' }],
+        pagination: {
+          totalItems: 1,
+          currentPage: 1,
+          itemsPerPage: 10,
+          totalPages: 1,
+          urlPath: '/api/v1/users',
+          urlQuery: null,
+          nextPage: null,
+          prevPage: null
+        },
+        notifications: [
+          { type: 'info', message: 'Server notification' }
+        ]
+      }
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(mockResponse)
+      })
+
+      // Use invalid parameters to trigger validation notifications
+      const result = await apiService.fetch('users', { page: 0, per_page: 150 })
+
+      expect(result.notifications).toEqual([
+        { type: 'info', message: 'Server notification' },
+        { type: 'warning', message: "Invalid page number '0', using page 1" },
+        { type: 'warning', message: "Page size '150' exceeds maximum of 100, using maximum 100" }
+      ])
+    })
+
+    it('should add validation notifications when no response notifications exist', async () => {
+      const mockResponse = {
+        success: true,
+        message: 'Success',
+        data: [{ id: 1, name: 'Item 1' }],
+        pagination: {
+          totalItems: 1,
+          currentPage: 1,
+          itemsPerPage: 10,
+          totalPages: 1,
+          urlPath: '/api/v1/users',
+          urlQuery: null,
+          nextPage: null,
+          prevPage: null
+        }
+      }
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(mockResponse)
+      })
+
+      const result = await apiService.fetch('users', { page: -1 })
+
+      expect(result.notifications).toEqual([
+        { type: 'warning', message: "Invalid page number '-1', using page 1" }
+      ])
+    })
+
+    it('should not add notifications array when no validation issues occur', async () => {
+      const mockResponse = {
+        success: true,
+        message: 'Success',
+        data: [{ id: 1, name: 'Item 1' }],
+        pagination: {
+          totalItems: 1,
+          currentPage: 1,
+          itemsPerPage: 10,
+          totalPages: 1,
+          urlPath: '/api/v1/users',
+          urlQuery: null,
+          nextPage: null,
+          prevPage: null
+        }
+      }
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(mockResponse)
+      })
+
+      const result = await apiService.fetch('users', { page: 1, per_page: 10 })
+
+      expect(result.notifications).toBeUndefined()
+    })
+  })
+
   describe('utility methods', () => {
-    it('should build URLs with parameters', () => {
-      const url = apiService.buildUrl('users', { page: 1, filter: 'active' })
-      expect(url).toBe('/api/v1/users?page=1&filter=active')
+    it('should build URLs with valid parameters', () => {
+      const result = apiService.buildUrl('users', { page: 1, filter: 'status:active' })
+      expect(result.url).toBe('/api/v1/users?page=1&filter=status%3Aactive')
+      expect(result.notifications).toEqual([])
+    })
+
+    it('should validate and provide fallbacks for invalid parameters', () => {
+      const result = apiService.buildUrl('users', { 
+        page: 0, 
+        per_page: 150, 
+        dir: 'invalid',
+        search: 'a',
+        filter: 'invalid_format'
+      })
+      
+      expect(result.url).toBe('/api/v1/users?page=1&per_page=100&dir=asc')
+      expect(result.notifications).toEqual([
+        { type: 'warning', message: "Invalid page number '0', using page 1" },
+        { type: 'warning', message: "Page size '150' exceeds maximum of 100, using maximum 100" },
+        { type: 'warning', message: "Sort direction 'invalid' not recognized, using 'asc'" },
+        { type: 'warning', message: 'Search term too short (minimum 2 characters), search ignored' },
+        { type: 'warning', message: "Filter format 'invalid_format' not recognized, filter ignored" }
+      ])
+    })
+
+    it('should handle negative per_page values', () => {
+      const result = apiService.buildUrl('users', { per_page: -5 })
+      expect(result.url).toBe('/api/v1/users?per_page=1')
+      expect(result.notifications).toEqual([
+        { type: 'warning', message: "Page size '-5' below minimum of 1, using minimum 1" }
+      ])
+    })
+
+    it('should pass through valid filter format', () => {
+      const result = apiService.buildUrl('users', { filter: 'status:active' })
+      expect(result.url).toBe('/api/v1/users?filter=status%3Aactive')
+      expect(result.notifications).toEqual([])
+    })
+
+    it('should pass through valid search terms', () => {
+      const result = apiService.buildUrl('users', { search: 'mobile' })
+      expect(result.url).toBe('/api/v1/users?search=mobile')
+      expect(result.notifications).toEqual([])
     })
 
     it('should handle error properly', () => {
