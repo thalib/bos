@@ -70,6 +70,14 @@ class ApiService {
   private responseInterceptors: ResponseInterceptor[] = []
   private notifyService = useNotifyService()
 
+  constructor() {
+    // Set base URL from runtime config
+    if (import.meta.client) {
+      const config = useRuntimeConfig()
+      this.baseURL = config.public.apiBaseUrl
+    }
+  }
+
   /**
    * Display notifications from API response
    */
@@ -143,6 +151,12 @@ class ApiService {
 
       // Add query parameters to URL
       let requestUrl = config.url
+      
+      // Add base URL if URL is relative
+      if (!requestUrl.startsWith('http') && this.baseURL) {
+        requestUrl = this.baseURL + requestUrl
+      }
+      
       if (config.params) {
         const params = new URLSearchParams(config.params).toString()
         requestUrl += (requestUrl.includes('?') ? '&' : '?') + params
@@ -215,7 +229,10 @@ class ApiService {
    * Get a single resource by ID
    */
   async get<T = any>(resource: string, id: string | number): Promise<ApiResponse<T>> {
-    const url = `/api/v1/${resource}/${id}`
+    let url = `/api/v1/${resource}/${id}`
+    if (!url.startsWith('http') && this.baseURL) {
+      url = this.baseURL + url
+    }
     return this.request<T>(url)
   }
 
@@ -223,7 +240,10 @@ class ApiService {
    * Create a new resource
    */
   async create<T = any, D = any>(resource: string, data: D): Promise<ApiResponse<T>> {
-    const url = `/api/v1/${resource}`
+    let url = `/api/v1/${resource}`
+    if (!url.startsWith('http') && this.baseURL) {
+      url = this.baseURL + url
+    }
     return this.request<T>(url, {
       method: 'POST',
       body: data
@@ -234,7 +254,10 @@ class ApiService {
    * Update an existing resource
    */
   async update<T = any, D = any>(resource: string, id: string | number, data: D): Promise<ApiResponse<T>> {
-    const url = `/api/v1/${resource}/${id}`
+    let url = `/api/v1/${resource}/${id}`
+    if (!url.startsWith('http') && this.baseURL) {
+      url = this.baseURL + url
+    }
     return this.request<T>(url, {
       method: 'PUT',
       body: data
@@ -245,7 +268,10 @@ class ApiService {
    * Delete a resource
    */
   async delete<T = any>(resource: string, id: string | number): Promise<ApiResponse<T>> {
-    const url = `/api/v1/${resource}/${id}`
+    let url = `/api/v1/${resource}/${id}`
+    if (!url.startsWith('http') && this.baseURL) {
+      url = this.baseURL + url
+    }
     return this.request<T>(url, {
       method: 'DELETE'
     })
@@ -282,6 +308,12 @@ class ApiService {
    */
   buildUrl(resource: string, params?: Record<string, any>): { url: string; notifications: Notification[] } {
     let url = `/api/v1/${resource}`
+    
+    // Add base URL if available and URL is relative
+    if (!url.startsWith('http') && this.baseURL) {
+      url = this.baseURL + url
+    }
+    
     const notifications: Notification[] = []
     
     if (params) {

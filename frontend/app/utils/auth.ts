@@ -180,10 +180,12 @@ class AuthService {
    */
   saveTokens(authTokens: AuthTokens): void {
     this.tokens.value = { ...authTokens }
-    try {
-      localStorage.setItem('auth_tokens', JSON.stringify(authTokens))
-    } catch (error) {
-      console.error('Failed to save tokens to localStorage:', error)
+    if (import.meta.client) {
+      try {
+        localStorage.setItem('auth_tokens', JSON.stringify(authTokens))
+      } catch (error) {
+        console.error('Failed to save tokens to localStorage:', error)
+      }
     }
   }
 
@@ -199,14 +201,16 @@ class AuthService {
    */
   saveUser(userData: User | null): void {
     this.user.value = userData
-    try {
-      if (userData) {
-        localStorage.setItem('auth_user', JSON.stringify(userData))
-      } else {
-        localStorage.removeItem('auth_user')
+    if (import.meta.client) {
+      try {
+        if (userData) {
+          localStorage.setItem('auth_user', JSON.stringify(userData))
+        } else {
+          localStorage.removeItem('auth_user')
+        }
+      } catch (error) {
+        console.error('Failed to save user data to localStorage:', error)
       }
-    } catch (error) {
-      console.error('Failed to save user data to localStorage:', error)
     }
   }
 
@@ -221,6 +225,11 @@ class AuthService {
    * Initialize authentication state from localStorage
    */
   initAuth(): void {
+    if (!import.meta.client) {
+      this.initialized.value = true
+      return
+    }
+
     try {
       // Load tokens from localStorage
       const storedTokens = localStorage.getItem('auth_tokens')
@@ -252,11 +261,13 @@ class AuthService {
     this.tokens.value = { accessToken: '', refreshToken: '' }
     this.user.value = null
     
-    try {
-      localStorage.removeItem('auth_tokens')
-      localStorage.removeItem('auth_user')
-    } catch (error) {
-      console.error('Failed to clear localStorage:', error)
+    if (import.meta.client) {
+      try {
+        localStorage.removeItem('auth_tokens')
+        localStorage.removeItem('auth_user')
+      } catch (error) {
+        console.error('Failed to clear localStorage:', error)
+      }
     }
   }
 
