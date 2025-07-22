@@ -64,7 +64,10 @@ class AuthService {
     try {
       const response = await this.apiService.request<LoginResponse>('/api/v1/auth/login', {
         method: 'POST',
-        body: credentials
+        body: {
+          username: credentials.email, // Backend expects 'username' field
+          password: credentials.password
+        }
       })
 
       if (response.success && response.data) {
@@ -136,7 +139,7 @@ class AuthService {
     try {
       const response = await this.apiService.request<LoginResponse>('/api/v1/auth/refresh', {
         method: 'POST',
-        body: { refresh_token: currentTokens.refreshToken }
+        body: { refreshToken: currentTokens.refreshToken } // Backend expects 'refreshToken' field
       })
 
       if (response.success && response.data) {
@@ -181,7 +184,9 @@ class AuthService {
   saveTokens(authTokens: AuthTokens): void {
     this.tokens.value = { ...authTokens }
     try {
-      localStorage.setItem('auth_tokens', JSON.stringify(authTokens))
+      if (process.client && typeof window !== 'undefined') {
+        localStorage.setItem('auth_tokens', JSON.stringify(authTokens))
+      }
     } catch (error) {
       console.error('Failed to save tokens to localStorage:', error)
     }
@@ -200,10 +205,12 @@ class AuthService {
   saveUser(userData: User | null): void {
     this.user.value = userData
     try {
-      if (userData) {
-        localStorage.setItem('auth_user', JSON.stringify(userData))
-      } else {
-        localStorage.removeItem('auth_user')
+      if (process.client && typeof window !== 'undefined') {
+        if (userData) {
+          localStorage.setItem('auth_user', JSON.stringify(userData))
+        } else {
+          localStorage.removeItem('auth_user')
+        }
       }
     } catch (error) {
       console.error('Failed to save user data to localStorage:', error)
@@ -222,20 +229,23 @@ class AuthService {
    */
   initAuth(): void {
     try {
-      // Load tokens from localStorage
-      const storedTokens = localStorage.getItem('auth_tokens')
-      if (storedTokens) {
-        const tokens = JSON.parse(storedTokens)
-        this.tokens.value = {
-          accessToken: tokens.accessToken || '',
-          refreshToken: tokens.refreshToken || ''
+      // Only try to access localStorage on the client side
+      if (process.client && typeof window !== 'undefined') {
+        // Load tokens from localStorage
+        const storedTokens = localStorage.getItem('auth_tokens')
+        if (storedTokens) {
+          const tokens = JSON.parse(storedTokens)
+          this.tokens.value = {
+            accessToken: tokens.accessToken || '',
+            refreshToken: tokens.refreshToken || ''
+          }
         }
-      }
 
-      // Load user data from localStorage
-      const storedUser = localStorage.getItem('auth_user')
-      if (storedUser) {
-        this.user.value = JSON.parse(storedUser)
+        // Load user data from localStorage
+        const storedUser = localStorage.getItem('auth_user')
+        if (storedUser) {
+          this.user.value = JSON.parse(storedUser)
+        }
       }
     } catch (error) {
       console.error('Failed to initialize auth from localStorage:', error)
@@ -253,8 +263,10 @@ class AuthService {
     this.user.value = null
     
     try {
-      localStorage.removeItem('auth_tokens')
-      localStorage.removeItem('auth_user')
+      if (process.client && typeof window !== 'undefined') {
+        localStorage.removeItem('auth_tokens')
+        localStorage.removeItem('auth_user')
+      }
     } catch (error) {
       console.error('Failed to clear localStorage:', error)
     }

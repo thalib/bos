@@ -65,10 +65,24 @@ export type ResponseInterceptor = (response: ApiResponse) => ApiResponse
 
 // API Service implementation
 class ApiService {
-  private baseURL = ''
+  private baseURL: string
   private requestInterceptors: RequestInterceptor[] = []
   private responseInterceptors: ResponseInterceptor[] = []
   private notifyService = useNotifyService()
+
+  constructor() {
+    // Get the API base URL from runtime config, with fallback
+    this.baseURL = 'http://localhost:8000'
+    try {
+      const config = useRuntimeConfig()
+      if (config?.public?.apiBase) {
+        this.baseURL = config.public.apiBase
+      }
+    } catch (error) {
+      // Runtime config might not be available during SSR/build
+      console.warn('Runtime config not available, using fallback API base URL')
+    }
+  }
 
   /**
    * Display notifications from API response
@@ -115,7 +129,7 @@ class ApiService {
     try {
       // Prepare request config
       let config: RequestOptions & { url: string } = {
-        url,
+        url: url.startsWith('http') ? url : `${this.baseURL}${url}`,
         method: options.method || 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -160,7 +174,18 @@ class ApiService {
         const blobData = await response.blob()
         data = { success: response.ok, message: 'Success', data: blobData as T }
       } else {
-        data = await response.json()
+        const jsonData = await response.json()
+        // If the response is already in API format, use it; otherwise wrap it
+        if (jsonData.hasOwnProperty('success') && jsonData.hasOwnProperty('message')) {
+          data = jsonData
+        } else {
+          // Wrap raw backend responses in API format
+          data = {
+            success: response.ok,
+            message: jsonData.message || (response.ok ? 'Success' : 'Request failed'),
+            data: jsonData
+          }
+        }
       }
 
       // Apply response interceptors
