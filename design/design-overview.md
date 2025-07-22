@@ -27,7 +27,6 @@ The frontend is built using Nuxt 4, focusing on data-driven development and opti
 - **Frontend Source Directory**: `frontend`
 - **Shared API Service**: All HTTP requests must use the shared API service (`/frontend/services/api.ts`). Authentication headers are automatically handled by the API service.
 - **UI Styling**: Prioritize Bootstrap 5.3 classes over custom CSS and use Bootstrap Icons for consistent design.
-- **Error Handling**: Implement comprehensive error handling using utilities from `/frontend/utils/errorHandling.ts`.
 - **Form Validation**: Use reactive validation patterns and provide real-time feedback.
 - **Test-Driven Development (TDD) Workflow**:
   1. **Write a Test First**: Define the expected behavior in a test file (`frontend/tests/`).

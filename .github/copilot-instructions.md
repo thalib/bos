@@ -1,6 +1,9 @@
 # GitHub Copilot Instructions for BOS Project
 
-Refer to `design/design-overview.md` for detailed project principles.
+## Rules to Follow
+- for general project principles, see `design/design-overview.md`.
+- For backend-specific rules, see `design/rules-api.md`.
+- For frontend-specific rules, see `design/rules-ui.md`.
 
 ## General Guidelines
 - Follow the structured design principles outlined in `design/design-overview.md`.
@@ -18,6 +21,4 @@ Refer to `design/design-overview.md` for detailed project principles.
 - Centralize HTTP requests in `frontend/app/utils/api.ts`. for Notification and logging use `frontend/app/utils/notify.ts`.
 
 
-## References
-- For backend rules, see `design/rules-api.md`.
-- For frontend rules, see `design/rules-ui.md`.
+
