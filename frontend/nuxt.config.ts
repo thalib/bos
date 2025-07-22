@@ -17,5 +17,10 @@ export default defineNuxtConfig({
         'data-bs-theme': 'dark'
       }
     }
+  },
+  runtimeConfig: {
+    public: {
+      apiBase: 'http://localhost:8000'
+    }
   }
 })

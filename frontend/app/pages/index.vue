@@ -177,7 +177,8 @@ const handleLogin = async (): Promise<void> => {
 
 // Redirect if already authenticated
 onMounted(() => {
-  if (authService.isAuthenticated.value) {
+  // Wait for auth service to be initialized before checking authentication status
+  if (authService.isInitialized.value && authService.isAuthenticated.value) {
     const redirectPath = (route.query.redirect as string) || '/dashboard'
     navigateTo(redirectPath)
   }
