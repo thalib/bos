@@ -1,10 +1,10 @@
 <template>
   <div>
     <!-- Navbar Component -->
-    <MenuNavbar :title="currentPageTitle" />
+    <CommonNavbar :title="currentPageTitle" />
     
     <!-- Sidebar Component -->
-    <MenuSidebar @logout="handleLogout" />
+    <CommonSidebar @logout="handleLogout" />
     
     <!-- Main Content -->
     <div class="container-fluid">

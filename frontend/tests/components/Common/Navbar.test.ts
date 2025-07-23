@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import Navbar from '~/components/Menu/Navbar.vue'
+import Navbar from '~/components/Common/Navbar.vue'
 
 // Mock the auth service
 const mockAuthService = {
