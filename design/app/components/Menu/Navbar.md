@@ -2,7 +2,7 @@
 
 - The `Navbar` component is a key UI element that provides navigation and user interaction capabilities. It dynamically updates its content based on the user's authentication state and supports toggling between light and dark themes. The component is designed for Nuxt 4, uses strict TypeScript, and follows the BOS project guidelines for structure, testing, and styling.
 
-**File Location:** `frontend/app/components/Navbar.vue`
+**File Location:** `frontend/app/components/Menu/Navbar.vue`
 
 ## Component Structure
 
@@ -25,8 +25,8 @@ Page
 ```
 
 - **Sidebar:**
-  - Design specification reference: `design/app/components/Menu/Sidebar.md`
-  - File path: `frontend/app/components/Sidebar.vue`
+  - Design specification reference: `design\app\components\Menu\Sidebar.md`
+  - File path: `frontend/app/components/Menu/Sidebar.vue`
 
 ## Features
 

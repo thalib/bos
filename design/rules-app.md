@@ -69,6 +69,7 @@ Backend <-> api.ts <-> auth.ts <-> Frontend Components
 - **Loading States**: Always provide consistent loading indicators for all async operations. Use shared components for spinners or skeleton loaders.
 - **Best Practices**: Ensure accessibility (ARIA roles, keyboard navigation), optimize performance (lazy loading, code splitting, caching), sanitize user inputs, and use HTTPS for API calls. Use Lighthouse for audits.
 - **Auto-Imports**: Nuxt 4 auto-imports components, composables, and utilities. Avoid manual imports unless explicitly required. Use the `#imports` alias for explicit imports when needed.
+- Nuxt 4 now auto-import your `components/`, `composables/` and `utils/`. so do not explicitly importing them.
 
 ## Frontend Anti-Patterns
 
