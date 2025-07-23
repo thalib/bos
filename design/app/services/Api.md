@@ -135,8 +135,8 @@ All responses follow the standardized format defined by the backend:
 
 ## References Specifications
 
-- [Authentication Service Specification](design/ui/services/Auth.md).
-- [Notifiy Service Specification](design/ui/services/Notify.md).
+- [Authentication Service Specification](design/app/services/Auth.md).
+- [Notifiy Service Specification](design/app/services/Notify.md).
 - [Nuxt 4 Testing Guide](https://nuxt.com/docs/4.x/getting-started/testing).
 
 ## Usage Examples

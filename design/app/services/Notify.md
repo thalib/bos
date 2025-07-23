@@ -98,7 +98,7 @@ export default defineNuxtConfig({
 - Avoid overloading users with too many notifications.
 - Use pinned notifications (`duration = 0`) for critical errors that require user attention.
 - Test the service across different screen sizes to ensure responsiveness.
-- Ensure the service adheres to the structured design principles outlined in `design/design-overview.md` and `design\rules-ui.md`
+- Ensure the service adheres to the structured design principles outlined in `design\rules-app.md`
 
 ## Design Considerations
 

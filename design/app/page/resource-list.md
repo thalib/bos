@@ -8,13 +8,13 @@ The `[resource].vue` page provides a comprehensive interface for managing resour
 
 ```markdown
 Page
-├── MasterDetail (design\ui\component\master-detail.md)
-│   ├── List (design\ui\component\list.md)
-│   └── {Form (design/ui/component/form.md) or Document (design\ui\component\document.md)}
-├── PaginationS (design\ui\component\paginations.md)
-├── Header (design\ui\component\header.md)
-│   ├── Filter (design\ui\component\filter.md)
-│   └── Search (design\ui\component\search.md)
+├── MasterDetail (design\app\component\master-detail.md)
+│   ├── List (design\app\component\list.md)
+│   └── {Form (design/app/component/form.md) or Document (design\app\component\document.md)}
+├── PaginationS (design\app\component\paginations.md)
+├── Header (design\app\component\header.md)
+│   ├── Filter (design\app\component\filter.md)
+│   └── Search (design\app\component\search.md)
 └── Toast
 
 Form

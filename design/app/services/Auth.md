@@ -247,4 +247,4 @@ await authService.refreshToken()
 
 ## Related Specifications
 
-For API handling and integration, refer to the [API Service Layer Specification](design/ui/services/api.md).
+For API handling and integration, refer to the [API Service Layer Specification](design/app/services/api.md).
