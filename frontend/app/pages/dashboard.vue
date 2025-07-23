@@ -31,12 +31,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useAuthService } from '../utils/auth'
 
 // This page is protected by the auth middleware
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
+  layout: 'admin',
 })
 
 // Services
