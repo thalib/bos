@@ -1,6 +1,6 @@
 # Sidebar Component Design Specification
 
-The Sidebar component provides a responsive, off-canvas navigation menu for the BOS frontend. It displays user info, menu items (including sections, dividers, and regular links). It is designed for use in the main navigation and is optimized for both desktop and mobile.
+The Sidebar component provides a responsive, off-canvas data-driven navigation menu for the BOS frontend. It displays user info, menu items (including sections, dividers, and regular links). It is designed for use in the main navigation and is optimized for both desktop and mobile.
 
 **File Location:** `frontend/app/components/Menu/Sidebar.vue`
 
@@ -12,8 +12,10 @@ Below is the exact structure and an example of how the component should be used:
 <Sidebar />
 ```
 
-- **Props:**
-- **Events:** 
+- **Props:** N/A
+
+- **Events:**
+  - `logout`: Emitted when the logout button is clicked. This event triggers the `logout` method from `frontend/app/utils/auth.ts` to handle user logout.
 
 ## Child Components (optional)
 
@@ -28,14 +30,49 @@ Navbar
 
 ## Features
 
+- Fetch menu items from the API endpoint `/api/menu` (defined in `MenuController.php`).
 - Responsive off-canvas sidebar navigation.
-- Displays user name and avatar icon.
+- Fetches and displays the logged-in user's name using `authService.getCurrentUser()`.
 - Supports menu sections (collapsible), dividers, and regular items.
 - Dark/light mode toggle with event emission.
 - Logout button with redirect and offcanvas close.
 - Loading and error states for async menu loading.
 - Accessibility: ARIA roles, keyboard navigation, visually hidden text for spinners.
 - Uses Bootstrap 5.3 for all styling.
+
+## API Integration
+
+- Fetch menu data from the API endpoint `/api/menu` using the shared API service (`frontend/app/utils/api.ts`).
+- Example response structure:
+  ```json
+  [
+    {
+      "type": "item",
+      "id": 1,
+      "name": "Home",
+      "path": "/",
+      "icon": "bi-house",
+      "order": 1
+    },
+    {
+      "type": "section",
+      "title": "Tools",
+      "order": 2,
+      "items": [
+        {
+          "id": 21,
+          "name": "Todo",
+          "path": "/todo",
+          "icon": "bi-check-square"
+        }
+      ]
+    },
+    {
+      "type": "divider",
+      "order": 3
+    }
+  ]
+  ```
 
 ## UI Design
 
@@ -69,13 +106,13 @@ Navbar
 - Ensure accessibility (ARIA roles, keyboard navigation, visually hidden text for spinners).
 - Write tests first in `frontend/tests/` before implementing features.
 
-## Error Handling (optional)
+## Error Handling
 
-- Displays a Bootstrap warning alert if the `error` prop is set.
-- Shows a loading spinner if `isLoading` is true.
+- Displays a Bootstrap warning alert if the API request fails.
+- Shows a loading spinner while fetching menu data.
 - Shows an empty state if there are no menu items and not loading or error.
 
-## Accessibility (optional)
+## Accessibility
 
 - Uses ARIA attributes for offcanvas and spinner.
 - Visually hidden text for loading spinner.
