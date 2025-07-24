@@ -48,9 +48,8 @@
             </form>
           </div>
         </div>
-        <div v-else>
-          
-          <Spinner />
+        <div v-else>          
+          <CommonLoading />
         </div>
       </div>
     </div>
@@ -58,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import Spinner from './Spinner.vue';
+
 
 interface LoginForm {
   username: string
