@@ -1,10 +1,5 @@
 <template>
-  <div
-    class="offcanvas offcanvas-start"
-    tabindex="-1"
-    id="sidebar"
-    aria-labelledby="sidebarLabel"
-  >
+  <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" aria-labelledby="sidebarLabel">
     <!-- Offcanvas Header -->
     <div class="offcanvas-header">
       <h5 class="offcanvas-title" id="sidebarLabel" data-testid="user-name">
@@ -12,13 +7,8 @@
           {{ currentUser?.name || 'Guest' }}
         </ClientOnly>
       </h5>
-      <button
-        type="button"
-        class="btn-close"
-        data-bs-dismiss="offcanvas"
-        data-testid="sidebar-close"
-        aria-label="Close"
-      ></button>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-testid="sidebar-close"
+        aria-label="Close"></button>
     </div>
 
     <!-- Offcanvas Body -->
@@ -46,11 +36,7 @@
         <template v-for="item in sortedMenuItems" :key="`${item.type}-${item.id || item.order}`">
           <!-- Regular Menu Item -->
           <template v-if="item.type === 'item'">
-            <NuxtLink
-              :to="item.path"
-              class="nav-link"
-              :data-testid="`menu-item-${item.id}`"
-            >
+            <NuxtLink :to="item.path" class="nav-link" :data-testid="`menu-item-${item.id}`">
               <i v-if="item.icon" :class="[item.icon, 'me-2']"></i>
               {{ item.name }}
             </NuxtLink>
@@ -58,26 +44,16 @@
 
           <!-- Menu Section (Collapsible) -->
           <template v-else-if="item.type === 'section'">
-            <button
-              class="nav-link btn btn-link text-start"
-              type="button"
-              data-bs-toggle="collapse"
-              :data-bs-target="`#section-${item.title}`"
-              :aria-expanded="false"
-              :data-testid="`menu-section-${item.title}`"
-            >
+            <button class="nav-link btn btn-link text-start" type="button" data-bs-toggle="collapse"
+              :data-bs-target="`#section-${item.title}`" :aria-expanded="false"
+              :data-testid="`menu-section-${item.title}`">
               <i class="bi bi-chevron-right me-2"></i>
               {{ item.title }}
             </button>
             <div class="collapse" :id="`section-${item.title}`">
               <div class="ms-3">
-                <NuxtLink
-                  v-for="subItem in item.items"
-                  :key="subItem.id"
-                  :to="subItem.path"
-                  class="nav-link"
-                  :data-testid="`menu-item-${subItem.id}`"
-                >
+                <NuxtLink v-for="subItem in item.items" :key="subItem.id" :to="subItem.path" class="nav-link"
+                  :data-testid="`menu-item-${subItem.id}`">
                   <i v-if="subItem.icon" :class="[subItem.icon, 'me-2']"></i>
                   {{ subItem.name }}
                 </NuxtLink>
@@ -95,25 +71,16 @@
       <!-- Bottom Section -->
       <div class="mt-auto">
         <hr />
-        
+
         <!-- Dark/Light Mode Toggle -->
-        <button
-          type="button"
-          class="btn btn-outline-secondary w-100 mb-2"
-          data-testid="mode-toggle"
-          @click="toggleMode"
-        >
+        <button type="button" class="btn btn-outline-secondary w-100 mb-2" data-testid="mode-toggle"
+          @click="toggleMode">
           <i class="bi bi-moon me-2"></i>
           Toggle Theme
         </button>
 
         <!-- Logout Button -->
-        <button
-          type="button"
-          class="btn btn-outline-danger w-100"
-          data-testid="logout-btn"
-          @click="handleLogout"
-        >
+        <button type="button" class="btn btn-outline-danger w-100" data-testid="logout-btn" @click="handleLogout">
           <i class="bi bi-box-arrow-right me-2"></i>
           Logout
         </button>
@@ -153,7 +120,7 @@ const hasError = ref(false)
 
 // Computed properties
 const currentUser = computed(() => authService.getCurrentUser())
-const sortedMenuItems = computed(() => 
+const sortedMenuItems = computed(() =>
   [...menuItems.value].sort((a, b) => a.order - b.order)
 )
 
@@ -163,21 +130,21 @@ const getCachedMenuItems = () => {
     if (!process.client || typeof window === 'undefined') {
       return null
     }
-    
+
     const cached = localStorage.getItem('menu_cache')
     if (!cached) {
       return null
     }
-    
+
     const cacheData = JSON.parse(cached)
     const oneDay = 24 * 60 * 60 * 1000 // 1 day in milliseconds
     const isExpired = (Date.now() - cacheData.timestamp) > oneDay
-    
+
     if (isExpired) {
       localStorage.removeItem('menu_cache')
       return null
     }
-    
+
     return cacheData.menuItems
   } catch (error) {
     console.warn('Failed to load cached menu items:', error)
@@ -210,7 +177,7 @@ const fetchMenuItems = async () => {
       const menuData = response.data.data || response.data
       if (Array.isArray(menuData)) {
         menuItems.value = menuData
-        
+
         // Cache the menu items with 1-day expiry
         const cacheData = {
           menuItems: menuData,
@@ -244,11 +211,20 @@ const toggleMode = () => {
 }
 
 const handleLogout = async () => {
-    emit('logout')
+  emit('logout')
 }
 
 // Lifecycle
 onMounted(() => {
-  fetchMenuItems()
-})
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) {
+    const observer = new IntersectionObserver((entries) => {
+      const isVisible = entries[0].isIntersecting;
+      if (isVisible && authService.isInitialized.value && authService.isAuthenticated.value) {
+        fetchMenuItems();
+      }
+    });
+    observer.observe(sidebar);
+  }
+});
 </script>
