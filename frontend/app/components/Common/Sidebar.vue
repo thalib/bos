@@ -71,9 +71,7 @@
       <!-- Bottom Section -->
       <div class="mt-auto">
         <hr />
-
-        <p class="text-center"><a href="https://github.com/thalib/bos" target="_blank">BOS - Business OS</a></p>
-
+        <p><a href="https://github.com/thalib/bos" target="_blank">BOS - Business OS</a></p>
       </div>
     </div>
   </div>

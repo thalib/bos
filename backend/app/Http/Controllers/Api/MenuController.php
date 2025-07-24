@@ -48,7 +48,7 @@ class MenuController extends Controller
                     [
                         'id' => 40,
                         'name' => 'Estimate',
-                        'path' => '/doc/estimates',
+                        'path' => '/list/estimates',
                         'icon' => 'bi-receipt',
                     ],
                 ],
@@ -67,6 +67,14 @@ class MenuController extends Controller
                         'name' => 'Users',
                         'path' => '/list/users',
                         'icon' => 'bi-people',
+                        'mode' => 'form',
+                    ],
+                    [
+                        'id' => 40,
+                        'name' => 'Estimate',
+                        'path' => '/list/estimates',
+                        'icon' => 'bi-receipt',
+                        'mode' => 'doc',
                     ],
                 ],
             ],
