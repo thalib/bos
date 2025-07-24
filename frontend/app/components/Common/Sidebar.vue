@@ -8,7 +8,9 @@
     <!-- Offcanvas Header -->
     <div class="offcanvas-header">
       <h5 class="offcanvas-title" id="sidebarLabel" data-testid="user-name">
-        {{ currentUser?.name || 'Guest' }}
+        <ClientOnly fallback="Guest">
+          {{ currentUser?.name || 'Guest' }}
+        </ClientOnly>
       </h5>
       <button
         type="button"
@@ -156,19 +158,74 @@ const sortedMenuItems = computed(() =>
 )
 
 // Methods
+const getCachedMenuItems = () => {
+  try {
+    if (!process.client || typeof window === 'undefined') {
+      return null
+    }
+    
+    const cached = localStorage.getItem('menu_cache')
+    if (!cached) {
+      return null
+    }
+    
+    const cacheData = JSON.parse(cached)
+    const oneDay = 24 * 60 * 60 * 1000 // 1 day in milliseconds
+    const isExpired = (Date.now() - cacheData.timestamp) > oneDay
+    
+    if (isExpired) {
+      localStorage.removeItem('menu_cache')
+      return null
+    }
+    
+    return cacheData.menuItems
+  } catch (error) {
+    console.warn('Failed to load cached menu items:', error)
+    return null
+  }
+}
+
 const fetchMenuItems = async () => {
+  // First check for cached menu items
+  const cachedItems = getCachedMenuItems()
+  if (cachedItems && Array.isArray(cachedItems)) {
+    menuItems.value = cachedItems
+    isLoading.value = false
+    return
+  }
+
   try {
     isLoading.value = true
     hasError.value = false
 
-    const response = await apiService.request<MenuItem[]>('/api/v1/app/menu', {
+    const response = await apiService.request('/api/v1/app/menu', {
       method: 'GET'
     })
 
-    console.log('Menu items response:', response.data) // Log the response data
+    console.log('Menu items response:', response) // Log the full response
 
-    if (response.success && Array.isArray(response.data)) {
-      menuItems.value = response.data
+    // Handle the API service wrapped response: response.data contains the backend response
+    if (response.success && response.data) {
+      // The actual menu items are in response.data.data (backend's data field)
+      const menuData = response.data.data || response.data
+      if (Array.isArray(menuData)) {
+        menuItems.value = menuData
+        
+        // Cache the menu items with 1-day expiry
+        const cacheData = {
+          menuItems: menuData,
+          timestamp: Date.now()
+        }
+        try {
+          if (process.client && typeof window !== 'undefined') {
+            localStorage.setItem('menu_cache', JSON.stringify(cacheData))
+          }
+        } catch (error) {
+          console.warn('Failed to cache menu items:', error)
+        }
+      } else {
+        throw new Error(response.message || 'Failed to load menu')
+      }
     } else {
       throw new Error(response.message || 'Failed to load menu')
     }
