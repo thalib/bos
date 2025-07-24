@@ -37,7 +37,7 @@
 // This page is protected by the auth middleware
 definePageMeta({
   middleware: 'auth',
-  layout: 'admin',
+  layout: 'default',
   title: 'Dashboard',
 })
 
