@@ -1,18 +1,20 @@
-## frontend\app\pages\index.vue
+# `index.vue` Design Specification
 
-- This page should show the login form to the unauthenticated user.
-- On successful login, the user should be redirected to `frontend\app\pages\dashboard.vue`.
-- If a `redirect` path is present in the query parameters, the user should be redirected to that path after login.
+The `index.vue` file serves as the entry point for the application's login page. It leverages the `CommonLogin` component to provide a unified and consistent login interface.
 
-## The login form will have the following items:
+**File Location:** `frontend/app/pages/index.vue`
 
-1. Username (can be one of the following fields from the backend database):
-   - `username`
-   - `email`
-   - `whatsapp`
-2. Password
-3. Remember Me (checkbox)
+## Page Structure
 
-- The `username` field should accept any of the above values and validate them accordingly.
-- Ensure proper error handling and display error messages for invalid credentials.
-- Use Bootstrap 5.3 classes for styling the form.
+```html
+<template>
+  <CommonLogin />
+</template>
+```
+
+The `index.vue` file acts as a container that includes the `CommonLogin` component, which handles all the core functionality and logic for the login process. For more details, refer to the `design/app/components/Common/Login.md` file.
+
+## References
+
+- [Frontend Rules](design/rules-app.md)
+- [GitHub Copilot Instructions](.github/copilot-instructions.md)
