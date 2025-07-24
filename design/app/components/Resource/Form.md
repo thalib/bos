@@ -76,9 +76,26 @@ Parent
 - Provides user-friendly error messages for server-side validation errors.
 - Shows a loading indicator during form submission.
 
-## Example Usage (optional)
+## Example Usage
 
 ```html
 <Form
-  :id="123"
-  :schema="[{ field: 'name', type: 'string' }]"
+  resource="products"
+  :resource-id="123"
+  @form-saved="handleFormSaved"
+  @form-cancelled="handleFormCancelled"
+/>
+```
+
+---
+
+**Note:** The Form component has been optimized to be self-contained, similar to DocumentEdit. For detailed specifications of the self-contained Form component, refer to the DocumentEdit component which provides the same functionality but specifically for document types. The Form component should follow the same patterns:
+
+- Self-contained data fetching and state management
+- Schema-based form rendering
+- Real-time validation with API integration
+- Auto-save functionality
+- Bootstrap 5.3 responsive design
+- Comprehensive error handling via notify service
+
+**Migration:** Consider using DocumentEdit component for document forms, or implement Form component following the same self-contained architecture patterns shown in DocumentEdit.md.

@@ -1,88 +1,166 @@
 # MasterDetail Component Design Specification
 
-- The `MasterDetail` component provides a master-detail layout for resource management. It dynamically manages the master list view and detail panel interactions.
+The `MasterDetail` component is a **self-contained** layout coordinator that manages master-detail view interactions. It coordinates between the self-contained List component and detail panels (Form or DocumentView) based on the application mode.
 
 **File Location:** `frontend/app/components/Resource/MasterDetail.vue`
 
-## Component Structure
+## TDD Requirements
 
-Below is the exact structure and an example of how the component should be used:
+**Test First Approach - Write these tests BEFORE implementation:**
+
+```javascript
+// frontend/tests/components/Resource/MasterDetail.spec.ts
+describe('MasterDetail Component', () => {
+  it('should render responsive master-detail layout')
+  it('should coordinate List component in master panel')
+  it('should show Form component in detail panel for form mode')
+  it('should show DocumentView component in detail panel for document mode')
+  it('should handle item selection and detail panel updates')
+  it('should adapt layout for mobile and desktop screens')
+  it('should manage loading states across child components')
+  it('should handle component mode switching (form/document)')
+})
+```
+
+## Component Structure (Self-Contained Coordinator)
 
 ```html
 <MasterDetail
-  :data="items"
-  :columns="columns"
-  :pagination="pagination"
-  :loading="false"
-  :error="null"
-  :selectedItem="selectedItem"
-  :showDetailPanel="true"
-  :detailPanelTitle="'Details'"
-  :resourceTitle="'Resources'"
+  resource="products"
+  :mode="'form'"
+  :initial-selection="selectedItemId"
+  @selection-changed="onSelectionChanged"
 />
 ```
 
 - **Props:**
-  - `data` (array): Array of items from API response.
-  - `columns` (array): Configuration for table columns.
-  - `pagination` (object): Pagination configuration.
-  - `loading` (boolean): Indicates if the component is in a loading state.
-  - `error` (object): Object containing error details.
-  - `selectedItem` (object): Currently selected item.
-  - `showDetailPanel` (boolean): Boolean to toggle detail panel visibility.
-  - `detailPanelTitle` (string): Title for the detail panel.
-  - `resourceTitle` (string): Title of the resource being managed.
+  - `resource` (string, required): The API resource name
+  - `mode` (string, required): Component mode ('form' or 'document')
+  - `initial-selection` (string|number, optional): Initially selected item ID
+  - `split-view` (boolean, optional): Enable side-by-side view on desktop
 - **Events:**
-  - `item-select`: Triggered when an item is selected.
-  - `item-deselect`: Triggered when item selection is cleared.
-  - `detail-close`: Triggered when the detail panel is closed.
+  - `selection-changed`: Emitted when item selection changes. Payload: `{ selectedItem: object|null }`
 
-## Child Components (optional)
+## Architecture (Coordinator Pattern)
 
 ```txt
-Parent
-└── MasterDetail
+MasterDetail Component (Self-Contained Coordinator)
+├── Layout Management
+│   ├── Responsive split-pane layout
+│   ├── Mobile stacked layout
+│   ├── Master panel (List component)
+│   └── Detail panel (Form/DocumentView)
+├── Child Component Coordination
+│   ├── List component integration
+│   ├── Form component integration
+│   ├── DocumentView component integration
+│   └── Loading state coordination
+├── Selection Management
+│   ├── Item selection state
+│   ├── Detail panel updates
+│   ├── URL state synchronization
+│   └── Navigation history
+└── Mode Switching
+    ├── Form mode coordination
+    ├── Document mode coordination
+    └── Dynamic component loading
 ```
 
-## Features
-
-- Split-pane layout with master list and detail panel.
-- Dynamic detail panel content based on selection.
-- Handles loading and error states gracefully.
-- Responsive design for various screen sizes.
-
-## UI Design
-
-```txt
-+-----------------------------------------------+
-| [Master List] [Detail Panel]                  |
-+-----------------------------------------------+
-```
-
-- Uses Bootstrap 5.3 classes for consistent styling.
-
-## Implementation Rules
-
-- All HTTP requests must use the shared API service (`frontend/app/utils/api.ts`).
-- All notifications and error handling must use the Notify Service (`frontend/app/utils/notify.ts`).
-- Use Bootstrap 5.3 classes for all layout and UI elements.
-- Strictly type all props and logic with TypeScript.
-- Provide loading and error states for all async operations.
-- Ensure accessibility (ARIA roles, keyboard navigation).
-- Write tests first in `frontend/tests/` before implementing features.
-
-## Error Handling
-
-- Displays a user-friendly error message if the `data` or `columns` props are invalid.
-- Provides fallback UI for empty or error states.
-
-## Example Usage (optional)
+## Implementation Example
 
 ```html
-<MasterDetail
-  :data="[{ id: 1, name: 'Sample Item' }]
-  :columns="[{ field: 'name', label: 'Name' }]"
-  :loading="false"
-  @item-select="handleItemSelect"
-/>
+<!-- Responsive Master-Detail Layout -->
+<div class="master-detail-container">
+  <div class="row g-0 h-100">
+    <!-- Master Panel -->
+    <div 
+      class="col-lg-6 border-end"
+      :class="{ 'col-12': !selectedItem || isMobile }"
+    >
+      <div class="master-panel h-100">
+        <List
+          :resource="resource"
+          @item-selected="handleItemSelection"
+        />
+      </div>
+    </div>
+    
+    <!-- Detail Panel -->
+    <div 
+      v-if="selectedItem && (splitView || !isMobile)"
+      class="col-lg-6"
+    >
+      <div class="detail-panel h-100">
+        <!-- Form Mode -->
+        <Form
+          v-if="mode === 'form'"
+          :resource="resource"
+          :resource-id="selectedItem.id"
+          @form-saved="handleFormSaved"
+        />
+        
+        <!-- Document Mode -->
+        <DocumentView
+          v-else-if="mode === 'document'"
+          :resource="resource"
+          :document-id="selectedItem.id"
+          @action-triggered="handleDocumentAction"
+        />
+      </div>
+    </div>
+  </div>
+  
+  <!-- Mobile Detail Modal -->
+  <div 
+    v-if="selectedItem && isMobile"
+    class="modal fade show"
+    style="display: block;"
+  >
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ selectedItem.title || selectedItem.name }}</h5>
+          <button type="button" class="btn-close" @click="clearSelection"></button>
+        </div>
+        <div class="modal-body p-0">
+          <!-- Form Mode -->
+          <Form
+            v-if="mode === 'form'"
+            :resource="resource"
+            :resource-id="selectedItem.id"
+            @form-saved="handleFormSaved"
+          />
+          
+          <!-- Document Mode -->
+          <DocumentView
+            v-else-if="mode === 'document'"
+            :resource="resource"
+            :document-id="selectedItem.id"
+            @action-triggered="handleDocumentAction"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 ```
+
+**Bootstrap Classes Used:**
+- `row g-0`: Grid layout without gutters
+- `col-lg-6`: Responsive column layout
+- `border-end`: Visual separation between panels
+- `modal-fullscreen`: Mobile detail modal
+- `h-100`: Full height containers
+
+---
+
+**Key Features:**
+- **Self-Contained Coordination**: Manages child component interactions
+- **Responsive Design**: Side-by-side on desktop, modal on mobile
+- **Mode Switching**: Dynamically loads Form or DocumentView components
+- **URL State Sync**: Maintains selection state in browser URL
+- **Component Isolation**: Child components remain self-contained
+
+**API Integration:** Inherits from child components (List, Form, DocumentView)
+
+**Error Handling:** Delegates to child components, coordinates loading states

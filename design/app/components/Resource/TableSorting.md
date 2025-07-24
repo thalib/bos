@@ -1,90 +1,82 @@
 # TableSorting Component Design Specification
 
-- The `TableSorting` component provides sorting and filtering status display for data tables. It dynamically displays active sorting and filtering information.
+⚠️ **DEPRECATED COMPONENT** ⚠️
 
-**File Location:** `frontend/app/components/Resource/TableSorting.vue`
+This component is **deprecated** and should not be used in new development. Sorting functionality has been integrated directly into the `List` component for better performance and self-contained architecture.
 
-## Component Structure
+**Migration Path:**
+- Remove `TableSorting` component usage
+- Use the self-contained `List` component which includes built-in sorting
+- Sorting state is managed automatically by the List component with URL synchronization
 
-Below is the exact structure and an example of how the component should be used:
+**File Location:** ~~`frontend/app/components/Resource/TableSorting.vue`~~ (Remove this file)
 
+## Why This Component Was Deprecated
+
+### Issues with Original Design:
+1. **Separation of Concerns**: Sorting logic was separated from the table display
+2. **State Management**: Required complex prop passing and event handling
+3. **Performance**: Additional components added unnecessary rendering overhead
+4. **User Experience**: Sorting indicators were disconnected from table headers
+
+### Better Architecture:
+The `List` component now provides:
+- **Integrated Sorting**: Sort indicators directly in table headers
+- **Self-Contained State**: No props/events needed for sorting
+- **URL Synchronization**: Sorting state automatically synced with browser URL
+- **Better UX**: Click table headers to sort, visual feedback in place
+
+## Migration Example
+
+### ❌ Old Pattern (Deprecated)
 ```html
+<!-- Don't use this -->
 <TableSorting
   :sort="sortConfig"
   :filters="filters"
   :search="searchQuery"
-  :loading="false"
-  :disabled="false"
   @sort-clear="handleSortClear"
-  @filters-clear="handleFiltersClear"
-  @search-clear="handleSearchClear"
-  @filter-remove="handleFilterRemove"
+/>
+<List :data="data" :columns="columns" />
+```
+
+### ✅ New Pattern (Recommended)
+```html
+<!-- Use this instead -->
+<List
+  resource="products"
+  :filters="currentFilters"
+  :search="currentSearch"
+  @sort-changed="handleSortUpdate"
 />
 ```
-
-- **Props:**
-  - `sort` (object): Current sort configuration.
-  - `filters` (object): Active filters.
-  - `search` (string): Current search query.
-  - `loading` (boolean): Indicates if the component is in a loading state.
-  - `disabled` (boolean): Whether the component is disabled.
-- **Events:**
-  - `sort-clear`: Triggered when sorting is cleared.
-  - `filters-clear`: Triggered when all filters are cleared.
-  - `search-clear`: Triggered when the search is cleared.
-  - `filter-remove`: Triggered when a specific filter is removed.
-
-## Child Components (optional)
-
-```txt
-Parent
-└── TableSorting
-```
-
-## Features
-
-- Displays current sorting configuration with visual indicators.
-- Shows active filters with clear badges.
-- Provides functionality to clear all filters.
-- Handles loading states during operations.
-- Responsive design for mobile and desktop.
-
-## UI Design
-
-```txt
-+-----------------------------------------------+
-| [Sort Indicators] [Filter Badges]             |
-+-----------------------------------------------+
-| [Clear Buttons for Filters and Sorting]       |
-+-----------------------------------------------+
-```
-
-- Uses Bootstrap 5.3 classes for consistent styling.
 
 ## Implementation Rules
 
-- All HTTP requests must use the shared API service (`frontend/app/utils/api.ts`).
-- All notifications and error handling must use the Notify Service (`frontend/app/utils/notify.ts`).
-- Use Bootstrap 5.3 classes for all layout and UI elements.
-- Strictly type all props and logic with TypeScript.
-- Provide loading and error states for all async operations.
-- Ensure accessibility (ARIA roles, keyboard navigation).
-- Write tests first in `frontend/tests/` before implementing features.
+**DO NOT implement this component.** Use the self-contained `List` component instead.
 
-## Error Handling
+If you need custom sorting display for specific use cases:
+1. Extend the `List` component with additional slots
+2. Create a specialized table component for that specific domain
+3. Always keep sorting logic integrated with table display
 
-- Handles null or undefined sort/filter data gracefully.
-- Provides fallback display when no sorting/filtering is active.
-- Shows appropriate messages for empty states.
+## Testing Migration
 
-## Example Usage (optional)
+When migrating tests from TableSorting to List component:
 
-```html
-<TableSorting
-  :sort="{ column: 'name', dir: 'asc' }"
-  :filters="{ applied: { field: 'status', value: 'active' } }"
-  :search="'example query'"
-  :loading="false"
-  @sort-clear="handleSortClear"
-/>
+```typescript
+// Update test files
+// FROM: frontend/tests/components/Resource/TableSorting.spec.ts
+// TO: Add sorting tests to frontend/tests/components/Resource/List.spec.ts
+
+describe('List Component Sorting', () => {
+  it('should display sort indicators in table headers')
+  it('should handle column sorting when header clicked')
+  it('should update URL with sort parameters')
+  it('should toggle sort direction on repeated clicks')
+})
 ```
+
+---
+
+**For current sorting needs, see:** `design/app/components/Resource/List.md`
