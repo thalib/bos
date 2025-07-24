@@ -23,12 +23,12 @@
       <!-- Error State -->
       <div v-else-if="hasError" class="alert alert-warning" data-testid="error-alert">
         <i class="bi bi-exclamation-triangle me-2"></i>
-        Failed to load menu. Please try again.
+        Failed to load menu. Please try again or contact support if the issue persists.
       </div>
 
       <!-- Empty State -->
       <div v-else-if="menuItems.length === 0" class="text-center text-muted" data-testid="empty-state">
-        <p>No menu items available</p>
+        <p>No menu items available. Please refresh the page or try again later.</p>
       </div>
 
       <!-- Menu Items -->
@@ -72,18 +72,8 @@
       <div class="mt-auto">
         <hr />
 
-        <!-- Dark/Light Mode Toggle -->
-        <button type="button" class="btn btn-outline-secondary w-100 mb-2" data-testid="mode-toggle"
-          @click="toggleMode">
-          <i class="bi bi-moon me-2"></i>
-          Toggle Theme
-        </button>
+        <p class="text-center"><a href="https://github.com/thalib/bos" target="_blank">BOS - Business OS</a></p>
 
-        <!-- Logout Button -->
-        <button type="button" class="btn btn-outline-danger w-100" data-testid="logout-btn" @click="handleLogout">
-          <i class="bi bi-box-arrow-right me-2"></i>
-          Logout
-        </button>
       </div>
     </div>
   </div>
@@ -102,11 +92,6 @@ interface MenuItem {
   title?: string // for sections
   items?: MenuItem[] // for sections
 }
-
-// Emits
-const emit = defineEmits<{
-  logout: []
-}>()
 
 // Services
 const authService = useAuthService()
@@ -147,7 +132,7 @@ const getCachedMenuItems = () => {
 
     return cacheData.menuItems
   } catch (error) {
-    console.warn('Failed to load cached menu items:', error)
+    notifyService.warning('Load menu items from  cache ', 'Cache Warning')
     return null
   }
 }
@@ -169,8 +154,6 @@ const fetchMenuItems = async () => {
       method: 'GET'
     })
 
-    console.log('Menu items response:', response) // Log the full response
-
     // Handle the API service wrapped response: response.data contains the backend response
     if (response.success && response.data) {
       // The actual menu items are in response.data.data (backend's data field)
@@ -188,7 +171,7 @@ const fetchMenuItems = async () => {
             localStorage.setItem('menu_cache', JSON.stringify(cacheData))
           }
         } catch (error) {
-          console.warn('Failed to cache menu items:', error)
+          notifyService.warning('Failed to save menu items to cache', 'Warning')
         }
       } else {
         throw new Error(response.message || 'Failed to load menu')
@@ -204,27 +187,25 @@ const fetchMenuItems = async () => {
   }
 }
 
-const toggleMode = () => {
-  // Toggle dark/light mode logic would go here
-  // For now, just a placeholder
-  notifyService.info('Theme toggle not implemented yet', 'Theme')
-}
-
-const handleLogout = async () => {
-  emit('logout')
-}
+let observer: IntersectionObserver | null = null;
 
 // Lifecycle
 onMounted(() => {
   const sidebar = document.getElementById('sidebar');
   if (sidebar) {
-    const observer = new IntersectionObserver((entries) => {
-      const isVisible = entries[0].isIntersecting;
-      if (isVisible && authService.isInitialized.value && authService.isAuthenticated.value) {
+    observer = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      if (entry?.isIntersecting && authService.isInitialized.value && authService.isAuthenticated.value) {
         fetchMenuItems();
       }
     });
     observer.observe(sidebar);
+  }
+});
+
+onUnmounted(() => {
+  if (observer) {
+    observer.disconnect();
   }
 });
 </script>

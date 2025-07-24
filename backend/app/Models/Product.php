@@ -766,11 +766,11 @@ class Product extends Model
     public function applyDatabaseDefaults(array $data, bool $isUpdate = false): array
     {
         $defaults = $this->getDatabaseDefaults();
-        
-        if (!$isUpdate) {
+
+        if (! $isUpdate) {
             // For create operations, apply defaults for missing fields
             foreach ($defaults as $field => $value) {
-                if (!array_key_exists($field, $data)) {
+                if (! array_key_exists($field, $data)) {
                     $data[$field] = $value;
                 }
             }
@@ -784,7 +784,7 @@ class Product extends Model
         }
 
         // Generate slug if not provided and name is available
-        if ((!isset($data['slug']) || empty($data['slug'])) && isset($data['name'])) {
+        if ((! isset($data['slug']) || empty($data['slug'])) && isset($data['name'])) {
             $data['slug'] = $this->generateUniqueSlug($data['name']);
         }
 
@@ -802,7 +802,7 @@ class Product extends Model
 
         // Check if slug already exists
         while (static::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $counter;
+            $slug = $baseSlug.'-'.$counter;
             $counter++;
         }
 

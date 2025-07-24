@@ -470,7 +470,7 @@ class TestStore001Test extends TestCase
     public function it_prevents_xss_injection_in_text_fields()
     {
         $xssPayload = '<script>alert("XSS")</script>';
-        
+
         $productData = [
             'name' => "Product with XSS {$xssPayload}",
             'description' => "Description with XSS {$xssPayload}",
@@ -487,7 +487,7 @@ class TestStore001Test extends TestCase
             // Verify the data is properly sanitized or escaped
             $this->assertTrue($response->json('success'));
             $responseData = $response->json('data');
-            
+
             // The exact behavior depends on the sanitization rules
             // but we verify the response is safe
             $this->assertIsString($responseData['name']);
@@ -555,7 +555,7 @@ class TestStore001Test extends TestCase
         if ($response->status() === 201) {
             $this->assertTrue($response->json('success'));
             $this->assertEquals('JSON Test Product', $response->json('data.name'));
-            
+
             // Verify only fillable fields are saved
             $this->assertArrayNotHasKey('invalid_field', $response->json('data'));
             $this->assertArrayNotHasKey('extra_data', $response->json('data'));

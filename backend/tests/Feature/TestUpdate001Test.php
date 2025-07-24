@@ -525,7 +525,7 @@ class TestUpdate001Test extends TestCase
     {
         $product = Product::factory()->create();
         $xssPayload = '<script>alert("XSS")</script>';
-        
+
         $updateData = [
             'name' => "Updated Product with XSS {$xssPayload}",
             'description' => "Updated description with XSS {$xssPayload}",
@@ -541,7 +541,7 @@ class TestUpdate001Test extends TestCase
             // Verify the data is properly sanitized or escaped
             $this->assertTrue($response->json('success'));
             $responseData = $response->json('data');
-            
+
             // The exact behavior depends on the sanitization rules
             // but we verify the response is safe
             $this->assertIsString($responseData['name']);
@@ -689,7 +689,7 @@ class TestUpdate001Test extends TestCase
                 ->putJson("/api/v1/products/{$invalidId}", $updateData);
 
             // Should handle invalid inputs gracefully
-            $this->assertContains($response->status(), [400, 404, 422], 
+            $this->assertContains($response->status(), [400, 404, 422],
                 "Failed for case: {$caseName}");
 
             $response->assertJson([
@@ -724,10 +724,10 @@ class TestUpdate001Test extends TestCase
             $this->assertTrue($response->json('success'));
             $this->assertEquals('Updated Data Integrity Test', $response->json('data.name'));
             $this->assertEquals('200.00', $response->json('data.price'));
-            
+
             // Verify created_at timestamp was not modified
             $this->assertEquals($originalCreatedAt->toISOString(), $response->json('data.created_at'));
-            
+
             // Verify updated_at timestamp was updated
             $this->assertNotEquals($originalCreatedAt->toISOString(), $response->json('data.updated_at'));
         }

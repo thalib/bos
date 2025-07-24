@@ -4,8 +4,8 @@
       <div class="container-fluid">
         <!-- Left Section: Menu Toggle and Page Title -->
         <div class="d-flex align-items-center">
-          <button type="button" class="btn btn-outline-secondary me-3" data-testid="menu-toggle" aria-label="Toggle menu"
-            data-bs-toggle="offcanvas" data-bs-target="#sidebar">
+          <button type="button" class="btn btn-outline-secondary me-3" data-testid="menu-toggle"
+            aria-label="Toggle menu" data-bs-toggle="offcanvas" data-bs-target="#sidebar">
             <i class="bi bi-list"></i>
           </button>
 
@@ -21,20 +21,20 @@
             <i class="bi bi-person-circle"></i>
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="#" @click.prevent>Profile</a></li>
-            <li><a class="dropdown-item" href="#" @click.prevent>Settings</a></li>
+            <li><a class="dropdown-item disabled" href="#" @click.prevent>Profile</a></li>
+            <li><a class="dropdown-item disabled" href="#" @click.prevent>Settings</a></li>
             <li>
               <hr class="dropdown-divider">
             </li>
-            <li><a class="dropdown-item" href="#" @click.prevent>Logout</a></li>
+            <li><a class="dropdown-item" href="#" @click.prevent="handleLogout">Logout</a></li>
           </ul>
         </div>
       </div>
     </nav>
 
     <!-- Sidebar Component -->
-    <CommonSidebar @logout="handleLogout" />
-    
+    <CommonSidebar />
+
     <template #fallback>
       <!-- Show nothing during SSR to prevent hydration mismatch -->
       <div></div>
@@ -61,8 +61,7 @@ const handleLogout = async () => {
     notifyService.success('Logged out successfully.')
     useRouter().push('/')
   } catch (error) {
-    notifyService.error('Logout failed. Please try again.')
-    console.error('Logout error:', error)
+    notifyService.error('Logout failed. Please try again.', 'Logout Error')
   }
 }
 

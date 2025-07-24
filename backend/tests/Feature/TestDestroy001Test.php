@@ -211,7 +211,7 @@ class TestDestroy001Test extends TestCase
         if ($response->status() === 200) {
             // Verify the product count decreased by 1
             $this->assertEquals($originalCount - 1, Product::count());
-            
+
             // Verify the specific product is gone
             $this->assertDatabaseMissing('products', ['id' => $product->id]);
         } else {
@@ -319,7 +319,7 @@ class TestDestroy001Test extends TestCase
                 ->deleteJson("/api/v1/products/{$invalidId}");
 
             // Should handle invalid inputs gracefully
-            $this->assertContains($response->status(), [400, 404, 422], 
+            $this->assertContains($response->status(), [400, 404, 422],
                 "Failed for case: {$caseName}");
 
             $response->assertJson([
@@ -389,10 +389,10 @@ class TestDestroy001Test extends TestCase
         if ($response->status() === 200) {
             // Verify the exact product is deleted
             $this->assertDatabaseMissing('products', ['id' => $productId]);
-            
+
             // Verify the count decreased by exactly 1
             $this->assertEquals($originalCount - 1, Product::count());
-            
+
             // Verify other products are not affected
             $otherProducts = Product::where('id', '!=', $productId)->get();
             $this->assertCount($originalCount - 1, $otherProducts);

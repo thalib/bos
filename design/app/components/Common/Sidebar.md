@@ -9,12 +9,11 @@ The Sidebar component provides a responsive, off-canvas data-driven navigation m
 Below is the exact structure and an example of how the component should be used:
 
 ```html
-<Sidebar @logout="handleLogout" />
+<Sidebar />
 ```
 
-- **Props:** N/A
-- **Events:**
-  - `logout`: Emitted when the user clicks the logout button.
+- **Props:** None
+- **Events:** None
 
 ## Child Components (optional)
 
@@ -34,7 +33,6 @@ Navbar
 - Fetches and displays the logged-in user's name using `authService.getCurrentUser()`.
 - Supports menu sections (collapsible), dividers, and regular items.
 - Dark/light mode toggle with event emission.
-- Logout button with redirect and offcanvas close.
 - Loading and error states for async menu loading.
 - Accessibility: ARIA roles, keyboard navigation, visually hidden text for spinners.
 - Uses Bootstrap 5.3 for all styling.
@@ -88,7 +86,6 @@ Navbar
 | [Empty State if no items]                          |
 ------------------------------------------------------
 | [Dark/Light Mode Toggle]                           |
-| [Logout Button]                                    |
 ------------------------------------------------------
 ```
 

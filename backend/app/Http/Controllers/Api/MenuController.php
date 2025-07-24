@@ -25,24 +25,11 @@ class MenuController extends Controller
             ],
             [
                 'type' => 'section',
-                'title' => 'Tools',
+                'title' => 'List',
                 'order' => 2,
                 'items' => [
                     [
-                        'id' => 21,
-                        'name' => 'Todo',
-                        'path' => '/todo',
-                        'icon' => 'bi-check-square',
-                    ],
-                ],
-            ],
-            [
-                'type' => 'section',
-                'title' => 'List',
-                'order' => 3,
-                'items' => [
-                    [
-                        'id' => 30,
+                        'id' => 20,
                         'name' => 'Products',
                         'path' => '/list/products',
                         'icon' => 'bi-calculator',
@@ -81,18 +68,6 @@ class MenuController extends Controller
                         'path' => '/list/users',
                         'icon' => 'bi-people',
                     ],
-                    [
-                        'id' => 61,
-                        'name' => 'Settings',
-                        'path' => '/settings',
-                        'icon' => 'bi-gear',
-                    ],
-                    [
-                        'id' => 62,
-                        'name' => 'Reports',
-                        'path' => '/reports',
-                        'icon' => 'bi-file-text',
-                    ],
                 ],
             ],
             [
@@ -105,14 +80,6 @@ class MenuController extends Controller
                 'name' => 'Help',
                 'path' => '/help',
                 'icon' => 'bi-question-circle',
-                'order' => 7,
-            ],
-            [
-                'type' => 'item',
-                'id' => 91,
-                'name' => 'Logout',
-                'path' => '/logout',
-                'icon' => 'bi-box-arrow-right',
                 'order' => 8,
             ],
         ];
