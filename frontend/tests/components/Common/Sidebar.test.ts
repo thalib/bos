@@ -165,7 +165,7 @@ describe('Sidebar Component', () => {
       // Wait for component to load
       await wrapper.vm.$nextTick()
       
-      expect(mockApiService.request).toHaveBeenCalledWith('/api/menu', {
+      expect(mockApiService.request).toHaveBeenCalledWith('/api/v1/app/menu', {
         method: 'GET'
       })
     })
@@ -219,7 +219,7 @@ describe('Sidebar Component', () => {
       })
       
       // Verify API is called correctly
-      expect(mockApiService.request).toHaveBeenCalledWith('/api/menu', {
+      expect(mockApiService.request).toHaveBeenCalledWith('/api/v1/app/menu', {
         method: 'GET'
       })
       
