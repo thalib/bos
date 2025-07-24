@@ -1,117 +1,84 @@
-# Form Component Documentation
+# Form Component Design Specification
 
-## Overview
+- The `Form` component provides a dynamic form for creating, editing, or viewing resources. It receives the complete schema node from the API response and handles all form logic internally.
 
-The `Form.vue` component provides a dynamic form for creating, editing, or viewing resources. It receives the complete schema node from the API response (`design/api/index.md`) and handles all form logic internally.
+**File Location:** `frontend/app/components/Resource/Form.vue`
 
-- Dynamic form rendering based on API schema with grouped field rendering in collapsible sections
-- Comprehensive validation with real-time feedback, including server-side validation errors
-- Displays validation errors inline with form fields and provides user-friendly error messages
-- Handles loading and error states, showing a loading indicator during form submission
-- Self-contained form logic that manages its own state internally based on the API schema
-- Follows Bootstrap 5.3 patterns for responsive design and consistent styling
-- Provides proper ARIA attributes for accessibility
-- Supports real-time validation and user feedback
+## Component Structure
+
+Below is the exact structure and an example of how the component should be used:
 
 ```html
-<form
-  :id="{resourceID}"
-  :schema="response.schema"
+<Form
+  :id="resourceID"
+  :schema="schema"
   :loading="isLoading"
+  :mode="'edit'"
   @form-submit="handleFormSubmit"
   @form-cancel="handleFormCancel"
-  @form-error="handleFormError"
 />
 ```
 
-**Events**
+- **Props:**
+  - `id` (int): Resource ID. If `null`, the form is in create mode; otherwise, edit mode.
+  - `schema` (array|null): Complete schema node from API response containing field definitions and groups.
+  - `loading` (boolean): Indicates if the component is in a loading state.
+  - `mode` (string): Form mode - 'create', 'edit', or 'view' (default: 'create').
+- **Events:**
+  - `form-submit`: Triggered when the form is submitted with valid data. Payload: `{ data: object, mode: string }`.
+  - `form-cancel`: Triggered when the form is canceled.
+  - `form-reset`: Triggered when the form is reset.
+  - `form-error`: Triggered when form validation fails. Payload: `{ errors: object }`.
 
-- `form-submit`: Emitted when the form is submitted with valid data, Payload: `{ data: object, mode: string }`
-- `form-cancel`: Emitted when the form is canceled
-- `form-reset`: Emitted when the form is reset
-- `form-error`: Emitted when form validation fails, Payload: `{ errors: object }`
+## Child Components (optional)
 
-**Props**
-
-- `id` _(int)_: `resourceID = null` then create mode else edit mode
-- `schema` _(array|null)_: Complete schema node from API response containing field definitions and groups
-- `loading` _(boolean)_: Loading state for the component
-- `mode` _(string)_: Form mode - 'create', 'edit', or 'view' (default: 'create')
-
-If `resourceID = null`:
-- Form mode = create
-- Use the schema to render the form and form fields in groups
-- Title = `Create {Resource}` for the resource being managed
-
-Else:
-- Form mode = edit
-- Use the schema to render the form and form fields in groups
-- Fetch the resource item and show it in the form
-- Title = Resource Name
-
-## API Response Structure
-
-The component expects the `schema` prop to match the API response (refer to `design/api/index.md`) structure:
-
-```json
-{
-  "schema": [
-    {
-      "group": "General Information",
-      "fields": [
-        {
-          "field": "name",
-          "label": "Product Name",
-          "type": "string",
-          "required": true,
-          "placeholder": "Enter product name",
-          "maxLength": 255
-        },
-        {
-          "field": "status",
-          "label": "Status",
-          "type": "select",
-          "required": true,
-          "options": [
-            { "value": "active", "label": "Active" },
-            { "value": "inactive", "label": "Inactive" }
-          ]
-        }
-      ]
-    }
-  ]
-}
+```txt
+Parent
+└── Form
 ```
 
-**Field Types**
+## Features
 
-- `string`: Text input
-- `email`: Email input
-- `password`: Password input
-- `number`: Number input
-- `decimal`: Decimal number input
-- `select`: Dropdown selection
-- `checkbox`: Checkbox input
-- `textarea`: Multi-line text input
-- `date`: Date picker
-- `datetime`: Date and time picker
-- `file`: File upload
+- Dynamic form rendering based on API schema with grouped field rendering in collapsible sections.
+- Comprehensive validation with real-time feedback, including server-side validation errors.
+- Displays validation errors inline with form fields and provides user-friendly error messages.
+- Handles loading and error states, showing a loading indicator during form submission.
+- Self-contained form logic that manages its own state internally based on the API schema.
+- Responsive design for various screen sizes.
 
-## Internal Logic
+## UI Design
 
-The component handles:
+```txt
++-----------------------------------------------+
+| [Form Title]                                  |
++-----------------------------------------------+
+| [Form Fields Grouped in Collapsible Sections] |
++-----------------------------------------------+
+| [Submit Button] [Cancel Button]               |
++-----------------------------------------------+
+```
 
-- Parsing schema groups and fields from the API response
-- Rendering appropriate input types based on field configuration
-- Managing form state and validation
-- Providing real-time validation feedback
-- Handling form submission and data formatting
+- Uses Bootstrap 5.3 classes for consistent styling.
 
-## Bootstrap Classes Used
+## Implementation Rules
 
-- `form-group`, `form-control`, `form-select` for form styling
-- `btn`, `btn-primary`, `btn-secondary` for button styling
-- `card`, `card-header`, `card-body` for grouping
-- `invalid-feedback` for validation errors
-- `spinner-border` for loading states
-- `row`, `col-*` for responsive layout
+- All HTTP requests must use the shared API service (`frontend/app/utils/api.ts`).
+- All notifications and error handling must use the Notify Service (`frontend/app/utils/notify.ts`).
+- Use Bootstrap 5.3 classes for all layout and UI elements.
+- Strictly type all props and logic with TypeScript.
+- Provide loading and error states for all async operations.
+- Ensure accessibility (ARIA roles, keyboard navigation).
+- Write tests first in `frontend/tests/` before implementing features.
+
+## Error Handling
+
+- Displays validation errors inline with form fields.
+- Provides user-friendly error messages for server-side validation errors.
+- Shows a loading indicator during form submission.
+
+## Example Usage (optional)
+
+```html
+<Form
+  :id="123"
+  :schema="[{ field: 'name', type: 'string' }]"

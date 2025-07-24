@@ -1,8 +1,12 @@
 # DocumentEdit Component Design Specification
 
-## Overview
+- The `DocumentEdit` component is designed to edit documents (e.g., estimates, invoices). It provides a responsive and user-friendly interface for editing documents, complete with a header containing the document title on the left and a close icon on the right. The body contains form fields for editing, and the footer includes Save and Cancel buttons for user actions. The component integrates with the backend API to save or update document data.
 
-The `DocumentEdit` component is designed to edit documents (e.g., estimates, invoices). It provides a responsive and user-friendly interface for editing documents, complete with a header containing the document title on the left and a close icon on the right. The body contains form fields for editing, and the footer includes Save and Cancel buttons for user actions. The component integrates with the backend API to save or update document data.
+**File Location:** `frontend/app/components/Resource/DocumentEdit.vue`
+
+## Component Structure
+
+Below is the exact structure and an example of how the component should be used:
 
 ```html
 <DocumentEdit
@@ -11,6 +15,22 @@ The `DocumentEdit` component is designed to edit documents (e.g., estimates, inv
   :title="resourceID"
   :data="data"
 />
+```
+
+- **Props:**
+  - `loading` (boolean): Indicates if the component is in a loading state.
+  - `id` (string): The ID of the resource being edited.
+  - `title` (string): The title of the document.
+  - `data` (object): The data of the document to be edited.
+- **Events:**
+  - `save`: Emitted when the Save button is clicked.
+  - `cancel`: Emitted when the Cancel button is clicked.
+
+## Child Components (optional)
+
+```txt
+Parent
+└── DocumentEdit
 ```
 
 ## Features
@@ -30,7 +50,7 @@ The `DocumentEdit` component is designed to edit documents (e.g., estimates, inv
 
 ## UI Design
 
-```text
+```txt
 +------------------------------------------------+
 | [Title]                                [Close] |
 +------------------------------------------------+
@@ -42,22 +62,17 @@ The `DocumentEdit` component is designed to edit documents (e.g., estimates, inv
 +------------------------------------------------+
 ```
 
-## API Integration
+- Uses Bootstrap 5.3 classes for consistent styling.
 
-- **Endpoint for New Documents**: `POST /api/v1/{resource}`
-- **Endpoint for Existing Documents**: `PUT /api/v1/products/{id}`
-- **Description**:
-  - Save button triggers a `POST` request for new documents or a `PUT` request for existing documents.
-  - On success: Display a success toast and exit edit mode.
-  - On error: Display an error toast with retry functionality.
+## Implementation Rules
 
-## Constraints
-
-- **API Usage**: All API calls must use the shared API service (`useApiService`).
-- **UI Styling**: Follow Bootstrap 5.3 classes for consistent styling.
-- **TypeScript**: Ensure strict typing for all data structures and API responses.
-- **Error Handling**: Use the Toast component for notifications and error messages.
-- **Responsive Design**: Ensure the component adapts to various screen sizes.
+- All HTTP requests must use the shared API service (`frontend/app/utils/api.ts`).
+- All notifications and error handling must use the Notify Service (`frontend/app/utils/notify.ts`).
+- Use Bootstrap 5.3 classes for all layout and UI elements.
+- Strictly type all props and logic with TypeScript.
+- Provide loading and error states for all async operations.
+- Ensure accessibility (ARIA roles, keyboard navigation).
+- Write tests first in `frontend/tests/` before implementing features.
 
 ## Error Handling
 
@@ -67,12 +82,13 @@ The `DocumentEdit` component is designed to edit documents (e.g., estimates, inv
   - **Error Toast**: Displays a pinned error toast requiring manual dismissal.
   - **Success Toast**: Auto-dismisses after 5 seconds, confirming successful operations.
 
-## Footer Actions
+## Example Usage (optional)
 
-- **Save**:
-  - Validates the form fields.
-  - Sends a `POST` or `PUT` request to the backend API.
-  - Displays a success toast on successful save.
-  - Displays an error toast on failure, with retry functionality.
-- **Cancel**:
-  - Discards changes and exits edit mode.
+```html
+<DocumentEdit
+  :loading="true"
+  :id="'123'"
+  :title="'Invoice #123'"
+  :data="{ field1: 'value1', field2: 'value2' }"
+/>
+```

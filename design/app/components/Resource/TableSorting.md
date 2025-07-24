@@ -1,17 +1,44 @@
 # TableSorting Component Design Specification
 
-## Overview
+- The `TableSorting` component provides sorting and filtering status display for data tables. It dynamically displays active sorting and filtering information.
 
-The `TableSorting` component provides sorting and filtering status display for data tables. It dynamically displays active sorting and filtering information.
+**File Location:** `frontend/app/components/Resource/TableSorting.vue`
 
-```vue
+## Component Structure
+
+Below is the exact structure and an example of how the component should be used:
+
+```html
 <TableSorting
   :sort="sortConfig"
   :filters="filters"
   :search="searchQuery"
   :loading="false"
   :disabled="false"
+  @sort-clear="handleSortClear"
+  @filters-clear="handleFiltersClear"
+  @search-clear="handleSearchClear"
+  @filter-remove="handleFilterRemove"
 />
+```
+
+- **Props:**
+  - `sort` (object): Current sort configuration.
+  - `filters` (object): Active filters.
+  - `search` (string): Current search query.
+  - `loading` (boolean): Indicates if the component is in a loading state.
+  - `disabled` (boolean): Whether the component is disabled.
+- **Events:**
+  - `sort-clear`: Triggered when sorting is cleared.
+  - `filters-clear`: Triggered when all filters are cleared.
+  - `search-clear`: Triggered when the search is cleared.
+  - `filter-remove`: Triggered when a specific filter is removed.
+
+## Child Components (optional)
+
+```txt
+Parent
+└── TableSorting
 ```
 
 ## Features
@@ -22,108 +49,42 @@ The `TableSorting` component provides sorting and filtering status display for d
 - Handles loading states during operations.
 - Responsive design for mobile and desktop.
 
-## Props
+## UI Design
 
-- `sort`: Current sort configuration.
-- `filters`: Active filters.
-- `search`: Current search query.
-- `loading`: Boolean indicating loading state.
-- `disabled`: Boolean to disable the component.
-
-## Events
-
-- `sort-clear`: Triggered when sorting is cleared.
-- `filters-clear`: Triggered when all filters are cleared.
-- `search-clear`: Triggered when search is cleared.
-- `filter-remove`: Triggered when a specific filter is removed.
-
-## API Response Structure
-
-The component expects props to match the API response structure:
-
-```json
-{
-  "sort": {
-    "column": "name",
-    "dir": "asc"
-  },
-  "filters": {
-    "applied": { "field": "status", "value": "active" },
-    "available": [
-      {
-        "field": "status",
-        "label": "Status",
-        "values": ["active", "inactive"]
-      }
-    ]
-  },
-  "search": "mobile phone"
-}
+```txt
++-----------------------------------------------+
+| [Sort Indicators] [Filter Badges]             |
++-----------------------------------------------+
+| [Clear Buttons for Filters and Sorting]       |
++-----------------------------------------------+
 ```
 
-## Internal Logic
+- Uses Bootstrap 5.3 classes for consistent styling.
 
-The component handles:
+## Implementation Rules
 
-- Parsing sort configuration and displaying sort indicators
-- Showing active filters as removable badges
-- Calculating total active filters count
-- Formatting sort and filter labels for display
-- Managing clear operations for various states
-- Providing responsive layout adjustments
-
-## Display Features
-
-- Shows current sort column and direction with icons
-- Displays active filters as colored badges
-- Provides clear buttons for individual and bulk operations
-- Shows loading states during filter/sort operations
-- Indicates total number of active filters
-- Provides responsive layout for different screen sizes
-
-## Sort Display
-
-- Shows column name being sorted
-- Displays sort direction with arrow icons
-- Provides clear sort functionality
-- Indicates when no sorting is active
-
-## Filter Display
-
-- Shows applied filters as badges
-- Displays filter field and value
-- Provides individual filter removal
-- Shows total filter count
-- Provides clear all filters functionality
+- All HTTP requests must use the shared API service (`frontend/app/utils/api.ts`).
+- All notifications and error handling must use the Notify Service (`frontend/app/utils/notify.ts`).
+- Use Bootstrap 5.3 classes for all layout and UI elements.
+- Strictly type all props and logic with TypeScript.
+- Provide loading and error states for all async operations.
+- Ensure accessibility (ARIA roles, keyboard navigation).
+- Write tests first in `frontend/tests/` before implementing features.
 
 ## Error Handling
 
-- Handles null or undefined sort/filter data gracefully
-- Provides fallback display when no sorting/filtering is active
-- Shows appropriate messages for empty states
-- Maintains component stability during errors
+- Handles null or undefined sort/filter data gracefully.
+- Provides fallback display when no sorting/filtering is active.
+- Shows appropriate messages for empty states.
 
-## Bootstrap Classes Used
+## Example Usage (optional)
 
-- `badge`, `bg-primary`, `bg-secondary` for filter badges
-- `btn`, `btn-outline-secondary`, `btn-sm` for clear buttons
-- `d-flex`, `align-items-center` for layout
-- `me-2`, `ms-2` for spacing
-- `spinner-border` for loading states
-- `text-muted` for status text
-- `bi` icons for sort indicators
-
-## Responsive Behavior
-
-- **Desktop**: Full display with all sorting and filtering information
-- **Mobile**: Compact layout with essential information
-- **Tablet**: Balanced approach with key information visible
-
-## Notes
-
-- The component is self-contained and manages display logic
-- All sorting and filtering status is handled internally
-- Follows Bootstrap 5.3 patterns for consistent styling
-- Provides proper ARIA attributes for accessibility
-- Supports keyboard navigation for interactive elements
-- Handles various screen sizes with responsive design
+```html
+<TableSorting
+  :sort="{ column: 'name', dir: 'asc' }"
+  :filters="{ applied: { field: 'status', value: 'active' } }"
+  :search="'example query'"
+  :loading="false"
+  @sort-clear="handleSortClear"
+/>
+```
