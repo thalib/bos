@@ -118,6 +118,7 @@
       </div>
     </div>
   </div>
+
 </template>
 
 <script setup lang="ts">
@@ -159,12 +160,14 @@ const fetchMenuItems = async () => {
   try {
     isLoading.value = true
     hasError.value = false
-    
-    const response = await apiService.request<MenuItem[]>('/api/menu', {
+
+    const response = await apiService.request<MenuItem[]>('/api/v1/app/menu', {
       method: 'GET'
     })
-    
-    if (response.success && response.data) {
+
+    console.log('Menu items response:', response.data) // Log the response data
+
+    if (response.success && Array.isArray(response.data)) {
       menuItems.value = response.data
     } else {
       throw new Error(response.message || 'Failed to load menu')
@@ -184,12 +187,7 @@ const toggleMode = () => {
 }
 
 const handleLogout = async () => {
-  try {
-    await authService.logout()
     emit('logout')
-  } catch (error) {
-    // Error already handled by auth service
-  }
 }
 
 // Lifecycle

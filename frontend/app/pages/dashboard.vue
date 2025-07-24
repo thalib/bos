@@ -36,6 +36,7 @@
 definePageMeta({
   middleware: 'auth',
   layout: 'admin',
+  title: 'Dashboard',
 })
 
 // Services
@@ -47,4 +48,5 @@ const userName = computed(() => {
   if (!user) return 'Guest'
   return user.name || 'User'
 })
+
 </script>

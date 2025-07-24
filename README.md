@@ -45,6 +45,11 @@ npm run test:run
 # or
 
 npm run test:run tests/utils/ tests/integration/
+
+```sh
+# update npm
+npm outdated
+npm update
 ```
 
 The frontend will be available at [http://localhost:3000](http://localhost:3000) by default.

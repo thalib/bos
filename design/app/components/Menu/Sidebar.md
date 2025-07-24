@@ -9,13 +9,12 @@ The Sidebar component provides a responsive, off-canvas data-driven navigation m
 Below is the exact structure and an example of how the component should be used:
 
 ```html
-<Sidebar />
+<Sidebar @logout="handleLogout" />
 ```
 
 - **Props:** N/A
-
 - **Events:**
-  - `logout`: Emitted when the logout button is clicked. This event triggers the `logout` method from `frontend/app/utils/auth.ts` to handle user logout.
+  - `logout`: Emitted when the user clicks the logout button.
 
 ## Child Components (optional)
 
@@ -43,7 +42,7 @@ Navbar
 ## API Integration
 
 - Fetch menu data from the API endpoint `/api/menu` using the shared API service (`frontend/app/utils/api.ts`).
-- Example response structure:
+
   ```json
   [
     {
