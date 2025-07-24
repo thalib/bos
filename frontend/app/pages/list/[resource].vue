@@ -42,19 +42,12 @@
       
       <!-- Main Content Area -->
       <div class="main-content">
-        <!-- Simple List View for now -->
-        <div class="row">
-          <div class="col-12">
-            <List
-              :resource="resourceName"
-              :filters="appliedFilters"
-              :search="appliedSearch"
-              :page="currentPage"
-              @item-selected="handleItemSelected"
-              @sort-changed="handleSortChanged"
-            />
-          </div>
-        </div>
+        <MasterDetail
+          :resource="resourceName"
+          :mode="componentMode"
+          :initial-selection="$route.params.id"
+          @selection-changed="handleSelectionChanged"
+        />
       </div>
       
       <!-- Pagination -->
@@ -110,6 +103,14 @@ const resourceTitle = computed(() =>
 )
 
 const componentMode = computed(() => {
+  // Determine mode based on resource type or menu configuration
+  // For demo purposes, use simple logic:
+  // - estimates, invoices, quotes = document mode
+  // - everything else = form mode
+  const documentResources = ['estimates', 'invoices', 'quotes']
+  if (documentResources.includes(resourceName.value)) {
+    return 'document'
+  }
   return menuConfiguration.value?.mode === 'doc' ? 'document' : 'form'
 })
 
@@ -214,9 +215,17 @@ const handleFiltersUpdate = (payload: { filters: object; hasActiveFilters: boole
   }
 }
 
-const handleItemSelected = (payload: { item: any; index: number }) => {
-  // For now, just show a notification
-  notifyService.info(`Selected item: ${payload.item.name || payload.item.id}`)
+const handleSelectionChanged = (payload: { selectedItem: any }) => {
+  // Update URL to reflect selection
+  if (payload.selectedItem) {
+    router.push({
+      params: { ...route.params, id: payload.selectedItem.id },
+      query: route.query
+    })
+  } else {
+    const { id, ...params } = route.params
+    router.push({ params, query: route.query })
+  }
 }
 
 const handleSortChanged = (payload: { column: string; direction: 'asc' | 'desc' }) => {
