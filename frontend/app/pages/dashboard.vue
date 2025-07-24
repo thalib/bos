@@ -18,7 +18,9 @@
               <i class="bi bi-house-heart"></i>
             </h3>
             <p class="card-text fs-4 text-center" data-testid="welcome-message">
-              Welcome to the {{ userName }}!
+              <ClientOnly fallback="Welcome to the Guest!">
+                Welcome to the {{ userName }}!
+              </ClientOnly>
             </p>
             <p class="text-muted">
               You have successfully accessed your dashboard.
