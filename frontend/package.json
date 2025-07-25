@@ -13,11 +13,13 @@
   },
   "dependencies": {
     "@nuxt/test-utils": "^3.19.2",
+    "@pinia/nuxt": "^0.11.2",
     "@types/toastr": "^2.1.43",
     "@vue/shared": "^3.5.17",
     "bootstrap": "^5.3.7",
     "bootstrap-icons": "^1.11.3",
     "nuxt": "^4.0.0",
+    "pinia": "^3.0.3",
     "toastr": "^2.1.4",
     "vue": "^3.5.17",
     "vue-router": "^4.5.1"
