@@ -31,7 +31,7 @@
 
         <!-- Menu Items -->
         <nav v-else class="nav flex-column">
-          <template v-for="item in sortedMenuItems" :key="`${item.type}-${item.id || item.order}`">
+          <template v-for="item in menuItems" :key="`${item.type}-${item.id}`">
             <!-- Regular Menu Item -->
             <template v-if="item.type === 'item'">
               <NuxtLink :to="item.path" class="nav-link" :data-testid="`menu-item-${item.id}`">
@@ -87,7 +87,6 @@ interface MenuItem {
   name?: string
   path?: string
   icon?: string
-  order: number
   title?: string // for sections
   items?: MenuItem[] // for sections
 }
@@ -105,9 +104,6 @@ const hasError = ref(false)
 
 // Computed properties
 const currentUser = computed(() => authService.getCurrentUser())
-const sortedMenuItems = computed(() =>
-  [...menuItems.value].sort((a, b) => a.order - b.order)
-)
 
 // Methods
 const fetchMenuItems = async () => {

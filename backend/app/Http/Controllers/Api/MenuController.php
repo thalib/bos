@@ -21,12 +21,10 @@ class MenuController extends Controller
                 'name' => 'Home',
                 'path' => '/',
                 'icon' => 'bi-house',
-                'order' => 1,
             ],
             [
                 'type' => 'section',
                 'title' => 'List',
-                'order' => 2,
                 'items' => [
                     [
                         'id' => 20,
@@ -38,12 +36,10 @@ class MenuController extends Controller
             ],
             [
                 'type' => 'divider',
-                'order' => 3,
             ],
             [
                 'type' => 'section',
                 'title' => 'Sales',
-                'order' => 4,
                 'items' => [
                     [
                         'id' => 40,
@@ -55,12 +51,10 @@ class MenuController extends Controller
             ],
             [
                 'type' => 'divider',
-                'order' => 5,
             ],
             [
                 'type' => 'section',
                 'title' => 'Administration',
-                'order' => 6,
                 'items' => [
                     [
                         'id' => 60,
@@ -80,7 +74,6 @@ class MenuController extends Controller
             ],
             [
                 'type' => 'divider',
-                'order' => 7,
             ],
             [
                 'type' => 'item',
@@ -88,7 +81,6 @@ class MenuController extends Controller
                 'name' => 'Help',
                 'path' => '/help',
                 'icon' => 'bi-question-circle',
-                'order' => 8,
             ],
         ];
 
