@@ -15,7 +15,6 @@ export interface LoginResponse {
 }
 
 export interface User {
-  id: number
   name: string
   email: string
   [key: string]: any

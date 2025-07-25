@@ -58,8 +58,13 @@ class AuthController extends Controller
             'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
             'expires_in' => null, // Sanctum tokens don't expire by default
-            'user' => $user,
-            'message' => 'Successfully logged in',
+            'user' => [
+                'name' => $user->name,
+                'username' => $user->username,
+                'email' => $user->email,
+                'whatsapp' => $user->whatsapp,
+            ],
+            'message' => 'Successfully logged in'
         ]);
     }
 
