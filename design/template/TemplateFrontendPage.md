@@ -21,3 +21,8 @@ Provide a brief description of the page's purpose and functionality. Mention any
 
 - [Frontend Rules](design/rules-app.md)
 - [GitHub Copilot Instructions](.github/copilot-instructions.md)
+
+## Constraints to Follow for Documenting
+
+- Always use absolute file paths from the repository base.
+- Always use unordered lists.
