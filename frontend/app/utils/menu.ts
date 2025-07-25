@@ -115,15 +115,15 @@ class MenuService {
 	/**
 	 * Waits for authentication to complete.
 	 */
-		private async waitForAuth(): Promise<void> {
-			const start = Date.now();
-			while (!this.authService.isInitialized.value || !this.authService.isAuthenticated.value) {
-					if (Date.now() - start > this.AUTH_TIMEOUT) {
-							this.notifyService.error('Authentication timeout', 'Auth Error');
-							throw new Error('Authentication timeout');
-					}
-					await new Promise((resolve) => setTimeout(resolve, this.AUTH_CHECK_INTERVAL));
+	private async waitForAuth(): Promise<void> {
+		const start = Date.now();
+		while (!this.authService.isInitialized.value || !this.authService.isAuthenticated.value) {
+			if (Date.now() - start > this.AUTH_TIMEOUT) {
+				this.notifyService.error('Authentication timeout', 'Auth Error');
+				throw new Error('Authentication timeout');
 			}
+			await new Promise((resolve) => setTimeout(resolve, this.AUTH_CHECK_INTERVAL));
+		}
 	}
 
 	/**
@@ -136,6 +136,25 @@ class MenuService {
 		if (cachedItems) return cachedItems;
 
 		return await this.fetchMenuItemsFromApi();
+	}
+
+	/**
+	 * Retrieves a specific menu item by its path.
+	 */
+	public getMenuDataByPath(path: string): MenuItem | undefined {
+		const cachedItems = this.getCachedMenuItems();
+		if (!cachedItems) return undefined;
+
+		for (const item of cachedItems) {
+			if (item.type === 'item' && item.path === path) {
+				return item;
+			} else if (item.type === 'section' && item.items) {
+				const found = item.items.find(subItem => subItem.path === path);
+				if (found) return found;
+			}
+		}
+
+		return undefined;
 	}
 }
 

@@ -16,7 +16,6 @@
       <div class="col-auto d-none d-lg-block">
         <div class="btn-group" role="group" aria-label="Page actions">
           <button 
-            v-if="showCreate"
             class="btn btn-primary"
             @click="handleCreateAction"
             :disabled="loading"
@@ -36,13 +35,13 @@
               Actions
             </button>
             <ul class="dropdown-menu">
-              <li v-if="showExport">
+              <li>
                 <button class="dropdown-item" @click="handleExportAction">
                   <i class="bi bi-download me-2"></i>
                   Export {{ title }}
                 </button>
               </li>
-              <li v-if="showImport">
+              <li>
                 <button class="dropdown-item" @click="handleImportAction">
                   <i class="bi bi-upload me-2"></i>
                   Import {{ title }}
@@ -79,7 +78,7 @@
     <!-- Mobile Action Bar (visible on mobile only) -->
     <div class="d-lg-none mb-3">
       <div class="row g-2">
-        <div class="col-6" v-if="showCreate">
+        <div class="col-6">
           <button class="btn btn-primary w-100" @click="handleCreateAction" :disabled="loading">
             <i class="bi bi-plus-lg"></i>
             Create
@@ -101,7 +100,6 @@
       <div v-if="showMobileActions" class="mt-2">
         <div class="list-group">
           <button 
-            v-if="showExport"
             class="list-group-item list-group-item-action"
             @click="handleExportAction"
             :disabled="loading"
@@ -110,7 +108,6 @@
             Export Data
           </button>
           <button 
-            v-if="showImport"
             class="list-group-item list-group-item-action"
             @click="handleImportAction"
             :disabled="loading"
@@ -152,17 +149,11 @@ import { useNotifyService } from '@/utils/notify'
 interface Props {
   title: string
   resource: string
-  showCreate?: boolean
-  showExport?: boolean
-  showImport?: boolean
   loading?: boolean
   itemCount?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  showCreate: false,
-  showExport: false,
-  showImport: false,
   loading: false
 })
 

@@ -18,9 +18,6 @@
       <Header
         :title="resourceTitle"
         :resource="resourceName"
-        :show-create="canCreate"
-        :show-export="canExport"
-        :show-import="canImport"
         @action-triggered="handleHeaderAction"
       >
         <template #search>
@@ -82,16 +79,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useApiService } from '@/utils/api'
-import { useNotifyService } from '@/utils/notify'
 
 // Route and services
 const route = useRoute()
 const router = useRouter()
 const apiService = useApiService()
 const notifyService = useNotifyService()
+const menuService = useMenuService()
 
 // Reactive state
 const isInitializing = ref(true)
@@ -113,18 +107,6 @@ const componentMode = computed(() => {
   return menuConfiguration.value?.mode === 'doc' ? 'document' : 'form'
 })
 
-const canCreate = computed(() => 
-  resourcePermissions.value.create !== false
-)
-
-const canExport = computed(() => 
-  resourcePermissions.value.export !== false
-)
-
-const canImport = computed(() => 
-  resourcePermissions.value.import !== false
-)
-
 // Initialize page
 onMounted(() => {
   initializePage()
@@ -134,25 +116,13 @@ const initializePage = async () => {
   try {
     isInitializing.value = true
     hasGlobalError.value = false
+
+    // Fetch menu data based on the current path
+    const menuData = menuService.getMenuDataByPath(route.fullPath)
     
-    // Fetch menu configuration to determine mode
-    try {
-      const menuResponse = await apiService.get('menu/configuration', resourceName.value)
-      menuConfiguration.value = menuResponse.data
-    } catch (error) {
-      // Fallback to default configuration
-      menuConfiguration.value = { mode: 'form' }
-    }
-    
-    // Fetch resource permissions
-    try {
-      const permissionsResponse = await apiService.get('permissions', resourceName.value)
-      resourcePermissions.value = permissionsResponse.data || {}
-    } catch (error) {
-      // Fallback to default permissions
-      resourcePermissions.value = { create: true, export: true, import: true }
-    }
-    
+    // Extract mode from menu data
+    menuConfiguration.value = menuData?.mode || 'form'
+   
     // Initialize state from URL
     initializeFromUrl()
     
@@ -298,7 +268,6 @@ useHead({
 
 .pagination-container {
   border-top: 1px solid var(--bs-border-color);
-  background-color: var(--bs-light);
   padding: 1rem;
 }
 
