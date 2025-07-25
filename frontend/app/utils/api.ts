@@ -72,7 +72,7 @@ class ApiService {
 
   constructor() {
     // Get the API base URL from runtime config, with fallback
-    this.baseURL = 'http://localhost:8000'
+    this.baseURL = 'http://localhost:8000/api/v1'
     try {
       const config = useRuntimeConfig()
       if (config?.public?.apiBase) {
@@ -240,7 +240,7 @@ class ApiService {
    * Get a single resource by ID
    */
   async get<T = any>(resource: string, id: string | number): Promise<ApiResponse<T>> {
-    const url = `/api/v1/${resource}/${id}`
+    const url = `/${resource}/${id}`
     return this.request<T>(url)
   }
 
@@ -248,7 +248,7 @@ class ApiService {
    * Create a new resource
    */
   async create<T = any, D = any>(resource: string, data: D): Promise<ApiResponse<T>> {
-    const url = `/api/v1/${resource}`
+    const url = `/${resource}`
     return this.request<T>(url, {
       method: 'POST',
       body: data
@@ -259,7 +259,7 @@ class ApiService {
    * Update an existing resource
    */
   async update<T = any, D = any>(resource: string, id: string | number, data: D): Promise<ApiResponse<T>> {
-    const url = `/api/v1/${resource}/${id}`
+    const url = `/${resource}/${id}`
     return this.request<T>(url, {
       method: 'PUT',
       body: data
@@ -270,7 +270,7 @@ class ApiService {
    * Delete a resource
    */
   async delete<T = any>(resource: string, id: string | number): Promise<ApiResponse<T>> {
-    const url = `/api/v1/${resource}/${id}`
+    const url = `/${resource}/${id}`
     return this.request<T>(url, {
       method: 'DELETE'
     })
@@ -306,7 +306,7 @@ class ApiService {
    * Build URL with query parameters and validation
    */
   buildUrl(resource: string, params?: Record<string, any>): { url: string; notifications: Notification[] } {
-    let url = `/api/v1/${resource}`
+    let url = `/${resource}`
     const notifications: Notification[] = []
     
     if (params) {

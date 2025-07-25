@@ -62,7 +62,7 @@ class AuthService {
    */
   async login(credentials: LoginCredentials): Promise<ApiResponse<LoginResponse>> {
     try {
-      const response = await this.apiService.request<LoginResponse>('/api/v1/auth/login', {
+      const response = await this.apiService.request<LoginResponse>('/auth/login', {
         method: 'POST',
         body: {
           username: credentials.email, // Backend expects 'username' field
@@ -101,7 +101,7 @@ class AuthService {
    */
   async logout(): Promise<ApiResponse<void>> {
     try {
-      const response = await this.apiService.request<void>('/api/v1/auth/logout', {
+      const response = await this.apiService.request<void>('/auth/logout', {
         method: 'POST'
       })
 
@@ -137,7 +137,7 @@ class AuthService {
     }
 
     try {
-      const response = await this.apiService.request<LoginResponse>('/api/v1/auth/refresh', {
+      const response = await this.apiService.request<LoginResponse>('/auth/refresh', {
         method: 'POST',
         body: { refreshToken: currentTokens.refreshToken } // Backend expects 'refreshToken' field
       })
@@ -173,7 +173,7 @@ class AuthService {
    * Check current authentication status
    */
   async checkAuthStatus(): Promise<ApiResponse<{ authenticated: boolean }>> {
-    return this.apiService.request<{ authenticated: boolean }>('/api/v1/auth/status', {
+    return this.apiService.request<{ authenticated: boolean }>('/auth/status', {
       method: 'GET'
     })
   }
