@@ -1,5 +1,5 @@
 <template>
-  <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" aria-labelledby="sidebarLabel" v-intersect="onSidebarVisible">
+  <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" aria-labelledby="sidebarLabel">
     <!-- Loading State -->
     <CommonLoading v-if="isLoading" />
 
