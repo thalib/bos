@@ -1,8 +1,15 @@
 # MasterDetail Component Design Specification
 
-The `MasterDetail` component is a **self-contained** layout coordinator that manages master-detail view interactions. It coordinates between the self-contained List component and detail panels (Form or DocumentView) based on the application mode.
+The `MasterDetail` component manages interactions between the List component and detail panels (Form or DocumentView), adapting to the application's mode.
 
 **File Location:** `frontend/app/components/Resource/MasterDetail.vue`
+
+```html
+<MasterDetail
+  :data="data" // received from the page 
+  :pagemode="'form'"
+/>
+```
 
 ## TDD Requirements
 
@@ -24,14 +31,7 @@ describe('MasterDetail Component', () => {
 
 ## Component Structure (Self-Contained Coordinator)
 
-```html
-<MasterDetail
-  resource="products"
-  :mode="'form'"
-  :initial-selection="selectedItemId"
-  @selection-changed="onSelectionChanged"
-/>
-```
+
 
 - **Props:**
   - `resource` (string, required): The API resource name

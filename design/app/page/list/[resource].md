@@ -1,6 +1,6 @@
-# Resource List Page Specification
+# Resource List Page Design Specification
 
-The `[resource].vue` page is a **self-contained coordinator** that orchestrates self-contained child components to provide a comprehensive resource management interface. It determines the appropriate mode (form/document) and coordinates component interactions.
+This document outlines the design and functionality of the `[resource].vue` page, ensuring consistency with the BOS frontend standards.
 
 **File Location:** `frontend/app/pages/list/[resource].vue`
 
@@ -20,31 +20,22 @@ describe('Resource List Page', () => {
   it('should handle component mode switching')
   it('should manage global loading states')
   it('should integrate error handling across components')
-  it('should use the centralized resource store for all list state (data, loading, error, sort, filters, pagination)')
-  it('should not allow child components to fetch or manage their own data independently')
-  it('should use useApiService for all HTTP requests via the store')
-  it('should use useNotifyService for all notifications and error handling via the store')
 })
 ```
 
-
-## Page Architecture (Self-Contained Coordinator with Centralized Store)
+## Page Architecture (Self-Contained Coordinator)
 
 ```txt
 [resource].vue Page (Self-Contained Coordinator)
 ├── Mode Determination
-│   ├── Fetch menu configuration (via useApiService)
+│   ├── Fetch menu configuration
 │   ├── Determine form vs document mode
 │   └── Load appropriate components
-├── Centralized State Management
-│   ├── Use Pinia resource store (frontend/app/stores/resource.ts) for all list state
-│   ├── All data, loading, error, sort, filters, pagination, columns, schema, etc. managed in store
-│   └── No child component may fetch or manage its own data independently
 ├── Component Coordination
 │   ├── Header component (actions, search, filters)
 │   ├── MasterDetail component (main content)
 │   ├── Pagination component (navigation)
-│   └── Loading state management (from store)
+│   └── Loading state management
 ├── URL State Management
 │   ├── Route parameter extraction
 │   ├── Query parameter coordination
@@ -55,12 +46,11 @@ describe('Resource List Page', () => {
 │   ├── Cross-component communication
 │   ├── Action coordination
 │   └── Error boundary management
-└── API/Notify Integration
-    ├── All HTTP requests via useApiService (only in store)
-    ├── All notifications and error handling via useNotifyService (only in store)
+└── API Integration (useApiService)
+    ├── Menu configuration fetch
+    ├── Mode determination logic
     └── Global error handling
 ```
-
 
 ## Component Relationships
 
@@ -69,7 +59,6 @@ graph TD
     A[Resource List Page] --> B[Header Component]
     A --> C[MasterDetail Component]
     A --> D[Pagination Component]
-    A --> S[Pinia Resource Store]
     
     B --> E[Search Component]
     B --> F[Filter Component]
@@ -82,11 +71,9 @@ graph TD
     
     classDef coordinator fill:#e1f5fe
     classDef selfContained fill:#f3e5f5
-    classDef store fill:#e8f5e9
     classDef deprecated fill:#ffebee
     
     class A coordinator
-    class S store
     class B,C,D,E,F,G,H,I selfContained
     class J deprecated
 ```
@@ -124,15 +111,14 @@ const menuConfigs = {
 }
 ```
 
-
 ## Implementation Example
 
 ```html
-<!-- Resource List Page (with centralized Pinia store) -->
+<!-- Resource List Page -->
 <template>
   <div class="resource-page">
     <!-- Global Loading State -->
-    <div v-if="resourceStore.isLoading" class="initialization-loading">
+    <div v-if="isInitializing" class="initialization-loading">
       <div class="d-flex justify-content-center align-items-center min-vh-100">
         <div class="text-center">
           <div class="spinner-border text-primary mb-3" role="status">
@@ -142,6 +128,7 @@ const menuConfigs = {
         </div>
       </div>
     </div>
+    
     <!-- Main Content -->
     <div v-else class="resource-content">
       <!-- Page Header -->
@@ -160,6 +147,7 @@ const menuConfigs = {
             @search-applied="handleSearchUpdate"
           />
         </template>
+        
         <template #filters>
           <Filter
             :resource="resourceName"
@@ -168,6 +156,7 @@ const menuConfigs = {
           />
         </template>
       </Header>
+      
       <!-- Main Content Area -->
       <div class="main-content">
         <MasterDetail
@@ -177,6 +166,7 @@ const menuConfigs = {
           @selection-changed="handleSelectionChanged"
         />
       </div>
+      
       <!-- Pagination -->
       <div class="pagination-container">
         <Pagination
@@ -187,8 +177,9 @@ const menuConfigs = {
         />
       </div>
     </div>
+    
     <!-- Error Boundary -->
-    <div v-if="resourceStore.hasError" class="error-boundary">
+    <div v-if="hasGlobalError" class="error-boundary">
       <div class="alert alert-danger text-center">
         <i class="bi bi-exclamation-triangle me-2"></i>
         Failed to load {{ resourceName }}. 
@@ -201,61 +192,119 @@ const menuConfigs = {
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useResourceStore } from '@/stores/resource'
+import { useApiService } from '@/utils/api'
+import { useNotifyService } from '@/utils/notify'
+
 import Header from '@/components/Resource/Header.vue'
 import MasterDetail from '@/components/Resource/MasterDetail.vue'
 import Pagination from '@/components/Resource/Pagination.vue'
 import Search from '@/components/Resource/Search.vue'
 import Filter from '@/components/Resource/Filter.vue'
 
+// Route and services
 const route = useRoute()
 const router = useRouter()
-const resourceStore = useResourceStore()
+const apiService = useApiService()
+const notifyService = useNotifyService()
 
+// Reactive state
+const isInitializing = ref(true)
+const hasGlobalError = ref(false)
+const menuConfiguration = ref<any>(null)
+const resourcePermissions = ref<any>({})
+
+// Computed properties
 const resourceName = computed(() => route.params.resource as string)
-const resourceTitle = computed(() => resourceName.value.charAt(0).toUpperCase() + resourceName.value.slice(1))
-const componentMode = computed(() => resourceStore.schema?.mode === 'doc' ? 'document' : 'form')
-const canCreate = computed(() => resourceStore.schema?.permissions?.create !== false)
-const canExport = computed(() => resourceStore.schema?.permissions?.export !== false)
-const canImport = computed(() => resourceStore.schema?.permissions?.import !== false)
 
-// All event handlers should call store actions or update store state only
+const resourceTitle = computed(() => 
+  resourceName.value.charAt(0).toUpperCase() + resourceName.value.slice(1)
+)
+
+const componentMode = computed(() => {
+  return menuConfiguration.value?.mode === 'doc' ? 'document' : 'form'
+})
+
+const canCreate = computed(() => 
+  resourcePermissions.value.create !== false
+)
+
+const canExport = computed(() => 
+  resourcePermissions.value.export !== false
+)
+
+const canImport = computed(() => 
+  resourcePermissions.value.import !== false
+)
+
+// Initialize page
+onMounted(() => {
+  initializePage()
+})
+
+const initializePage = async () => {
+  try {
+    isInitializing.value = true
+    hasGlobalError.value = false
+    
+    // Fetch menu configuration to determine mode
+    const menuResponse = await apiService.get('menu/configuration', resourceName.value)
+    menuConfiguration.value = menuResponse.data
+    
+    // Fetch resource permissions
+    const permissionsResponse = await apiService.get('permissions', resourceName.value)
+    resourcePermissions.value = permissionsResponse.data || {}
+    
+    // Page is ready
+    isInitializing.value = false
+    
+  } catch (error) {
+    handleGlobalError('Failed to initialize page', error)
+  }
+}
+
+// Event handlers
 const handleHeaderAction = (payload: { action: string; data?: any }) => {
   switch (payload.action) {
     case 'create':
-      router.push({ name: `${resourceName.value}-create`, params: { resource: resourceName.value } })
+      navigateToCreate()
       break
     case 'export':
-      resourceStore.setMessage('Export initiated')
+      notifyService.info('Export initiated')
       break
     case 'import':
-      resourceStore.setMessage('Import initiated')
+      notifyService.info('Import initiated')
       break
     case 'refresh':
-      resourceStore.fetchData({ resource: resourceName.value })
+      refreshPageData()
       break
   }
 }
 
 const handleSearchUpdate = (payload: { search: string; hasResults: boolean }) => {
-  resourceStore.setSearch(payload.search)
+  // Search state is automatically managed by Search component
+  // This handler can be used for analytics or additional coordination
   if (payload.search && !payload.hasResults) {
-    resourceStore.setMessage(`No results found for "${payload.search}"`)
+    notifyService.info(`No results found for "${payload.search}"`)
   }
 }
 
 const handleFiltersUpdate = (payload: { filters: object; hasActiveFilters: boolean }) => {
-  resourceStore.setFilters(payload.filters)
+  // Filter state is automatically managed by Filter component
+  // This handler can be used for analytics or additional coordination
   if (payload.hasActiveFilters) {
-    resourceStore.setMessage('Filters applied')
+    notifyService.success('Filters applied')
   }
 }
 
 const handleSelectionChanged = (payload: { selectedItem: any }) => {
+  // Update URL to reflect selection
   if (payload.selectedItem) {
-    router.push({ params: { ...route.params, id: payload.selectedItem.id }, query: route.query })
+    router.push({
+      params: { ...route.params, id: payload.selectedItem.id },
+      query: route.query
+    })
   } else {
     const { id, ...params } = route.params
     router.push({ params, query: route.query })
@@ -263,22 +312,66 @@ const handleSelectionChanged = (payload: { selectedItem: any }) => {
 }
 
 const handlePageChanged = (payload: { page: number; perPage: number; totalItems: number }) => {
-  resourceStore.setPagination(payload.page, payload.perPage)
+  // Pagination state is automatically managed by Pagination component
+  // This handler can be used for analytics or additional coordination
 }
 
+// Navigation helpers
+const navigateToCreate = () => {
+  router.push({
+    name: `${resourceName.value}-create`,
+    params: { resource: resourceName.value }
+  })
+}
+
+// Utility functions
 const getInitialFilters = () => {
   const filters: Record<string, any> = {}
+  
+  // Extract filter parameters from URL
   Object.entries(route.query).forEach(([key, value]) => {
     if (!['page', 'per_page', 'search', 'sort', 'dir'].includes(key)) {
       filters[key] = value
     }
   })
+  
   return filters
 }
 
-const retryInitialization = () => {
-  resourceStore.fetchData({ resource: resourceName.value })
+const refreshPageData = () => {
+  // Child components will handle their own refresh
+  notifyService.info('Refreshing data...')
 }
+
+const retryInitialization = () => {
+  initializePage()
+}
+
+// Error handling
+const handleGlobalError = (message: string, error: any) => {
+  console.error('[ResourcePage]', message, error)
+  hasGlobalError.value = true
+  isInitializing.value = false
+  notifyService.error(message)
+}
+
+// Watch for route changes
+watch(() => route.params.resource, (newResource) => {
+  if (newResource !== resourceName.value) {
+    initializePage()
+  }
+})
+
+// Meta information for the page
+useHead({
+  title: computed(() => `${resourceTitle.value} - BOS`),
+  meta: [
+    {
+      name: 'description',
+      content: computed(() => `Manage ${resourceTitle.value} in BOS application`)
+    }
+  ]
+})
 </script>
 
 <style scoped>
@@ -319,41 +412,36 @@ const retryInitialization = () => {
 
 ## Key Features
 
-
-### Self-Contained Architecture with Centralized Store
-- **Centralized State**: All resource list state (data, loading, error, sort, filters, pagination, columns, schema, etc.) is managed in the Pinia resource store (`frontend/app/stores/resource.ts`).
-- **No Data Fetching in Components**: Child components must not fetch or manage their own data; they read/write state directly from the store.
-- **Minimal Props**: Components require minimal configuration from parent, and receive state via store.
-- **Event Coordination**: Page coordinates high-level events and updates store state; components do not manage API or notify logic.
+### Self-Contained Architecture
+- **Component Isolation**: Each child component manages its own state and API calls
+- **Minimal Props**: Components require minimal configuration from parent
+- **Event Coordination**: Page coordinates high-level events without managing component internals
 
 ### Mode Determination
-- **Dynamic Loading**: Determines form vs document mode from menu configuration (fetched via store action)
+- **Dynamic Loading**: Determines form vs document mode from menu configuration
 - **Component Switching**: Loads appropriate components based on resource type
-- **API Integration**: All HTTP requests via `useApiService` in the store only
+- **API Integration**: Fetches mode configuration from `MenuController.php`
 
 ### URL State Management
-- **Automatic Synchronization**: Child components sync their state with URL via store
+- **Automatic Synchronization**: Child components sync their state with URL
 - **Browser Navigation**: Full support for back/forward navigation
 - **Bookmarkable State**: All component states can be bookmarked and shared
 
 ### Error Handling
-- **Store-Level**: All error and notification handling is managed in the store using `useNotifyService`
-- **Component-Level**: Components display error state from store, but do not handle errors directly
-- **Page-Level**: Global error boundary for initialization failures (from store)
-- **User Feedback**: Comprehensive notification system via store
+- **Component-Level**: Each component handles its own errors
+- **Page-Level**: Global error boundary for initialization failures
+- **User Feedback**: Comprehensive notification system
 
 ## API Integration Reference
 
-
 **Endpoints Used:**
-- **Menu Config:** `GET /api/v1/menu/configuration/{resource}` (via store)
-- **Permissions:** `GET /api/v1/permissions/{resource}` (via store)
+- **Menu Config:** `GET /api/v1/menu/configuration/{resource}`
+- **Permissions:** `GET /api/v1/permissions/{resource}`
 
-**All API calls and error handling must be performed in the Pinia resource store using `useApiService` and `useNotifyService`.**
+**Child Component APIs:** Inherited from individual component specifications
 
-**Child components must not perform their own API calls or error handling.**
+**Error Handling:** Coordinated via `frontend/app/utils/notify.ts`
 
----
+## Test-Driven Development (TDD)
 
-**Migration from Old Architecture:**
-This page replaces the previous prop-heavy approach with self-contained components that manage their own state and API interactions, resulting in better performance, maintainability, and user experience.
+For detailed TDD guidelines, refer to the [BOS Frontend Rules](design/rules-app.md).

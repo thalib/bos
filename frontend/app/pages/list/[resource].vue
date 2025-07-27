@@ -11,58 +11,39 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Main Content -->
     <div v-else class="resource-content">
       <!-- Page Header -->
-      <Header
-        :title="resourceTitle"
-        :resource="resourceName"
-        @action-triggered="handleHeaderAction"
-      >
+      <Header :title="resourceTitle" :resource="resourceName" @action-triggered="handleHeaderAction">
         <template #search>
-          <Search
-            :resource="resourceName"
-            :initial-search="$route.query.search"
-            @search-applied="handleSearchUpdate"
-          />
+          <Search :resource="resourceName" :initial-search="$route.query.search" @search-applied="handleSearchUpdate" />
         </template>
-        
+
         <template #filters>
-          <Filter
-            :resource="resourceName"
-            :initial-filters="getInitialFilters()"
-            @filters-applied="handleFiltersUpdate"
-          />
+          <Filter :resource="resourceName" :initial-filters="getInitialFilters()"
+            @filters-applied="handleFiltersUpdate" />
         </template>
       </Header>
-      
+
       <!-- Main Content Area -->
       <div class="main-content">
-        <MasterDetail
-          :resource="resourceName"
-          :mode="componentMode"
-          :initial-selection="$route.params.id"
-          @selection-changed="handleSelectionChanged"
-        />
+        <MasterDetail :resource="resourceName" :mode="componentMode" :initial-selection="$route.params.id"
+          @selection-changed="handleSelectionChanged" />
       </div>
-      
+
       <!-- Pagination -->
       <div class="pagination-container">
-        <Pagination
-          :resource="resourceName"
-          :initial-page="$route.query.page"
-          :initial-per-page="$route.query.per_page"
-          @page-changed="handlePageChanged"
-        />
+        <Pagination :resource="resourceName" :initial-page="$route.query.page" :initial-per-page="$route.query.per_page"
+          @page-changed="handlePageChanged" />
       </div>
     </div>
-    
+
     <!-- Error Boundary -->
     <div v-if="hasGlobalError" class="error-boundary">
       <div class="alert alert-danger text-center">
         <i class="bi bi-exclamation-triangle me-2"></i>
-        Failed to load {{ resourceName }}. 
+        Failed to load {{ resourceName }}.
         <button class="btn btn-link p-0" @click="retryInitialization">
           Try again
         </button>
@@ -92,7 +73,7 @@ const currentPage = ref(1)
 // Computed properties
 const resourceName = computed(() => route.params.resource as string)
 
-const resourceTitle = computed(() => 
+const resourceTitle = computed(() =>
   resourceName.value.charAt(0).toUpperCase() + resourceName.value.slice(1)
 )
 
@@ -120,16 +101,16 @@ const initializePage = async () => {
 
     // Fetch menu data based on the current path
     const menuData = menuService.getMenuDataByPath(route.fullPath)
-    
+
     // Extract mode from menu data
     menuConfiguration.value = menuData?.mode || 'form'
-   
+
     // Initialize state from URL
     initializeFromUrl()
-    
+
     // Page is ready
     isInitializing.value = false
-    
+
   } catch (error) {
     handleGlobalError('Failed to initialize page', error)
   }
@@ -138,7 +119,7 @@ const initializePage = async () => {
 const initializeFromUrl = () => {
   appliedSearch.value = route.query.search as string || ''
   currentPage.value = parseInt(route.query.page as string) || 1
-  
+
   // Extract filters from URL
   const filters: Record<string, any> = {}
   Object.entries(route.query).forEach(([key, value]) => {
@@ -170,7 +151,7 @@ const handleHeaderAction = (payload: { action: string; data?: any }) => {
 const handleSearchUpdate = (payload: { search: string; hasResults: boolean }) => {
   appliedSearch.value = payload.search
   currentPage.value = 1 // Reset to first page on search
-  
+
   if (payload.search && !payload.hasResults) {
     notifyService.info(`No results found for "${payload.search}"`)
   }
@@ -179,7 +160,7 @@ const handleSearchUpdate = (payload: { search: string; hasResults: boolean }) =>
 const handleFiltersUpdate = (payload: { filters: object; hasActiveFilters: boolean }) => {
   appliedFilters.value = payload.filters
   currentPage.value = 1 // Reset to first page on filter change
-  
+
   if (payload.hasActiveFilters) {
     notifyService.success('Filters applied')
   }
@@ -216,14 +197,14 @@ const navigateToCreate = () => {
 // Utility functions
 const getInitialFilters = () => {
   const filters: Record<string, any> = {}
-  
+
   // Extract filter parameters from URL
   Object.entries(route.query).forEach(([key, value]) => {
     if (!['page', 'per_page', 'search', 'sort', 'dir'].includes(key)) {
       filters[key] = value
     }
   })
-  
+
   return filters
 }
 
