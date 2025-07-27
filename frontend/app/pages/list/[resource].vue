@@ -1,279 +1,64 @@
 <template>
-  <div class="resource-page">
-    <!-- Global Loading State -->
-    <div v-if="isInitializing" class="initialization-loading">
-      <div class="d-flex justify-content-center align-items-center min-vh-100">
-        <div class="text-center">
-          <div class="spinner-border text-primary mb-3" role="status">
-            <span class="visually-hidden">Loading...</span>
+  <div class="container mt-5">
+    <!-- Row 1: Dashboard Heading -->
+    <div class="row">
+      <div class="col-12">
+        <h1 class="text-center">
+          <i class="bi bi-speedometer2"></i> Resource Page
+        </h1>
+      </div>
+    </div>
+
+    <!-- Row 2: Welcome Message -->
+    <div class="row mt-4">
+      <div class="col-12 col-md-8 col-lg-6 mx-auto">
+        <div class="card">
+          <div class="card-body text-center py-5">
+            <h3 class="card-title mb-3">
+              <i class="bi bi-house-heart"></i>
+            </h3>
+            <p class="card-text fs-4 text-center" data-testid="welcome-message">
+              <ClientOnly fallback="Welcome to the Guest!">
+                Welcome to the {{ userName }}!
+              </ClientOnly>
+            </p>
+            <p class="text-muted">
+              You have successfully accessed your dashboard.
+            </p>
           </div>
-          <p class="text-muted">Initializing {{ resourceName }}...</p>
         </div>
-      </div>
-    </div>
-
-    <!-- Main Content -->
-    <div v-else class="resource-content">
-      <!-- Page Header -->
-      <Header :title="resourceTitle" :resource="resourceName" @action-triggered="handleHeaderAction">
-        <template #search>
-          <Search :resource="resourceName" :initial-search="$route.query.search" @search-applied="handleSearchUpdate" />
-        </template>
-
-        <template #filters>
-          <Filter :resource="resourceName" :initial-filters="getInitialFilters()"
-            @filters-applied="handleFiltersUpdate" />
-        </template>
-      </Header>
-
-      <!-- Main Content Area -->
-      <div class="main-content">
-        <MasterDetail :resource="resourceName" :mode="componentMode" :initial-selection="$route.params.id"
-          @selection-changed="handleSelectionChanged" />
-      </div>
-
-      <!-- Pagination -->
-      <div class="pagination-container">
-        <Pagination :resource="resourceName" :initial-page="$route.query.page" :initial-per-page="$route.query.per_page"
-          @page-changed="handlePageChanged" />
-      </div>
-    </div>
-
-    <!-- Error Boundary -->
-    <div v-if="hasGlobalError" class="error-boundary">
-      <div class="alert alert-danger text-center">
-        <i class="bi bi-exclamation-triangle me-2"></i>
-        Failed to load {{ resourceName }}.
-        <button class="btn btn-link p-0" @click="retryInitialization">
-          Try again
-        </button>
       </div>
     </div>
   </div>
 </template>
 
+
 <script setup lang="ts">
+const authService = useAuthService();
+const menuService = useMenuService();
+const route = useRoute();
 
-// Route and services
-const route = useRoute()
-const router = useRouter()
-const apiService = useApiService()
-const notifyService = useNotifyService()
-const menuService = useMenuService()
+// Computed user name
+const userName = computed(() => {
+  const user = authService.getCurrentUser();
+  if (!user) return 'Guest';
+  return user.name || 'User';
+});
 
-// Reactive state
-const isInitializing = ref(true)
-const hasGlobalError = ref(false)
-const menuConfiguration = ref<any>(null)
-const resourcePermissions = ref<any>({})
-const appliedFilters = ref<Record<string, any>>({})
-const appliedSearch = ref('')
-const currentPage = ref(1)
+// Computed property to get the current menu item
+const menuItem = computed(() => {
+  const currentPath = route.path; // Ensure this is accessed lazily
+  return menuService.getMenuDataByPath(currentPath) || { name: 'Unknown' };
+});
 
-// Computed properties
-const resourceName = computed(() => route.params.resource as string)
-
-const resourceTitle = computed(() =>
-  resourceName.value.charAt(0).toUpperCase() + resourceName.value.slice(1)
-)
-
-const componentMode = computed(() => {
-  // Determine mode based on resource type or menu configuration
-  // For demo purposes, use simple logic:
-  // - estimates, invoices, quotes = document mode
-  // - everything else = form mode
-  const documentResources = ['estimates', 'invoices', 'quotes']
-  if (documentResources.includes(resourceName.value)) {
-    return 'document'
-  }
-  return menuConfiguration.value?.mode === 'doc' ? 'document' : 'form'
-})
-
-// Initialize page
+// Dynamically set the page meta title
 onMounted(() => {
-  initializePage()
-})
-
-const initializePage = async () => {
-  try {
-    isInitializing.value = true
-    hasGlobalError.value = false
-
-    // Fetch menu data based on the current path
-    const menuData = menuService.getMenuDataByPath(route.fullPath)
-
-    // Extract mode from menu data
-    menuConfiguration.value = menuData?.mode || 'form'
-
-    // Initialize state from URL
-    initializeFromUrl()
-
-    // Page is ready
-    isInitializing.value = false
-
-  } catch (error) {
-    handleGlobalError('Failed to initialize page', error)
-  }
-}
-
-const initializeFromUrl = () => {
-  appliedSearch.value = route.query.search as string || ''
-  currentPage.value = parseInt(route.query.page as string) || 1
-
-  // Extract filters from URL
-  const filters: Record<string, any> = {}
-  Object.entries(route.query).forEach(([key, value]) => {
-    if (!['page', 'per_page', 'search', 'sort', 'dir'].includes(key)) {
-      filters[key] = value
-    }
-  })
-  appliedFilters.value = filters
-}
-
-// Event handlers
-const handleHeaderAction = (payload: { action: string; data?: any }) => {
-  switch (payload.action) {
-    case 'create':
-      navigateToCreate()
-      break
-    case 'export':
-      notifyService.info('Export initiated')
-      break
-    case 'import':
-      notifyService.info('Import initiated')
-      break
-    case 'refresh':
-      refreshPageData()
-      break
-  }
-}
-
-const handleSearchUpdate = (payload: { search: string; hasResults: boolean }) => {
-  appliedSearch.value = payload.search
-  currentPage.value = 1 // Reset to first page on search
-
-  if (payload.search && !payload.hasResults) {
-    notifyService.info(`No results found for "${payload.search}"`)
-  }
-}
-
-const handleFiltersUpdate = (payload: { filters: object; hasActiveFilters: boolean }) => {
-  appliedFilters.value = payload.filters
-  currentPage.value = 1 // Reset to first page on filter change
-
-  if (payload.hasActiveFilters) {
-    notifyService.success('Filters applied')
-  }
-}
-
-const handleSelectionChanged = (payload: { selectedItem: any }) => {
-  // Update URL to reflect selection
-  if (payload.selectedItem) {
-    router.push({
-      params: { ...route.params, id: payload.selectedItem.id },
-      query: route.query
-    })
-  } else {
-    const { id, ...params } = route.params
-    router.push({ params, query: route.query })
-  }
-}
-
-const handleSortChanged = (payload: { column: string; direction: 'asc' | 'desc' }) => {
-  notifyService.info(`Sorted by ${payload.column} ${payload.direction}`)
-}
-
-const handlePageChanged = (payload: { page: number; perPage: number; totalItems: number }) => {
-  currentPage.value = payload.page
-}
-
-// Navigation helpers
-const navigateToCreate = () => {
-  router.push({
-    path: `/list/${resourceName.value}/create`
-  })
-}
-
-// Utility functions
-const getInitialFilters = () => {
-  const filters: Record<string, any> = {}
-
-  // Extract filter parameters from URL
-  Object.entries(route.query).forEach(([key, value]) => {
-    if (!['page', 'per_page', 'search', 'sort', 'dir'].includes(key)) {
-      filters[key] = value
-    }
-  })
-
-  return filters
-}
-
-const refreshPageData = () => {
-  // Child components will handle their own refresh
-  notifyService.info('Refreshing data...')
-}
-
-const retryInitialization = () => {
-  initializePage()
-}
-
-// Error handling
-const handleGlobalError = (message: string, error: any) => {
-  console.error('[ResourcePage]', message, error)
-  hasGlobalError.value = true
-  isInitializing.value = false
-  notifyService.error(message)
-}
-
-// Watch for route changes
-watch(() => route.params.resource, (newResource) => {
-  if (newResource !== resourceName.value) {
-    initializePage()
-  }
-})
-
-// Meta information for the page
-useHead({
-  title: computed(() => `${resourceTitle.value} - BOS`),
-  meta: [
-    {
-      name: 'description',
-      content: computed(() => `Manage ${resourceTitle.value} in BOS application`)
-    }
-  ]
-})
+  definePageMeta({
+    middleware: 'auth',
+    layout: 'default',
+    title: 'Thalib'//menuItem.value.name, // Access the computed value
+  });
+});
 </script>
 
-<style scoped>
-.resource-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.main-content {
-  flex: 1;
-  overflow: hidden;
-}
-
-.pagination-container {
-  border-top: 1px solid var(--bs-border-color);
-  padding: 1rem;
-}
-
-.initialization-loading {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.9);
-  z-index: 9999;
-}
-
-.error-boundary {
-  position: sticky;
-  bottom: 0;
-  z-index: 1000;
-}
-</style>
+<style scoped></style>

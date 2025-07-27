@@ -2,7 +2,7 @@
 
 Centralized Pinia store for managing resource list state, including data, columns, loading, error, sort, filters, and pagination. Enables shared, reactive state across pages and components (List, Filter, Pagination, etc.).
 
-**File Location:** `frontend/app/stores/resource.ts`
+**File Location:** `frontend/app/stores/storeResource.ts`
 
 ## Store Structure
 
@@ -11,7 +11,7 @@ import { defineStore } from "pinia";
 // All API calls must use useApiService from frontend/app/utils/api.ts
 // All notifications must use useNotifyService from frontend/app/utils/notify.ts
 
-export const useResourceStore = defineStore("resource", {
+export const useStoreResource = defineStore("resource", {
   state: () => ({
     success: true,
     message: "",
@@ -89,8 +89,8 @@ export const useResourceStore = defineStore("resource", {
 ## Usage
 
 ```typescript
-import { useResourceStore } from "@/stores/resource";
-const resourceStore = useResourceStore();
+import { useStoreResource } from "@/stores/storeResource";
+const resourceStore = useStoreResource();
 ```
 
 ## Features and Implementation Rules
