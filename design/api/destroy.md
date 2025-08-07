@@ -1,24 +1,32 @@
-# DELETE Endpoint Documentation
+# DELETE Resource Endpoint (Destroy)
 
-The `DELETE` method is used to remove a resource. This document outlines the standardized request and response structure, validation rules, and best practices for implementing `DELETE` endpoints.
-
----
+Delete a resource.
 
 ## Request Structure
 
-```bash
+### Endpoint Format
+```
 DELETE /api/v1/{resource}/{id}
 ```
 
-- `DELETE` request targets a specific **_resource_** using its **_identifier_** in the URL.
-- **`id`** _(string &#124; integer)_: **Path Parameter**, is unique identifier of the resource to be deleted.
+### Authentication Required
+✅ **Yes** - All resource endpoints require `auth:sanctum` middleware
 
-Example URLs
+### Path Parameters
+- **`id`** _(string | integer)_: Unique identifier of the resource to be deleted
 
+### Example Endpoints
 ```bash
 DELETE /api/v1/products/{id}
 DELETE /api/v1/users/{id}
-DELETE /api/v1/orders/{id}
+DELETE /api/v1/estimates/{id}
+```
+
+### Authentication
+
+```bash
+curl -X DELETE "https://api.example.com/api/v1/products/123" \
+  -H "Authorization: Bearer {your_token_here}"
 ```
 
 ---
@@ -33,33 +41,34 @@ DELETE /api/v1/orders/{id}
 }
 ```
 
-### Success Response (HTTP 200 OK)
+### Example Response
 
 ```json
 {
   "success": true,
-  "message": "Resource deleted successfully."
+  "message": "Resource deleted successfully"
 }
 ```
 
-### Error Response Example
+## Available Resources
 
-Refer to [error.md](#file:design/api/error.md) for detailed error response structure.
+This endpoint structure applies to all auto-generated resources in the BOS system:
 
----
+- **Users** (`DELETE /api/v1/users/{id}`) - Delete user accounts
+- **Products** (`DELETE /api/v1/products/{id}`) - Delete products
+- **Estimates** (`DELETE /api/v1/estimates/{id}`) - Delete business estimates
+- **Test Models** (`DELETE /api/v1/test-models/{id}`) - Delete test models
 
-## Validation & Deletion Rules
+## Validation & Business Rules
 
-- The `id` must be provided in the URL path and be a valid format (integer or string, as required by the model).
-- Non-existent IDs must return a `404 Not Found` response.
-- Invalid ID formats must return a `400 Bad Request` response.
-- All endpoints require authentication (`auth:sanctum` middleware) and user permission validation before deletion.
-- Related resources must be handled appropriately (e.g., cascade deletion or dependency checks). If dependencies prevent deletion, provide clear error messages and guidance for resolution.
-- Use transactions to ensure data consistency.
-- Log all delete operations for compliance and debugging.
-- Implement rate limiting to prevent abuse.
-- Validate the `id` parameter to prevent injection attacks.
-- Always provide clear feedback about the deletion result.
-- Consider implementing undo functionality for critical deletions.
+- The `id` must be provided in the URL path and be a valid format
+- Non-existent IDs return `404 Not Found` response
+- Operations may check for dependencies before deletion
+- Related resources are handled appropriately (cascade or dependency checks)
+- All deletion operations are logged for audit trails
+- Some resources may implement "soft delete" instead of permanent deletion
 
----
+For resource-specific deletion behavior, see:
+- [Users Resource](resources/users.md)
+- [Products Resource](resources/products.md)
+- [Estimates Resource](resources/estimates.md)

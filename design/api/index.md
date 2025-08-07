@@ -1,6 +1,16 @@
-# REST API Response for GET/index Endpoint
+# GET Resource List Endpoint (Index)
+
+List resources with pagination, search, filtering, and sorting capabilities.
 
 ## Request Structure
+
+### Endpoint Format
+```
+GET /api/v1/{resource}
+```
+
+### Authentication Required
+✅ **Yes** - All resource endpoints require `auth:sanctum` middleware
 
 ### Query Parameters
 
@@ -11,13 +21,32 @@
 - **`filter`** _(string)_: Filter format: `field:value`.
 - **`search`** _(string)_: Search query string to filter results.
 
-### Parameter Examples
+### Example Requests
 
+```bash
+# Basic pagination
+GET /api/v1/products?page=2&per_page=20
+
+# Sorting
+GET /api/v1/users?sort=name&dir=asc
+
+# Filtering
+GET /api/v1/products?filter=status:active
+
+# Search
+GET /api/v1/users?search=john
+
+# Combined parameters
+GET /api/v1/products?search=widget&filter=type:simple&sort=price&dir=desc&page=1&per_page=25
 ```
-?page=2&per_page=20
-?sort=name&dir=asc
-?filter=status:active
-?search=mobile
+
+### Authentication
+
+Include the bearer token in the Authorization header:
+
+```bash
+curl -X GET "https://api.example.com/api/v1/products" \
+  -H "Authorization: Bearer {your_token_here}"
 ```
 
 ### Parameter Validation
@@ -41,17 +70,19 @@ When no query parameters are provided, the endpoint returns:
 - No filters applied.
 - No search applied.
 
-Example default request:
+## Available Resources
 
-```bash
-GET /api/v1/products
-```
+This endpoint structure applies to all auto-generated resources in the BOS system:
 
-Is equivalent to:
+- **Users** (`/api/v1/users`) - User accounts and profiles
+- **Products** (`/api/v1/products`) - Product catalog and inventory  
+- **Estimates** (`/api/v1/estimates`) - Business estimates and quotations
+- **Test Models** (`/api/v1/test-models`) - Development testing models
 
-```bash
-GET /api/v1/products?page=1&per_page=15&sort=id&dir=asc
-```
+For resource-specific details, see:
+- [Users Resource](resources/users.md)
+- [Products Resource](resources/products.md)
+- [Estimates Resource](resources/estimates.md)
 
 ## Response Structure
 

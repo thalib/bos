@@ -1,24 +1,35 @@
-# GET Endpoint Documentation
+# GET Single Resource Endpoint (Show)
 
-The `GET` method is used to retrieve a single resource. This document outlines the standardized request and response structure, validation rules, and best practices for implementing `GET` endpoints.
-
----
+Retrieve a single resource by its identifier.
 
 ## Request Structure
 
-```bash
+### Endpoint Format
+```
 GET /api/v1/{resource}/{id}
 ```
 
-- `GET` request targets a specific **_resource_** using its **_identifier_** in the URL.
+### Authentication Required
+✅ **Yes** - All resource endpoints require `auth:sanctum` middleware
+
+### Path Parameters
+
 - **`id`** _(string | integer)_: **Path Parameter**, is the unique identifier of the resource to be retrieved.
 
-Example URLs
-
+### Example Endpoints
 ```bash
 GET /api/v1/products/{id}
 GET /api/v1/users/{id}
-GET /api/v1/orders/{id}
+GET /api/v1/estimates/{id}
+```
+
+### Authentication
+
+Include the bearer token in the Authorization header:
+
+```bash
+curl -X GET "https://api.example.com/api/v1/products/123" \
+  -H "Authorization: Bearer {your_token_here}"
 ```
 
 ---
@@ -34,22 +45,36 @@ GET /api/v1/orders/{id}
 }
 ```
 
-### Success Response (HTTP 200 OK)
+### Example Response
 
 ```json
 {
   "success": true,
-  "message": "Resource retrieved successfully.",
+  "message": "Resource retrieved successfully",
   "data": {
     "id": 123,
     "name": "Example Resource",
     "description": "This is an example resource",
     "status": "active",
-    "created_at": "2025-07-15T10:30:00Z",
-    "updated_at": "2025-07-15T10:30:00Z"
+    "created_at": "2025-01-15T10:30:00.000000Z",
+    "updated_at": "2025-01-15T10:30:00.000000Z"
   }
 }
 ```
+
+## Available Resources
+
+This endpoint structure applies to all auto-generated resources in the BOS system:
+
+- **Users** (`/api/v1/users/{id}`) - User accounts and profiles
+- **Products** (`/api/v1/products/{id}`) - Product catalog and inventory  
+- **Estimates** (`/api/v1/estimates/{id}`) - Business estimates and quotations
+- **Test Models** (`/api/v1/test-models/{id}`) - Development testing models
+
+For resource-specific details, see:
+- [Users Resource](resources/users.md)
+- [Products Resource](resources/products.md)
+- [Estimates Resource](resources/estimates.md)
 
 ### Error Response Example
 

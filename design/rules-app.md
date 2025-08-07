@@ -57,14 +57,20 @@ frontend/
 Backend <-> api.ts <-> auth.ts <-> Frontend Components
 ```
 
-- [`api.ts`](design/app/services/Api.md): API Service Layer — handles all API communication and operations
-- [`auth.ts`](design/app/services/Auth.md): Authentication Service — manages session/auth state
+- [`api.ts`](../api/README.md): API Service Layer — handles all API communication and operations
+- [`auth.ts`](../auth/README.md): Authentication Service — manages session/auth state
+
+**Available API Endpoints:**
+- Authentication: `/api/v1/auth/*` - Login, register, logout, refresh, status
+- Resources: `/api/v1/{users|products|estimates}` - Full CRUD operations
+- Application: `/api/v1/app/menu` - Menu structure
+- Documents: `/api/v1/documents/*` - PDF generation and templates
 
 ### Rules
 
 - **Bootstrap First**: Use Bootstrap 5.3 classes for layout, components, and utilities. Custom CSS is only allowed when absolutely necessary.
 - **Form Validation**: Use reactive patterns with real-time feedback and clear error messages. Use libraries like `vee-validate` or `yup` for schema-based validation.
-- **Error Handling & Notifications**: Use the [Notify Service](design/app/services/Notify.md) (`frontend/app/utils/notify.ts`) for all user feedback, error handling, and notifications—including success messages, warnings, and error alerts. Always provide fallback UI for unexpected errors to ensure a seamless user experience and maintain consistency across the application.
+- **Error Handling & Notifications**: Use the [Notify Service](../api/error.md) (`frontend/app/utils/notify.ts`) for all user feedback, error handling, and notifications—including success messages, warnings, and error alerts. Always provide fallback UI for unexpected errors to ensure a seamless user experience and maintain consistency across the application.
 - **TypeScript**: Use strict typing. Define interfaces, avoid `any`, and follow Composition API patterns (`ref`, `reactive`, `computed`, `watch`). Use `tsc` for type checking.
 - **Loading States**: Always provide consistent loading indicators for all async operations. Use shared components for spinners or skeleton loaders.
 - **Best Practices**: Ensure accessibility (ARIA roles, keyboard navigation), optimize performance (lazy loading, code splitting, caching), sanitize user inputs, and use HTTPS for API calls. Use Lighthouse for audits.
