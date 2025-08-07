@@ -1,37 +1,50 @@
-# PUT/PATCH Endpoint Documentation
+# PUT/PATCH Resource Update Endpoint (Update)
 
-The `PUT` and `PATCH` methods are used to update an existing resource. This document outlines the standardized request and response structure, validation rules, and best practices for implementing `PUT` and `PATCH` endpoints.
-
----
+Update an existing resource.
 
 ## Request Structure
 
-```bash
+### Endpoint Format
+```
 PUT /api/v1/{resource}/{id}
 PATCH /api/v1/{resource}/{id}
 ```
 
-- `PUT` request updates all fields of a specific **_resource_** using its **_identifier_** in the URL.
-- `PATCH` request updates only specified fields of a specific **_resource_** using its **_identifier_** in the URL.
-- **`id`** _(string | integer)_: **Path Parameter**, is the unique identifier of the resource to be updated.
-- **Authentication**: All requests require `auth:sanctum` middleware.
-- **Validation**: Requests are validated using `UpdateResourceRequest`.
-- **Transaction Handling**: Operations are wrapped in transactions to ensure data consistency.
+### Authentication Required
+✅ **Yes** - All resource endpoints require `auth:sanctum` middleware
 
-Example URLs
+### Method Differences
+- **PUT**: Updates all fields of a resource (full update)
+- **PATCH**: Updates only specified fields (partial update)
 
+### Path Parameters
+- **`id`** _(string | integer)_: Unique identifier of the resource to update
+
+### Headers
+```
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+### Example Endpoints
 ```bash
 PUT /api/v1/products/{id}
 PATCH /api/v1/users/{id}
-PUT /api/v1/orders/{id}
+PUT /api/v1/estimates/{id}
 ```
 
-### Request Data Structure
+### Authentication
 
-The `PUT` and `PATCH` endpoints accept JSON request bodies with the fields to be updated. Ensure all required fields are included for `PUT` requests, while `PATCH` requests allow partial updates.
+```bash
+curl -X PATCH "https://api.example.com/api/v1/products/123" \
+  -H "Authorization: Bearer {your_token_here}" \
+  -H "Content-Type: application/json" \
+  -d '{"price": 129.99, "status": "active"}'
+```
 
-#### Example JSON for `PUT` Request
+### Request Examples
 
+#### PUT Request (Full Update)
 ```json
 {
   "name": "Updated Product Name",
@@ -41,21 +54,13 @@ The `PUT` and `PATCH` endpoints accept JSON request bodies with the fields to be
 }
 ```
 
-#### Example JSON for `PATCH` Request
-
+#### PATCH Request (Partial Update)
 ```json
 {
   "price": 129.99,
   "status": "inactive"
 }
 ```
-
-#### Notes
-
-- **Field Validation**: All fields must match the expected data types.
-- **Required Fields**: `PUT` requests must include all required fields, while `PATCH` requests only need the fields being updated.
-- **Security**: Input validation is mandatory to prevent injection attacks.
-- **Business Rules**: Ensure updates comply with business rules and constraints.
 
 ---
 
@@ -70,40 +75,42 @@ The `PUT` and `PATCH` endpoints accept JSON request bodies with the fields to be
 }
 ```
 
-### Success Response (HTTP 200 OK)
+### Example Response
 
 ```json
 {
   "success": true,
-  "message": "Resource updated successfully.",
+  "message": "Resource updated successfully",
   "data": {
     "id": 123,
     "name": "Updated Resource",
     "description": "This is an updated resource",
     "status": "active",
-    "created_at": "2025-07-15T10:30:00Z",
-    "updated_at": "2025-07-15T10:45:00Z"
+    "created_at": "2025-01-15T10:30:00.000000Z",
+    "updated_at": "2025-01-15T10:45:00.000000Z"
   }
 }
 ```
 
-### Error Response Example
+## Available Resources
 
-Refer to [error.md](../error.md) for detailed error response structure.
+This endpoint structure applies to all auto-generated resources in the BOS system:
 
----
+- **Users** (`PUT/PATCH /api/v1/users/{id}`) - Update user accounts
+- **Products** (`PUT/PATCH /api/v1/products/{id}`) - Update products
+- **Estimates** (`PUT/PATCH /api/v1/estimates/{id}`) - Update business estimates
+- **Test Models** (`PUT/PATCH /api/v1/test-models/{id}`) - Update test models
 
-## Validation & Update Rules
+## Validation & Business Rules
 
-- The `id` must be provided in the URL path and be a valid format (integer or string, as required by the model).
-- Request body must include valid fields for update.
-- Non-existent IDs must return a `404 Not Found` response.
-- Invalid ID formats must return a `400 Bad Request` response.
-- All endpoints require authentication (`auth:sanctum` middleware) and user permission validation before update.
-- Use transactions to ensure data consistency.
-- Log all update operations for compliance and debugging.
-- Implement rate limiting to prevent abuse.
-- Validate input to prevent injection attacks.
-- Always provide clear feedback about the update result.
+- The `id` must be provided in the URL path and be a valid format
+- Request body must include valid fields for update
+- Non-existent IDs return `404 Not Found` response
+- Operations are wrapped in database transactions for data consistency
+- Each resource has specific validation rules defined in `UpdateResourceRequest`
+- All update operations are logged for audit trails
 
----
+For resource-specific validation rules and fields, see:
+- [Users Resource](resources/users.md)
+- [Products Resource](resources/products.md)
+- [Estimates Resource](resources/estimates.md)

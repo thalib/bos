@@ -1,27 +1,41 @@
-# POST Endpoint Documentation
+# POST Resource Creation Endpoint (Store)
 
-The `POST` method is used to create a new resource. This document outlines the standardized request and response structure, validation rules, and best practices for implementing `POST` endpoints.
-
----
+Create a new resource.
 
 ## Request Structure
 
-```bash
+### Endpoint Format
+```
 POST /api/v1/{resource}
 ```
 
-- `POST` request targets a specific **_resource_**.
-- Request body must contain the necessary fields to create the resource.
-- **Authentication**: All requests require `auth:sanctum` middleware.
-- **Validation**: Requests are validated using `StoreResourceRequest`.
-- **Transaction Handling**: Operations are wrapped in transactions to ensure data consistency.
+### Authentication Required
+✅ **Yes** - All resource endpoints require `auth:sanctum` middleware
 
-Example URLs
+### Headers
+```
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
 
+### Request Body
+
+The request body should contain the necessary fields to create the resource. Each resource has specific validation rules and required fields.
+
+### Example Endpoints
 ```bash
 POST /api/v1/products
 POST /api/v1/users
-POST /api/v1/orders
+POST /api/v1/estimates
+```
+
+### Authentication
+
+```bash
+curl -X POST "https://api.example.com/api/v1/products" \
+  -H "Authorization: Bearer {your_token_here}" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "New Product", "price": 99.99}'
 ```
 
 ---
@@ -37,38 +51,41 @@ POST /api/v1/orders
 }
 ```
 
-### Success Response (HTTP 201 Created)
+### Example Response
 
 ```json
 {
   "success": true,
-  "message": "Resource created successfully.",
+  "message": "Resource created successfully",
   "data": {
     "id": 123,
     "name": "New Resource",
     "description": "This is a new resource",
     "status": "active",
-    "created_at": "2025-07-15T10:30:00Z",
-    "updated_at": "2025-07-15T10:30:00Z"
+    "created_at": "2025-01-15T10:30:00.000000Z",
+    "updated_at": "2025-01-15T10:30:00.000000Z"
   }
 }
 ```
 
-### Error Response Example
+## Available Resources
 
-Refer to [error.md](../error.md) for detailed error response structure.
+This endpoint structure applies to all auto-generated resources in the BOS system:
 
----
+- **Users** (`POST /api/v1/users`) - Create user accounts
+- **Products** (`POST /api/v1/products`) - Create products
+- **Estimates** (`POST /api/v1/estimates`) - Create business estimates
+- **Test Models** (`POST /api/v1/test-models`) - Create test models
 
-## Validation & Creation Rules
+## Validation & Business Rules
 
-- Request body must include all required fields with valid formats.
-- Missing or invalid fields must return a `422 Unprocessable Entity` response.
-- All endpoints require authentication (`auth:sanctum` middleware) and user permission validation before creation.
-- Use transactions to ensure data consistency.
-- Log all creation operations for compliance and debugging.
-- Implement rate limiting to prevent abuse.
-- Validate input to prevent injection attacks.
-- Always provide clear feedback about the creation result.
+- Request body must include all required fields with valid formats
+- Missing or invalid fields return `422 Unprocessable Entity` response
+- Each resource has specific validation rules defined in `StoreResourceRequest`
+- Operations are wrapped in database transactions for data consistency
+- All creation operations are logged for audit trails
 
----
+For resource-specific validation rules and required fields, see:
+- [Users Resource](resources/users.md)
+- [Products Resource](resources/products.md)
+- [Estimates Resource](resources/estimates.md)
