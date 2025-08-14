@@ -1,91 +1,130 @@
 # POST Resource Creation Endpoint (Store)
 
-Create a new resource.
+Create a new resource instance.
 
-## Request Structure
+## Summary
 
-### Endpoint Format
+* **Endpoint:** `POST /api/v1/{resource}`
+* **Method:** `POST`
+* **Authentication:** Required (`auth:sanctum`, Bearer token)
+* **Response Format:** JSON
+* **Controller:** [`ApiResourceController.php`](../../../../backend/app/Http/Controllers/ApiResourceController.php)
+* **Route Definition:** [`ApiResourceServiceProvider.php`](../../../../backend/app/Providers/ApiResourceServiceProvider.php)
+* **Permissions:** All authenticated users (future: role-based / ownership rules)
+* **Caching:** Not recommended (state-changing operation)
+* **Error Handling:** Standard error response via `ApiResponseTrait`
+
+## Overview
+
+Creates and persists a new resource record using validated input. Validation logic resides in `StoreResourceRequest`. Controller method `store()` must remain thin and delegate any complex defaults or transformations to model or service layers.
+
+## Endpoint
+
+`POST /api/v1/{resource}`
+
+## Authentication
+
+- Required: Yes
+- Middleware: `auth:sanctum`
+- Scheme: Bearer token
+
+## Request
+### Method & URL
 ```
 POST /api/v1/{resource}
 ```
-
-### Authentication Required
-✅ **Yes** - All resource endpoints require `auth:sanctum` middleware
-
 ### Headers
 ```
-Content-Type: application/json
 Authorization: Bearer {access_token}
+Content-Type: application/json
 ```
-
+### Query Parameters
+None
 ### Request Body
-
-The request body should contain the necessary fields to create the resource. Each resource has specific validation rules and required fields.
-
-### Example Endpoints
-```bash
-POST /api/v1/products
-POST /api/v1/users
-POST /api/v1/estimates
-```
-
-### Authentication
-
+JSON object containing the fields required by the resource. Required & optional fields vary per model (see resource docs in `design/backend/resources/`).
+### Example Request
 ```bash
 curl -X POST "https://api.example.com/api/v1/products" \
-  -H "Authorization: Bearer {your_token_here}" \
+  -H "Authorization: Bearer 1|abc123def456..." \
   -H "Content-Type: application/json" \
-  -d '{"name": "New Product", "price": 99.99}'
+  -d '{"name":"New Product","price":99.99,"status":"active"}'
 ```
 
----
-
-## Response Structure
-
-```json
-{
-  "success": true/false,
-  "message": "<string>",
-  "data": { /* created resource object */ },
-  "error": { /* Refer to design/api/error.md for detailed structure */ }
-}
-```
-
-### Example Response
-
+## Response
+### Success Response
+HTTP 201
 ```json
 {
   "success": true,
   "message": "Resource created successfully",
   "data": {
-    "id": 123,
-    "name": "New Resource",
-    "description": "This is a new resource",
+    "id": 321,
+    "name": "New Product",
+    "price": 99.99,
     "status": "active",
-    "created_at": "2025-01-15T10:30:00.000000Z",
-    "updated_at": "2025-01-15T10:30:00.000000Z"
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T10:30:00Z"
   }
 }
 ```
+### Error Responses
+#### Unauthorized (401)
+```json
+{ "success": false, "message": "Unauthenticated.", "error": { "code": "UNAUTHENTICATED", "details": [] } }
+```
+#### Validation Failed (422)
+```json
+{
+  "success": false,
+  "message": "The given data was invalid",
+  "error": {
+    "code": "UNPROCESSABLE_ENTITY",
+    "details": [],
+    "validation_errors": {
+      "name": ["The name field is required."],
+      "price": ["The price must be a number."]
+    }
+  }
+}
+```
+#### Conflict (409)
+```json
+{ "success": false, "message": "Resource conflict", "error": { "code": "CONFLICT", "details": ["Duplicate value"] } }
+```
+#### Internal Error (500)
+```json
+{ "success": false, "message": "An error occurred while creating the resource", "error": { "code": "INTERNAL_SERVER_ERROR", "details": [] } }
+```
+Refer to [error.md](error.md) for full format list.
 
-## Available Resources
+## Data Model
+### Properties
+See resource-specific documentation for required fields and constraints.
 
-This endpoint structure applies to all auto-generated resources in the BOS system:
+## Menu Structure
+N/A
 
-- **Users** (`POST /api/v1/users`) - Create user accounts
-- **Products** (`POST /api/v1/products`) - Create products
-- **Estimates** (`POST /api/v1/estimates`) - Create business estimates
-- **Test Models** (`POST /api/v1/test-models`) - Create test models
+## Frontend Integration
+- Use form submission with client-side validation first.
+- On success: append new record to in-memory list optimistically.
+- Handle 422 by mapping `validation_errors` to form inputs.
 
-## Validation & Business Rules
+## Caching
+- Invalidate any cached list views after creation.
+- Avoid caching POST responses.
 
-- Request body must include all required fields with valid formats
-- Missing or invalid fields return `422 Unprocessable Entity` response
-- Each resource has specific validation rules defined in `StoreResourceRequest`
-- Operations are wrapped in database transactions for data consistency
-- All creation operations are logged for audit trails
+## Role-Based Access / Permissions
+- Future: enforce create restrictions (e.g., admin-only resources).
 
-For resource-specific validation rules and required fields, see:
-- [Users Resource](resources/users.md)
-- [Products Resource](resources/products.md)
-- [Estimates Resource](resources/estimates.md)
+## Related Endpoints
+- [List Resources](index.md)
+- [Show Resource](show.md)
+- [Update Resource](update.md)
+- [Delete Resource](destroy.md)
+- [Error Codes](error.md)
+
+## Notes / Additional Information
+- Implements `store()` in `ApiResourceController`.
+- Uses `StoreResourceRequest` for validation (see backend requests directory).
+- Database-specific errors parsed via `DatabaseErrorParser` before response.
+- Business logic must live outside controller (e.g., services / model events).

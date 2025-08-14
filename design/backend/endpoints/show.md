@@ -1,98 +1,116 @@
 # GET Single Resource Endpoint (Show)
 
-Retrieve a single resource by its identifier.
+Retrieve a single resource instance by its unique identifier.
 
-## Request Structure
+## Summary
 
-### Endpoint Format
+* **Endpoint:** `GET /api/v1/{resource}/{id}`
+* **Method:** `GET`
+* **Authentication:** Required (`auth:sanctum`, Bearer token)
+* **Response Format:** JSON
+* **Controller:** [`ApiResourceController.php`](../../../../backend/app/Http/Controllers/ApiResourceController.php)
+* **Route Definition:** [`ApiResourceServiceProvider.php`](../../../../backend/app/Providers/ApiResourceServiceProvider.php)
+* **Permissions:** All authenticated users (future: role / policy enforcement)
+* **Caching:** Recommended (short-lived) for frequently accessed read-only entities
+* **Error Handling:** Standard error response via `ApiResponseTrait`
+
+## Overview
+
+Returns a single resource object resolved by `{id}`. Uses the controller's `show()` method which must remain free of business logic and rely solely on model resolution and response formatting.
+
+## Endpoint
+
+`GET /api/v1/{resource}/{id}`
+
+## Authentication
+
+- Required: Yes
+- Middleware: `auth:sanctum`
+- Scheme: Bearer token
+
+## Request
+### Method & URL
 ```
 GET /api/v1/{resource}/{id}
 ```
-
-### Authentication Required
-✅ **Yes** - All resource endpoints require `auth:sanctum` middleware
-
+### Headers
+```
+Authorization: Bearer {access_token}
+```
 ### Path Parameters
-
-- **`id`** _(string | integer)_: **Path Parameter**, is the unique identifier of the resource to be retrieved.
-
-### Example Endpoints
+- `id` (string | integer): Unique identifier of the resource to retrieve.
+### Query Parameters
+None
+### Request Body
+None
+### Example Request
 ```bash
-GET /api/v1/products/{id}
-GET /api/v1/users/{id}
-GET /api/v1/estimates/{id}
+curl -X GET "https://api.example.com/api/v1/products/42" \
+  -H "Authorization: Bearer 1|abc123def456..."
 ```
 
-### Authentication
-
-Include the bearer token in the Authorization header:
-
-```bash
-curl -X GET "https://api.example.com/api/v1/products/123" \
-  -H "Authorization: Bearer {your_token_here}"
-```
-
----
-
-## Response Structure
-
-```json
-{
-  "success": true/false,
-  "message": "<string>",
-  "data": { /* single resource object */ },
-  "error": { /* Refer to design/api/error.md for detailed structure */ }
-}
-```
-
-### Example Response
-
+## Response
+### Success Response
+HTTP 200
 ```json
 {
   "success": true,
   "message": "Resource retrieved successfully",
   "data": {
-    "id": 123,
-    "name": "Example Resource",
-    "description": "This is an example resource",
+    "id": 42,
+    "name": "Sample Product",
     "status": "active",
-    "created_at": "2025-01-15T10:30:00.000000Z",
-    "updated_at": "2025-01-15T10:30:00.000000Z"
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T10:30:00Z"
   }
 }
 ```
+### Error Responses
+#### Unauthorized (401)
+```json
+{ "success": false, "message": "Unauthenticated.", "error": { "code": "UNAUTHENTICATED", "details": [] } }
+```
+#### Not Found (404)
+```json
+{ "success": false, "message": "Resource not found", "error": { "code": "NOT_FOUND", "details": [] } }
+```
+#### Forbidden (403)
+```json
+{ "success": false, "message": "Access denied.", "error": { "code": "FORBIDDEN", "details": [] } }
+```
+#### Internal Error (500)
+```json
+{ "success": false, "message": "An error occurred while fetching the resource", "error": { "code": "INTERNAL_SERVER_ERROR", "details": [] } }
+```
+Refer to [error.md](error.md) for full error format.
 
-## Available Resources
+## Data Model
+### Properties
+See resource definitions in `design/backend/resources/` for field-level descriptions.
 
-This endpoint structure applies to all auto-generated resources in the BOS system:
+## Menu Structure
+N/A
 
-- **Users** (`/api/v1/users/{id}`) - User accounts and profiles
-- **Products** (`/api/v1/products/{id}`) - Product catalog and inventory  
-- **Estimates** (`/api/v1/estimates/{id}`) - Business estimates and quotations
-- **Test Models** (`/api/v1/test-models/{id}`) - Development testing models
+## Frontend Integration
+- Use for detail views / read panels.
+- On 404: redirect to list with notification.
+- Avoid redundant fetches—cache in state store when appropriate.
 
-For resource-specific details, see:
-- [Users Resource](resources/users.md)
-- [Products Resource](resources/products.md)
-- [Estimates Resource](resources/estimates.md)
+## Caching
+- Client-side memoization recommended.
+- Server-side HTTP caching optional (ensure auth context isolation).
 
-### Error Response Example
+## Role-Based Access / Permissions
+- Future: implement policies to restrict sensitive resources.
 
-Refer to [error.md](../error.md) for detailed error response structure.
+## Related Endpoints
+- [List Resources](index.md)
+- [Create Resource](store.md)
+- [Update Resource](update.md)
+- [Delete Resource](destroy.md)
+- [Error Codes](error.md)
 
----
-
-## Validation & Retrieval Rules
-
-- The `id` must be provided in the URL path and be a valid format (integer or string, as required by the model).
-- Non-existent IDs must return a `404 Not Found` response.
-- Invalid ID formats must return a `400 Bad Request` response.
-- All endpoints require authentication (`auth:sanctum` middleware) and user permission validation before retrieval.
-- Sensitive data must be filtered based on user roles.
-- Use eager loading to optimize database queries.
-- Log all retrieval operations for compliance and debugging.
-- Implement rate limiting to prevent abuse.
-- Validate the `id` parameter to prevent injection attacks.
-- Always provide clear feedback about the retrieval result.
-
----
+## Notes / Additional Information
+- Implemented via `show()` in `ApiResourceController`.
+- Uses `simpleSuccessResponse()` from `ApiResponseTrait`.
+- Must not include pagination / search metadata.

@@ -1,116 +1,138 @@
 # PUT/PATCH Resource Update Endpoint (Update)
 
-Update an existing resource.
+Modify an existing resource instance (full or partial update).
 
-## Request Structure
+## Summary
 
-### Endpoint Format
+* **Endpoint:** `PUT /api/v1/{resource}/{id}` & `PATCH /api/v1/{resource}/{id}`
+* **Method:** `PUT | PATCH`
+* **Authentication:** Required (`auth:sanctum`, Bearer token)
+* **Response Format:** JSON
+* **Controller:** [`ApiResourceController.php`](../../../../backend/app/Http/Controllers/ApiResourceController.php)
+* **Route Definition:** [`ApiResourceServiceProvider.php`](../../../../backend/app/Providers/ApiResourceServiceProvider.php)
+* **Permissions:** All authenticated users (future: role-based / ownership)
+* **Caching:** Not recommended (state-changing operation)
+* **Error Handling:** Standard error response via `ApiResponseTrait`
+
+## Overview
+
+Updates a resource identified by `{id}`. `PUT` expects a complete replacement of updatable fields; `PATCH` allows partial modification. Validation logic is centralized in `UpdateResourceRequest`. Controller `update()` must remain thin and delegate any transformation or domain logic outside.
+
+## Endpoint
+
+`PUT /api/v1/{resource}/{id}`  
+`PATCH /api/v1/{resource}/{id}`
+
+## Authentication
+
+- Required: Yes
+- Middleware: `auth:sanctum`
+- Scheme: Bearer token
+
+## Request
+### Method & URL
 ```
 PUT /api/v1/{resource}/{id}
 PATCH /api/v1/{resource}/{id}
 ```
-
-### Authentication Required
-✅ **Yes** - All resource endpoints require `auth:sanctum` middleware
-
-### Method Differences
-- **PUT**: Updates all fields of a resource (full update)
-- **PATCH**: Updates only specified fields (partial update)
-
-### Path Parameters
-- **`id`** _(string | integer)_: Unique identifier of the resource to update
-
 ### Headers
 ```
-Content-Type: application/json
 Authorization: Bearer {access_token}
+Content-Type: application/json
 ```
-
-### Example Endpoints
+### Path Parameters
+- `id` (string | integer): Unique identifier of the resource to update.
+### Query Parameters
+None
+### Request Body
+JSON object containing fields to update. For `PUT`, supply all required editable fields. For `PATCH`, include only the fields to change.
+### Example Request (PATCH)
 ```bash
-PUT /api/v1/products/{id}
-PATCH /api/v1/users/{id}
-PUT /api/v1/estimates/{id}
-```
-
-### Authentication
-
-```bash
-curl -X PATCH "https://api.example.com/api/v1/products/123" \
-  -H "Authorization: Bearer {your_token_here}" \
+curl -X PATCH "https://api.example.com/api/v1/products/42" \
+  -H "Authorization: Bearer 1|abc123def456..." \
   -H "Content-Type: application/json" \
-  -d '{"price": 129.99, "status": "active"}'
+  -d '{"price":129.99,"status":"active"}'
 ```
 
-### Request Examples
-
-#### PUT Request (Full Update)
-```json
-{
-  "name": "Updated Product Name",
-  "description": "Updated product description",
-  "status": "active",
-  "price": 129.99
-}
-```
-
-#### PATCH Request (Partial Update)
-```json
-{
-  "price": 129.99,
-  "status": "inactive"
-}
-```
-
----
-
-## Response Structure
-
-```json
-{
-  "success": true/false,
-  "message": "<string>",
-  "data": { /* updated resource object */ },
-  "error": { /* Refer to design/api/error.md for detailed structure */ }
-}
-```
-
-### Example Response
-
+## Response
+### Success Response
+HTTP 200
 ```json
 {
   "success": true,
   "message": "Resource updated successfully",
   "data": {
-    "id": 123,
-    "name": "Updated Resource",
-    "description": "This is an updated resource",
+    "id": 42,
+    "name": "Updated Product",
+    "price": 129.99,
     "status": "active",
-    "created_at": "2025-01-15T10:30:00.000000Z",
-    "updated_at": "2025-01-15T10:45:00.000000Z"
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T11:05:00Z"
   }
 }
 ```
+### Error Responses
+#### Unauthorized (401)
+```json
+{ "success": false, "message": "Unauthenticated.", "error": { "code": "UNAUTHENTICATED", "details": [] } }
+```
+#### Not Found (404)
+```json
+{ "success": false, "message": "Resource not found", "error": { "code": "NOT_FOUND", "details": [] } }
+```
+#### Validation Failed (422)
+```json
+{
+  "success": false,
+  "message": "The given data was invalid",
+  "error": {
+    "code": "UNPROCESSABLE_ENTITY",
+    "details": [],
+    "validation_errors": {
+      "price": ["The price must be numeric."],
+      "status": ["The selected status is invalid."]
+    }
+  }
+}
+```
+#### Conflict (409)
+```json
+{ "success": false, "message": "Resource conflict", "error": { "code": "CONFLICT", "details": ["Duplicate value"] } }
+```
+#### Internal Error (500)
+```json
+{ "success": false, "message": "An error occurred while updating the resource", "error": { "code": "INTERNAL_SERVER_ERROR", "details": [] } }
+```
+Refer to [error.md](error.md) for full error catalog.
 
-## Available Resources
+## Data Model
+### Properties
+See resource-specific documentation for permissible fields and constraints.
 
-This endpoint structure applies to all auto-generated resources in the BOS system:
+## Menu Structure
+N/A
 
-- **Users** (`PUT/PATCH /api/v1/users/{id}`) - Update user accounts
-- **Products** (`PUT/PATCH /api/v1/products/{id}`) - Update products
-- **Estimates** (`PUT/PATCH /api/v1/estimates/{id}`) - Update business estimates
-- **Test Models** (`PUT/PATCH /api/v1/test-models/{id}`) - Update test models
+## Frontend Integration
+- Use optimistic UI only if rollback strategy exists.
+- Surface `validation_errors` inline for forms.
+- Refresh or patch in-memory entity after success.
 
-## Validation & Business Rules
+## Caching
+- Invalidate or refresh caches containing the updated record.
+- Do not cache update responses.
 
-- The `id` must be provided in the URL path and be a valid format
-- Request body must include valid fields for update
-- Non-existent IDs return `404 Not Found` response
-- Operations are wrapped in database transactions for data consistency
-- Each resource has specific validation rules defined in `UpdateResourceRequest`
-- All update operations are logged for audit trails
+## Role-Based Access / Permissions
+- Future: enforce ownership / role checks (e.g., only creator or admin can modify).
 
-For resource-specific validation rules and fields, see:
-- [Users Resource](resources/users.md)
-- [Products Resource](resources/products.md)
-- [Estimates Resource](resources/estimates.md)
+## Related Endpoints
+- [List Resources](index.md)
+- [Show Resource](show.md)
+- [Create Resource](store.md)
+- [Delete Resource](destroy.md)
+- [Error Codes](error.md)
+
+## Notes / Additional Information
+- Implements `update()` in `ApiResourceController` (supports both PUT & PATCH).
+- Uses `UpdateResourceRequest` for validation.
+- Database errors parsed (e.g., constraint violations) before response.
+- Business logic must not live in controller; extract to services/model events.
