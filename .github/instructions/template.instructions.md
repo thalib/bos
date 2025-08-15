@@ -1,6 +1,6 @@
 ---
 description: 'Concise AI coding-agent template — mandatory rules + essential headings'
-applyTo: '**/*'
+applyTo: '**/*.temp'
 ---
 
 ## Purpose & Scope
