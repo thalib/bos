@@ -1,6 +1,6 @@
 ---
 description: "Coding Guidelines for Laravel 12 API-first backend development"
-applyTo: "backend/**/*.{php,blade.php,json,xml,yml,env,md},design/**/*.md"
+applyTo: "backend/**/*.{php,blade.php,json,xml,yml,env,md},design/backend/**/*.md"
 ---
 
 ## Purpose & Scope

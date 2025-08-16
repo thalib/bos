@@ -64,7 +64,7 @@ class MenuController extends Controller
                         'mode' => 'form',
                     ],
                     [
-                        'id' => 40,
+                        'id' => 61,
                         'name' => 'Estimate',
                         'path' => '/list/estimates',
                         'icon' => 'bi-receipt',

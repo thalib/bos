@@ -1,6 +1,6 @@
 ---
 description: "Laravel 12 backend coding conventions and guidelines for AI agents and contributors"
-applyTo: "backend/**/*.{php,blade.php,json,xml,yml,env,md}"
+applyTo: "backend/**/*.{php,blade.php,json,xml,yml,env,md},design/backend/**/*.md"
 ---
 
 ## Purpose & Scope
@@ -39,6 +39,11 @@ Exact command sequence to run Pint formatting (from repository root):
 cd backend
 ./vendor/bin/pint
 ```
+
+## Test file naming
+
+- **Test file naming convention:** Name test classes and files in CamelCase using the pattern `Test{FeatureOrFileName}Test` (example: `TestUserRegistrationTest`). Keep names descriptive and aligned with the feature under test.
+- **Create test command:** Use Artisan to generate tests: `php artisan make:test {TestName}` (for example: `php artisan make:test TestUserRegistrationTest`).
 
 ## Security & Naming
 
