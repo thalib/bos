@@ -134,4 +134,17 @@ return [
 
     'api_per_page' => env('API_PER_PAGE', 20),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Menu Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration options for the application menu system.
+    | Caching is disabled by default during development.
+    |
+    */
+
+    'menu_cache_enabled' => env('MENU_CACHE_ENABLED', false),
+    'menu_ttl' => env('MENU_TTL', 300),
+
 ];

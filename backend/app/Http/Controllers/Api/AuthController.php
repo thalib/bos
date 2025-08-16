@@ -64,7 +64,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'whatsapp' => $user->whatsapp,
             ],
-            'message' => 'Successfully logged in'
+            'message' => 'Successfully logged in',
         ]);
     }
 
