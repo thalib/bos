@@ -17,10 +17,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {    // Authentication routes
     Route::prefix('auth')->group(function () {
         Route::post('login', [\App\Http\Controllers\Api\AuthController::class, 'login']);
-        Route::post('register', [\App\Http\Controllers\Api\AuthController::class, 'register']);
+        Route::post('register', [\App\Http\Controllers\Api\AuthController::class, 'register'])->middleware('auth:sanctum');
         Route::post('refresh', [\App\Http\Controllers\Api\AuthController::class, 'refresh']);
         Route::post('logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->middleware('auth:sanctum');
-        Route::get('status', [\App\Http\Controllers\Api\AuthController::class, 'status']);
+        Route::get('status', [\App\Http\Controllers\Api\AuthController::class, 'status'])->middleware('auth:sanctum');
     });
 
     // App routes
