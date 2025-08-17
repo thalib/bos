@@ -6,6 +6,7 @@
 * **Response Format:** `[JSON|XML|...]`
 * **Controller:** `[ControllerFile.php]`
 * **Route Definition:** `[routes/api.php]`
+* **Test Definition:** `[test/Test{Feature | Service | Controller Name}Test.php]`
 * **Permissions:** `[All authenticated users|Role-based|Public]`
 * **Caching:** `[Recommended|Not recommended]`
 * **Error Handling:** `[Standard error response|Custom]`
