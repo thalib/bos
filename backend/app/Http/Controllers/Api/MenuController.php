@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use App\Models\User;
 
 /**
  * MenuController handles the application menu retrieval.
@@ -69,9 +69,6 @@ class MenuController extends Controller
      *
      * This helper method contains the actual menu generation logic.
      * Kept in-controller during development while menu structure is changing.
-     *
-     * @param  \App\Models\User  $user
-     * @return array
      */
     private function buildMenuForUser(User $user): array
     {

@@ -117,4 +117,19 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Token Names
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure the names used for authentication tokens
+    | in the application. These names are used when creating tokens.
+    |
+    */
+
+    'token_names' => [
+        'auth' => env('AUTH_TOKEN_NAME', 'auth_token'),
+        'refresh' => env('REFRESH_TOKEN_NAME', 'refresh_token'),
+    ],
+
 ];

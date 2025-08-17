@@ -2,196 +2,379 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RefreshRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Responses\ApiResponseTrait;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
+    use ApiResponseTrait;
+
     /**
      * Handle user login
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function login(Request $request)
+    public function login(LoginRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'username' => 'required',
-            'password' => 'required',
+        $requestId = $this->getOrGenerateRequestId($request);
+
+        // Log login attempt
+        Log::info('login.attempt', [
+            'request_id' => $requestId,
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
+        $identifier = $request->validated()['username'];
+        $password = $request->validated()['password'];
 
-        // First try login with email as username
-        $field = filter_var($request->username, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
-        $user = User::where($field, $request->username)->first();
+        // Resolve user by identifier (email, username, or whatsapp)
+        $user = $this->resolveUserByIdentifier($identifier);
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'message' => 'The provided credentials are incorrect.',
-            ], 401);
+        if (! $user || ! Hash::check($password, $user->password)) {
+            Log::info('login.failure', [
+                'request_id' => $requestId,
+                'identifier' => $identifier,
+                'ip' => $request->ip(),
+                'reason' => 'invalid_credentials',
+            ]);
+
+            return $this->errorResponse(
+                'auth.invalid_credentials',
+                'The provided credentials are incorrect.',
+                401
+            );
         }
 
         // Check if user is active
         if (! $user->active) {
-            return response()->json([
-                'message' => 'Your account is not active. Please contact an administrator.',
-            ], 403);
+            Log::info('login.failure', [
+                'request_id' => $requestId,
+                'actor_id' => $user->id,
+                'ip' => $request->ip(),
+                'reason' => 'inactive_account',
+            ]);
+
+            return $this->errorResponse(
+                'auth.account_inactive',
+                'Your account is not active. Please contact an administrator.',
+                403
+            );
         }
 
-        // Create access token
-        $accessToken = $user->createToken('auth_token')->plainTextToken;
+        // Create tokens
+        $accessTokenName = config('auth.token_names.auth', 'auth_token');
+        $refreshTokenName = config('auth.token_names.refresh', 'refresh_token');
 
-        // Create refresh token (store in database with expiry)
-        $refreshToken = $user->createToken('refresh_token', ['refresh'])->plainTextToken;
+        $accessToken = $user->createToken($accessTokenName)->plainTextToken;
+        $refreshToken = $user->createToken($refreshTokenName, ['refresh'])->plainTextToken;
 
-        return response()->json([
+        Log::info('login.success', [
+            'request_id' => $requestId,
+            'actor_id' => $user->id,
+            'ip' => $request->ip(),
+        ]);
+
+        $responseData = [
             'access_token' => $accessToken,
             'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
-            'expires_in' => null, // Sanctum tokens don't expire by default
+            'expires_in' => null,
             'user' => [
+                'id' => $user->id,
                 'name' => $user->name,
                 'username' => $user->username,
                 'email' => $user->email,
                 'whatsapp' => $user->whatsapp,
+                'role' => $user->role->value,
+                'active' => $user->active,
             ],
-            'message' => 'Successfully logged in',
+        ];
+
+        return $this->simpleSuccessResponse($responseData, 'Logged in')
+            ->header('X-Request-Id', $requestId);
+    }
+
+    /**
+     * Register a new user (admin-only)
+     */
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        $requestId = $this->getOrGenerateRequestId($request);
+        $adminUser = $request->user();
+
+        // Double-check authorization (defense in depth)
+        if ($adminUser?->role !== UserRole::ADMIN) {
+            Log::info('admin.register.unauthorized', [
+                'request_id' => $requestId,
+                'actor_id' => $adminUser?->id,
+                'actor_role' => $adminUser?->role?->value,
+            ]);
+
+            return $this->errorResponse(
+                'auth.insufficient_permissions',
+                'Only administrators can register new users.',
+                403
+            )->header('X-Request-Id', $requestId);
+        }
+
+        Log::info('admin.register.attempt', [
+            'request_id' => $requestId,
+            'actor_id' => $adminUser?->id,
+            'target_email' => $request->validated()['email'],
+            'target_username' => $request->validated()['username'],
         ]);
+
+        $validatedData = $request->validated();
+
+        // Normalize whatsapp to E.164 format
+        $validatedData['whatsapp'] = $this->normalizeWhatsappNumber($validatedData['whatsapp']);
+
+        // Set defaults
+        $validatedData['role'] = $validatedData['role'] ?? UserRole::USER->value;
+        $validatedData['active'] = true;
+        $validatedData['password'] = Hash::make($validatedData['password']);
+
+        try {
+            $user = User::create($validatedData);
+
+            // Create tokens
+            $accessTokenName = config('auth.token_names.auth', 'auth_token');
+            $refreshTokenName = config('auth.token_names.refresh', 'refresh_token');
+
+            $accessToken = $user->createToken($accessTokenName)->plainTextToken;
+            $refreshToken = $user->createToken($refreshTokenName, ['refresh'])->plainTextToken;
+
+            Log::info('admin.register.success', [
+                'request_id' => $requestId,
+                'actor_id' => $adminUser?->id,
+                'created_user_id' => $user->id,
+                'created_user_email' => $user->email,
+            ]);
+
+            $responseData = [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'whatsapp' => $user->whatsapp,
+                    'role' => $user->role->value,
+                    'active' => $user->active,
+                ],
+                'accessToken' => $accessToken,
+                'refreshToken' => $refreshToken,
+            ];
+
+            return $this->simpleSuccessResponse($responseData, 'User created', 201)
+                ->header('X-Request-Id', $requestId);
+
+        } catch (\Exception $e) {
+            Log::error('admin.register.failure', [
+                'request_id' => $requestId,
+                'actor_id' => $adminUser?->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->errorResponse(
+                'user.creation_failed',
+                'Failed to create user. Please try again.',
+                500
+            )->header('X-Request-Id', $requestId);
+        }
     }
 
     /**
      * Refresh access token using refresh token
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function refresh(Request $request)
+    public function refresh(RefreshRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'refreshToken' => 'required|string',
-        ]);
+        $requestId = $this->getOrGenerateRequestId($request);
+        $refreshTokenInput = $request->validated()['refreshToken'];
 
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        // Extract the actual token from "refresh_token|ACTUAL_TOKEN"
-        $refreshToken = explode('|', $request->refreshToken)[1] ?? null;
-
-        if (! $refreshToken) {
-            return response()->json([
-                'message' => 'Invalid refresh token format',
-            ], 401);
+        // Check if using deprecated id|token format
+        $refreshToken = $refreshTokenInput;
+        if (str_contains($refreshTokenInput, '|')) {
+            $parts = explode('|', $refreshTokenInput);
+            if (count($parts) === 2) {
+                $refreshToken = $parts[1];
+                Log::warning('refresh.deprecated_format', [
+                    'request_id' => $requestId,
+                    'message' => 'Deprecated id|token format used for refresh token',
+                ]);
+            }
         }
 
         // Find the token in the database
-        $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($refreshToken);
+        $tokenModel = PersonalAccessToken::findToken($refreshToken);
 
         if (! $tokenModel || ! $tokenModel->tokenable) {
-            return response()->json([
-                'message' => 'Invalid refresh token',
-            ], 401);
+            Log::info('refresh.failure', [
+                'request_id' => $requestId,
+                'reason' => 'invalid_token',
+            ]);
+
+            return $this->errorResponse(
+                'auth.invalid_refresh_token',
+                'Invalid refresh token',
+                401
+            )->header('X-Request-Id', $requestId);
+        }
+
+        // Check if token has refresh ability
+        if (! in_array('refresh', $tokenModel->abilities)) {
+            Log::info('refresh.failure', [
+                'request_id' => $requestId,
+                'token_id' => $tokenModel->id,
+                'reason' => 'missing_refresh_ability',
+            ]);
+
+            return $this->errorResponse(
+                'auth.invalid_refresh_token',
+                'Invalid refresh token',
+                401
+            )->header('X-Request-Id', $requestId);
         }
 
         // Get the user from the token
         $user = $tokenModel->tokenable;
 
-        // Revoke the refresh token
+        // Revoke the old refresh token (rotation)
         $tokenModel->delete();
 
         // Create new tokens
-        $accessToken = $user->createToken('auth_token')->plainTextToken;
-        $newRefreshToken = $user->createToken('refresh_token', ['refresh'])->plainTextToken;
+        $accessTokenName = config('auth.token_names.auth', 'auth_token');
+        $refreshTokenName = config('auth.token_names.refresh', 'refresh_token');
 
-        return response()->json([
-            'user' => $user,
-            'accessToken' => $accessToken,
-            'refreshToken' => $newRefreshToken,
-            'message' => 'Token refreshed successfully',
+        $newAccessToken = $user->createToken($accessTokenName)->plainTextToken;
+        $newRefreshToken = $user->createToken($refreshTokenName, ['refresh'])->plainTextToken;
+
+        Log::info('refresh.success', [
+            'request_id' => $requestId,
+            'actor_id' => $user->id,
         ]);
+
+        $responseData = [
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'email' => $user->email,
+                'whatsapp' => $user->whatsapp,
+                'role' => $user->role->value,
+                'active' => $user->active,
+            ],
+            'accessToken' => $newAccessToken,
+            'refreshToken' => $newRefreshToken,
+        ];
+
+        return $this->simpleSuccessResponse($responseData, 'Token refreshed')
+            ->header('X-Request-Id', $requestId);
     }
 
     /**
      * Handle user logout
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
-        // Revoke all tokens for the authenticated user
-        if (Auth::check()) {
-            Auth::user()->tokens()->delete();
+        $requestId = $this->getOrGenerateRequestId($request);
+        $user = Auth::user();
+
+        if ($user) {
+            // Revoke all tokens for the authenticated user
+            $user->tokens()->delete();
+
+            Log::info('logout.success', [
+                'request_id' => $requestId,
+                'actor_id' => $user->id,
+                'ip' => $request->ip(),
+            ]);
         }
 
-        return response()->json([
-            'message' => 'Successfully logged out',
-        ]);
+        return $this->simpleSuccessResponse(null, 'Logged out')
+            ->header('X-Request-Id', $requestId);
     }
 
     /**
      * Check authentication status
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function status(Request $request)
+    public function status(Request $request): JsonResponse
     {
-        return response()->json([
-            'authenticated' => Auth::check(),
-            'user' => Auth::check() ? Auth::user() : null,
-        ]);
+        $requestId = $this->getOrGenerateRequestId($request);
+        $user = Auth::user();
+        $isAuthenticated = Auth::check();
+
+        $responseData = [
+            'authenticated' => $isAuthenticated,
+            'user' => $isAuthenticated && $user ? [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'email' => $user->email,
+                'whatsapp' => $user->whatsapp,
+                'role' => $user->role->value,
+                'active' => $user->active,
+            ] : null,
+        ];
+
+        return $this->simpleSuccessResponse($responseData, 'Status')
+            ->header('X-Request-Id', $requestId);
     }
 
     /**
-     * Register a new user
-     *
-     * @return \Illuminate\Http\JsonResponse
+     * Resolve user by identifier (email, username, or whatsapp)
      */
-    public function register(Request $request)
+    private function resolveUserByIdentifier(string $identifier): ?User
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'username' => 'required|string|max:255|unique:users',
-            'whatsapp' => 'required|string|regex:/^[0-9]{10,15}$/|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
+        // Try email first
+        if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
+            return User::where('email', $identifier)->first();
         }
 
-        // Create user
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'username' => $request->username,
-            'whatsapp' => $request->whatsapp,
-            'password' => Hash::make($request->password),
-        ]);
+        // Try whatsapp (normalize first, then check if it looks like a phone number)
+        $normalizedWhatsapp = $this->normalizeWhatsappNumber($identifier);
+        if (preg_match('/^[+][0-9]{8,15}$/', $normalizedWhatsapp)) {
+            return User::where('whatsapp', $normalizedWhatsapp)->first();
+        }
 
-        // Create tokens
-        $accessToken = $user->createToken('auth_token')->plainTextToken;
-        $refreshToken = $user->createToken('refresh_token', ['refresh'])->plainTextToken;
+        // Try username as fallback
+        return User::where('username', $identifier)->first();
+    }
 
-        return response()->json([
-            'message' => 'User registered successfully',
-            'user' => $user,
-            'accessToken' => $accessToken,
-            'refreshToken' => $refreshToken,
-        ], 201);
+    /**
+     * Normalize WhatsApp number to E.164 format
+     */
+    private function normalizeWhatsappNumber(string $whatsapp): string
+    {
+        // Remove any non-numeric characters except +
+        $cleaned = preg_replace('/[^+0-9]/', '', $whatsapp);
+
+        // Ensure it starts with +
+        if (! str_starts_with($cleaned, '+')) {
+            $cleaned = '+'.$cleaned;
+        }
+
+        return $cleaned;
+    }
+
+    /**
+     * Get or generate request ID for correlation
+     */
+    private function getOrGenerateRequestId(Request $request): string
+    {
+        $requestId = $request->header('X-Request-Id') ?? Str::uuid()->toString();
+        $request->headers->set('X-Request-Id', $requestId);
+
+        return $requestId;
     }
 }
