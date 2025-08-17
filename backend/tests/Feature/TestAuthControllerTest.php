@@ -200,6 +200,50 @@ describe('Authentication Login', function () {
         expect($response->json('error.details.username'))->toContain('Username/email/phone is required.');
         expect($response->json('error.details.password'))->toContain('Password is required.');
     });
+
+    test('it enforces login rate limiting and returns 429 envelope', function () {
+        $user = User::factory()->create([
+            'email' => 'ratelimit@example.com',
+            'password' => Hash::make('password123'),
+            'active' => true,
+        ]);
+
+        // Exceed rate limit (default: 5 per minute)
+        for ($i = 0; $i < 6; $i++) {
+            $this->postJson('/api/v1/auth/login', [
+                'username' => 'ratelimit@example.com',
+                'password' => 'wrongpassword',
+            ]);
+        }
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'username' => 'ratelimit@example.com',
+            'password' => 'wrongpassword',
+        ]);
+
+        $response->assertStatus(429)
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'error' => [
+                    'code',
+                    'details',
+                ],
+            ])
+            ->assertJson([
+                'success' => false,
+                'error' => [
+                    'code' => 'auth.rate_limited',
+                ],
+            ]);
+        expect($response->json('message'))->toContain('Too many login attempts');
+
+        // Rate limit headers should be preserved (Retry-After or RateLimit)
+        $retryAfter = $response->headers->get('Retry-After');
+        $rateLimit = $response->headers->get('X-RateLimit-Limit');
+        // At least one header should exist
+        expect($retryAfter || $rateLimit)->toBeTruthy();
+    });
 });
 
 describe('Authentication Register', function () {
@@ -233,8 +277,8 @@ describe('Authentication Register', function () {
                         'role',
                         'active',
                     ],
-                    'accessToken',
-                    'refreshToken',
+                    'access_token',
+                    'refresh_token',
                 ],
             ])
             ->assertJson([
@@ -252,8 +296,8 @@ describe('Authentication Register', function () {
                 ],
             ]);
 
-        expect($response->json('data.accessToken'))->not->toBeEmpty();
-        expect($response->json('data.refreshToken'))->not->toBeEmpty();
+        expect($response->json('data.access_token'))->not->toBeEmpty();
+        expect($response->json('data.refresh_token'))->not->toBeEmpty();
 
         $this->assertDatabaseHas('users', [
             'email' => 'john@example.com',
@@ -375,8 +419,8 @@ describe('Token Refresh', function () {
                 'message',
                 'data' => [
                     'user',
-                    'accessToken',
-                    'refreshToken',
+                    'access_token',
+                    'refresh_token',
                 ],
             ])
             ->assertJson([
@@ -395,14 +439,22 @@ describe('Token Refresh', function () {
         $refreshToken = $user->createToken('refresh_token', ['refresh'])->plainTextToken;
 
         // Test that the deprecated format still works
+        // Expect a deprecation warning to be logged when deprecated format is used
+        // Allow other log calls to proceed without failing the test
+        Log::shouldReceive('info')->andReturnNull();
+        Log::shouldReceive('error')->andReturnNull();
+
+        Log::shouldReceive('warning')
+            ->once()
+            ->withArgs(function ($message, $context) {
+                return str_contains($message, 'refresh.deprecated_format') || (is_string($message) && str_contains($message, 'Deprecated id|token format')) || (is_array($context) && isset($context['message']));
+            })->andReturnNull();
+
         $response = $this->postJson('/api/v1/auth/refresh', [
             'refreshToken' => $refreshToken, // This is already id|token format from Sanctum
         ]);
 
         $response->assertStatus(200);
-
-        // Note: In a real scenario, we would check logs for deprecation warning,
-        // but mocking Log in tests conflicts with the exception handler logging
     });
 
     test('it rejects invalid refresh token', function () {

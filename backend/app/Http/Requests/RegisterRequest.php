@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RegisterRequest extends FormRequest
@@ -11,8 +12,28 @@ class RegisterRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Authorization is handled in the controller for better error handling
-        return true;
+        // Enforce admin-only registration at the request level.
+        // This moves authorization into the FormRequest so controllers
+        // can assume validated and authorized input.
+        return $this->user()?->role === UserRole::ADMIN;
+    }
+
+    /**
+     * Handle a failed authorization attempt.
+     * Return a standardized JSON envelope with 403 to match API contract.
+     */
+    protected function failedAuthorization()
+    {
+        $response = response()->json([
+            'success' => false,
+            'message' => 'You do not have permission to perform this action.',
+            'error' => [
+                'code' => 'auth.insufficient_permissions',
+                'details' => [],
+            ],
+        ], 403);
+
+        throw new \Illuminate\Http\Exceptions\HttpResponseException($response);
     }
 
     /**

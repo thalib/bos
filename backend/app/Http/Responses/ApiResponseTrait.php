@@ -30,45 +30,9 @@ trait ApiResponseTrait
         if ($data !== null) {
             $response['data'] = $data;
         }
-
-        // Include pagination object at top level for paginated responses
-        if (! empty($meta['pagination'])) {
-            $response['pagination'] = $meta['pagination'];
-        }
-
-        // Include search at top level - string value or null
-        $response['search'] = $meta['search'] ?? null;
-
-        // Always include filters field (null if no filters available)
-        $response['filters'] = $meta['filters'] ?? null;
-
-        // Always include schema field (null if not available)
-        $response['schema'] = $meta['schema'] ?? null;
-
-        // Always include columns field (never null, fallback to ID column)
-        if (isset($meta['columns'])) {
-            $response['columns'] = $meta['columns'];
-        } elseif ($data !== null && is_array($data) && ! empty($data)) {
-            // Only include default columns for list responses
-            $response['columns'] = $this->getDefaultColumns();
-        }
-
-        // Always include notifications field (null if no notifications)
-        $response['notifications'] = $meta['notifications'] ?? null;
-
-        // Include any remaining metadata (sort, total)
+        // Include remaining metadata (for non-index responses)
         if (! empty($meta)) {
-            $filteredMeta = array_diff_key($meta, [
-                'pagination' => true,
-                'filters' => true,
-                'schema' => true,
-                'columns' => true,
-                'search' => true,
-                'notifications' => true,
-            ]);
-            if (! empty($filteredMeta)) {
-                $response['meta'] = $filteredMeta;
-            }
+            $response['meta'] = $meta;
         }
 
         return response()->json($response, $statusCode);

@@ -113,21 +113,8 @@ class AuthController extends Controller
         $requestId = $this->getOrGenerateRequestId($request);
         $adminUser = $request->user();
 
-        // Double-check authorization (defense in depth)
-        if ($adminUser?->role !== UserRole::ADMIN) {
-            Log::info('admin.register.unauthorized', [
-                'request_id' => $requestId,
-                'actor_id' => $adminUser?->id,
-                'actor_role' => $adminUser?->role?->value,
-            ]);
-
-            return $this->errorResponse(
-                'auth.insufficient_permissions',
-                'Only administrators can register new users.',
-                403
-            )->header('X-Request-Id', $requestId);
-        }
-
+        // Authorization is enforced by RegisterRequest::authorize().
+        // Log the attempt and proceed with the validated input.
         Log::info('admin.register.attempt', [
             'request_id' => $requestId,
             'actor_id' => $adminUser?->id,
@@ -172,8 +159,8 @@ class AuthController extends Controller
                     'role' => $user->role->value,
                     'active' => $user->active,
                 ],
-                'accessToken' => $accessToken,
-                'refreshToken' => $refreshToken,
+                'access_token' => $accessToken,
+                'refresh_token' => $refreshToken,
             ];
 
             return $this->simpleSuccessResponse($responseData, 'User created', 201)
@@ -274,8 +261,8 @@ class AuthController extends Controller
                 'role' => $user->role->value,
                 'active' => $user->active,
             ],
-            'accessToken' => $newAccessToken,
-            'refreshToken' => $newRefreshToken,
+            'access_token' => $newAccessToken,
+            'refresh_token' => $newRefreshToken,
         ];
 
         return $this->simpleSuccessResponse($responseData, 'Token refreshed')
@@ -341,14 +328,19 @@ class AuthController extends Controller
             return User::where('email', $identifier)->first();
         }
 
-        // Try whatsapp (normalize first, then check if it looks like a phone number)
+        // Try username next
+        $maybeUser = User::where('username', $identifier)->first();
+        if ($maybeUser) {
+            return $maybeUser;
+        }
+
+        // Try whatsapp last (normalize first, then check if it looks like a phone number)
         $normalizedWhatsapp = $this->normalizeWhatsappNumber($identifier);
         if (preg_match('/^[+][0-9]{8,15}$/', $normalizedWhatsapp)) {
             return User::where('whatsapp', $normalizedWhatsapp)->first();
         }
 
-        // Try username as fallback
-        return User::where('username', $identifier)->first();
+        return null;
     }
 
     /**

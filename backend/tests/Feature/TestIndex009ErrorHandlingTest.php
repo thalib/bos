@@ -375,6 +375,12 @@ class TestIndex009ErrorHandlingTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?per_page=invalid');
 
+        // Always assert envelope presence to avoid risky test (ensure at least one assertion runs)
+        $response->assertJsonStructure([
+            'success',
+            'message',
+        ]);
+
         if ($response->status() >= 500) {
             $responseBody = $response->getContent();
 
@@ -395,6 +401,12 @@ class TestIndex009ErrorHandlingTest extends TestCase
         // Test that error messages are user-friendly, not technical
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson('/api/v1/products?per_page=101');
+
+        // Ensure envelope structure exists so the test always asserts something
+        $response->assertJsonStructure([
+            'success',
+            'message',
+        ]);
 
         if ($response->status() === 400) {
             $message = $response->json('message');

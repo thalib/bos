@@ -155,6 +155,13 @@ return Application::configure(basePath: dirname(__DIR__))
                     ], 422);
                 }
 
+                // Delegate throttle exception handling to shared helper (keeps behavior
+                // centralized in App\Exceptions\ExceptionResponseHelper).
+                $maybe = \App\Exceptions\ExceptionResponseHelper::throttleJsonResponse($e, $request);
+                if ($maybe) {
+                    return $maybe;
+                }
+
                 // Handle all other exceptions with a generic error response
                 Log::error('API Exception: '.$e->getMessage(), [
                     'exception' => $e,
