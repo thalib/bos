@@ -70,8 +70,9 @@ class MenuController extends Controller
      * Kept in-controller during development while menu structure is changing.
      *
      * @param  \App\Models\User  $user
+     * @return array
      */
-    private function buildMenuForUser($user): array
+    private function buildMenuForUser(User $user): array
     {
         // Menu items with unique IDs and better structure
         return [
