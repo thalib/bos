@@ -1,5 +1,7 @@
 # Login Component Design Specification
 
+Refrence desing : https://opensaas.sh/login
+
 - The Login component provides a user interface for authentication, allowing users to log in with their credentials. It includes fields for username, password, and a "Remember me" option. It also handles form validation, error display, and loading states.
 - This component is essential for user authentication and redirects authenticated users to the dashboard or a specified path.
 
